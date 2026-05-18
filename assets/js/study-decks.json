@@ -1,0 +1,10 @@
+---
+layout: null
+---
+{
+{% for deck in site.data.study_decks %}
+  "{{ deck[0] }}": {
+    "cards": {{ deck[1].cards | jsonify }}
+  }{% unless forloop.last %},{% endunless %}
+{% endfor %}
+}

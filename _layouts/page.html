@@ -1,0 +1,20 @@
+---
+layout: default
+---
+
+<header class="page-header">
+  <p class="eyebrow">{{ page.category | default: site.theme_name }}</p>
+  <h1>{{ page.title | default: site.title }}</h1>
+  {% if page.summary %}
+    <p class="page-summary">{{ page.summary }}</p>
+  {% endif %}
+  {% if page.tags %}
+    <div class="tag-list">
+      {% for tag in page.tags %}
+        <a href="{{ '/tags/' | relative_url }}#{{ tag | slugify }}">{{ tag }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
+</header>
+
+{{ content }}

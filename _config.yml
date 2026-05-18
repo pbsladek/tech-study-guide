@@ -1,0 +1,61 @@
+title: Tech Study Guide
+tagline: Searchable notes for infrastructure, networking, databases, and engineering.
+description: A searchable personal study guide for infrastructure, networking, databases, and engineering notes.
+avatar: /assets/img/snow-mountain-avatar.png
+url: ""
+baseurl: ""
+lang: en
+timezone: America/Los_Angeles
+
+permalink: pretty
+
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+theme_name: StudyGraph
+
+github:
+  username: pbsladek
+
+social:
+  name: Tech Study Guide
+  links: []
+
+toc: true
+
+collections:
+  tabs:
+    output: true
+    sort_by: order
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: page
+  - scope:
+      path: ""
+      type: tabs
+    values:
+      layout: page
+      permalink: /:title/
+
+plugins:
+  - jekyll-redirect-from
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - Dockerfile
+  - Makefile
+  - .dockerignore
+  - .github/
+  - test/
+  - vendor/

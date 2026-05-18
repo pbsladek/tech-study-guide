@@ -1,0 +1,15 @@
+---
+layout: null
+---
+[
+  {% assign indexed_pages = site.pages | where_exp: "item", "item.title and item.url != '/assets/js/search-index.json'" | sort: "title" %}
+  {% for item in indexed_pages %}
+    {
+      "title": {{ item.title | jsonify }},
+      "url": {{ item.url | relative_url | jsonify }},
+      "summary": {{ item.summary | default: item.description | default: "" | jsonify }},
+      "tags": {% if item.tags %}{{ item.tags | jsonify }}{% else %}[]{% endif %},
+      "content": {{ item.content | strip_html | normalize_whitespace | jsonify }}
+    }{% unless forloop.last %},{% endunless %}
+  {% endfor %}
+]

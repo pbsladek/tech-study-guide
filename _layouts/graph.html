@@ -1,0 +1,42 @@
+---
+layout: default
+---
+
+<header class="page-header">
+  <p class="eyebrow">Knowledge Graph</p>
+  <h1>{{ page.title }}</h1>
+  <p class="page-summary">A scalable map generated from topic hierarchy and tags. It gives the study wiki a second navigation model beyond folders.</p>
+</header>
+
+<section class="graph-board" aria-label="Knowledge graph">
+  {% for item in site.data.study_nav %}
+    <article class="graph-node">
+      <a class="graph-title" href="{{ item.url | relative_url }}">{{ item.title }}</a>
+      {% if item.children %}
+        <div class="graph-edges">
+          {% for child in item.children %}
+            <a href="{{ child.url | relative_url }}">{{ child.title }}</a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </article>
+  {% endfor %}
+</section>
+
+<section>
+  <h2>Tag Connections</h2>
+  {% assign tag_buffer = "" %}
+  {% for item in site.pages %}
+    {% for tag in item.tags %}
+      {% assign tag_buffer = tag_buffer | append: tag | append: "|" %}
+    {% endfor %}
+  {% endfor %}
+  {% assign sorted_tags = tag_buffer | split: "|" | uniq | sort %}
+  <div class="tag-cloud">
+    {% for tag in sorted_tags %}
+      {% if tag == "" %}{% continue %}{% endif %}
+      {% assign count = site.pages | where_exp: "item", "item.tags contains tag" | size %}
+      <a href="{{ '/tags/' | relative_url }}#{{ tag | slugify }}">{{ tag }} <span>{{ count }}</span></a>
+    {% endfor %}
+  </div>
+</section>

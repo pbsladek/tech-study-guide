@@ -1,0 +1,93 @@
+- title: Kubernetes
+  url: /docs/kubernetes/
+  icon: fas fa-cubes
+  children:
+    - title: Overview
+      url: /docs/kubernetes/
+    - title: Core Concepts
+      url: /docs/kubernetes/core-concepts/
+    - title: Networking
+      url: /docs/kubernetes/networking/
+    - title: Storage and Upgrades
+      url: /docs/kubernetes/storage-upgrades/
+    - title: Troubleshooting
+      url: /docs/kubernetes/troubleshooting/
+- title: Linux
+  url: /docs/linux/
+  icon: fas fa-terminal
+  children:
+    - title: Overview
+      url: /docs/linux/
+    - title: Boot and Userspace
+      url: /docs/linux/boot-userspace/
+    - title: Filesystems and IO
+      url: /docs/linux/filesystems-io/
+    - title: Network Stack
+      url: /docs/linux/network-stack/
+    - title: Debian and Ubuntu
+      url: /docs/linux/debian-ubuntu/
+    - title: LVM
+      url: /docs/linux/lvm/
+    - title: systemd
+      url: /docs/linux/systemd/
+    - title: resolv.conf
+      url: /docs/linux/resolv-conf/
+- title: DNS
+  url: /docs/dns/
+  icon: fas fa-globe
+  children:
+    - title: Overview
+      url: /docs/dns/
+    - title: Resolution and Caching
+      url: /docs/dns/resolution-caching/
+    - title: Authoritative Zones
+      url: /docs/dns/authoritative-zones/
+    - title: DNSSEC and Privacy
+      url: /docs/dns/dnssec-privacy/
+- title: Networking
+  url: /docs/networking/
+  icon: fas fa-network-wired
+  children:
+    - title: Overview
+      url: /docs/networking/
+    - title: Packet Path
+      url: /docs/networking/packet-path/
+    - title: Routing, NAT, and Firewalls
+      url: /docs/networking/routing-nat-firewalls/
+    - title: Switching, VLANs, and Hosts
+      url: /docs/networking/switching-vlans-hosts/
+    - title: TCP and Sockets
+      url: /docs/networking/tcp-sockets/
+    - title: Certificates and HTTPS
+      url: /docs/networking/certificates-https/
+    - title: TCP, TLS, and HTTP
+      url: /docs/networking/tcp-tls-http/
+- title: Istio
+  url: /docs/istio/
+  icon: fas fa-diagram-project
+  children:
+    - title: Overview
+      url: /docs/istio/
+    - title: Service Mesh
+      url: /docs/istio/service-mesh/
+- title: Ceph
+  url: /docs/ceph/
+  icon: fas fa-layer-group
+  children:
+    - title: Overview
+      url: /docs/ceph/
+    - title: Rook-Ceph
+      url: /docs/ceph/rook-ceph/
+- title: Databases
+  url: /docs/databases/
+  icon: fas fa-database
+  children:
+    - title: Overview
+      url: /docs/databases/
+    - title: PostgreSQL
+      url: /docs/databases/postgres/
+    - title: CloudNativePG
+      url: /docs/databases/postgres/cloudnativepg/
+- title: Study Template
+  url: /docs/template/
+  icon: fas fa-file-lines

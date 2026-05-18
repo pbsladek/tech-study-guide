@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="{{ site.lang | default: 'en' }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    {% seo %}
+    <link rel="icon" href="{{ '/favicon.svg' | relative_url }}" type="image/svg+xml">
+    <link rel="shortcut icon" href="{{ '/favicon.ico' | relative_url }}">
+    <link rel="stylesheet" href="{{ '/assets/css/study.css' | relative_url }}">
+  </head>
+  <body data-baseurl="{{ site.baseurl }}">
+    <a class="skip-link" href="#content">Skip to content</a>
+    <div class="app-shell" data-sidebar-state="open">
+      <aside class="site-sidebar" id="site-sidebar" aria-label="Study navigation">
+        <div class="brand-panel">
+          <a class="brand-avatar" href="{{ '/' | relative_url }}" aria-label="{{ site.title }} home">
+            {% if site.avatar %}
+              <img src="{{ site.avatar | relative_url }}" alt="" width="96" height="96">
+            {% endif %}
+          </a>
+          <div>
+            <a class="brand-title" href="{{ '/' | relative_url }}">{{ site.title }}</a>
+            <p>{{ site.tagline }}</p>
+          </div>
+        </div>
+
+        <div class="sidebar-search">
+          <label for="site-search">Search</label>
+          <input id="site-search" type="search" autocomplete="off" placeholder="Find notes, commands, tags">
+          <div id="search-results" class="search-results" aria-live="polite"></div>
+        </div>
+
+        <nav class="study-nav" aria-label="Topics">
+          <a class="nav-leaf{% if page.url == '/' %} active{% endif %}" href="{{ '/' | relative_url }}">Home</a>
+          <a class="nav-leaf{% if page.url == '/tags/' %} active{% endif %}" href="{{ '/tags/' | relative_url }}">Tags</a>
+          <a class="nav-leaf{% if page.url == '/knowledge-graph/' %} active{% endif %}" href="{{ '/knowledge-graph/' | relative_url }}">Knowledge Graph</a>
+
+          {% for item in site.data.study_nav %}
+            {% assign item_open = false %}
+            {% if page.url contains item.url %}
+              {% assign item_open = true %}
+            {% endif %}
+            {% if item.children %}
+              <details class="nav-group" {% if item_open %}open{% endif %}>
+                <summary>{{ item.title }}</summary>
+                <div class="nav-children">
+                  {% for child in item.children %}
+                    <a class="{% if page.url == child.url %}active{% endif %}" href="{{ child.url | relative_url }}">{{ child.title }}</a>
+                  {% endfor %}
+                </div>
+              </details>
+            {% else %}
+              <a class="nav-leaf{% if page.url == item.url %} active{% endif %}" href="{{ item.url | relative_url }}">{{ item.title }}</a>
+            {% endif %}
+          {% endfor %}
+        </nav>
+      </aside>
+
+      <div class="page-shell">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button class="icon-button mobile-nav-toggle" type="button" data-action="toggle-sidebar" aria-controls="site-sidebar" aria-label="Open navigation">
+              <span></span>
+            </button>
+            <button class="sidebar-collapse" type="button" data-action="collapse-sidebar" aria-label="Collapse left navigation">Nav</button>
+          </div>
+
+          <div class="toolbar" aria-label="Reading controls">
+            <button type="button" data-action="toggle-reader">Reader</button>
+            <button type="button" data-action="open-study" id="study-mode-toggle">Study</button>
+            <button type="button" data-action="toggle-theme" id="mode-toggle">Theme</button>
+            <label>
+              Font
+              <select id="font-family-control">
+                <option value="sans">Sans</option>
+                <option value="serif">Serif</option>
+                <option value="mono">Mono</option>
+              </select>
+            </label>
+            <label>
+              Size
+              <input id="text-size-control" type="range" min="90" max="125" step="5" value="100">
+            </label>
+          </div>
+        </header>
+
+        <main class="content-grid" id="content">
+          <article class="content-card">
+            {{ content }}
+          </article>
+
+          <aside class="right-rail" aria-label="Study context">
+            <section>
+              <h2>Page Tools</h2>
+              <a href="{{ '/knowledge-graph/' | relative_url }}">Open graph</a>
+              <a href="{{ '/tags/' | relative_url }}">Browse tags</a>
+            </section>
+
+            {% if page.tags %}
+              <section>
+                <h2>Tags</h2>
+                <div class="tag-list">
+                  {% for tag in page.tags %}
+                    <a href="{{ '/tags/' | relative_url }}#{{ tag | slugify }}">{{ tag }}</a>
+                  {% endfor %}
+                </div>
+              </section>
+            {% endif %}
+
+            <section>
+              <h2>Study Mode</h2>
+              <button type="button" data-action="open-study">Open Study Mode</button>
+            </section>
+          </aside>
+        </main>
+      </div>
+    </div>
+
+    <div class="sidebar-scrim" data-action="toggle-sidebar" aria-hidden="true"></div>
+    <div class="study-modal" id="study-modal" hidden>
+      <div class="study-modal-panel" role="dialog" aria-modal="true" aria-labelledby="study-modal-title">
+        <div class="study-modal-header">
+          <div>
+            <h2 id="study-modal-title">Study Mode</h2>
+            <p id="study-status">Choose decks and start.</p>
+          </div>
+          <button type="button" data-action="close-study" aria-label="Close study mode">Close</button>
+        </div>
+
+        <div class="study-modal-grid">
+          <aside class="study-setup" aria-label="Study setup">
+            <fieldset>
+              <legend>Topics</legend>
+              <label class="study-check-all">
+                <input type="checkbox" id="study-all-topics" checked>
+                All topics
+              </label>
+              <div id="study-topic-list" class="study-topic-list"></div>
+            </fieldset>
+
+            <label>
+              Mode
+              <select id="study-mode-select">
+                <option value="review">Review</option>
+                <option value="test">Test</option>
+              </select>
+            </label>
+
+            <label>
+              Quiz size
+              <select id="study-size-select">
+                <option value="all">All selected</option>
+                <option value="10">10 cards</option>
+                <option value="25">25 cards</option>
+                <option value="50">50 cards</option>
+              </select>
+            </label>
+
+            <div class="study-actions">
+              <button type="button" data-action="start-study">Start</button>
+              <button type="button" data-action="reset-study">Reset</button>
+            </div>
+          </aside>
+
+          <section class="study-session" aria-live="polite">
+            <div class="study-progress">
+              <span id="study-progress-text">0 / 0</span>
+              <span id="study-score-text">Score: 0 right, 0 wrong</span>
+            </div>
+
+            <article class="study-stage-card" id="study-stage-card" role="button" tabindex="0" aria-pressed="false">
+              <span id="study-card-label">Question</span>
+              <p id="study-card-text">Start a study session.</p>
+            </article>
+
+            <div class="study-card-controls">
+              <button type="button" data-action="previous-card">Previous</button>
+              <button type="button" data-action="reveal-card">Reveal</button>
+              <button type="button" data-action="next-card">Next</button>
+            </div>
+
+            <div class="study-test-controls" id="study-test-controls" hidden>
+              <button type="button" data-action="mark-wrong">Wrong</button>
+              <button type="button" data-action="mark-right">Right</button>
+            </div>
+
+            <div class="study-report" id="study-report" hidden></div>
+          </section>
+        </div>
+      </div>
+    </div>
+    <script src="{{ '/assets/js/study.js' | relative_url }}" defer></script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+{% assign deck = site.data.study_decks[include.deck] %}
+{% if deck %}
+  <section class="study-deck-launcher" data-deck="{{ include.deck }}">
+    <div>
+      <h3>{{ include.deck | capitalize }} Deck</h3>
+      <p>{{ deck.cards | size }} cards</p>
+    </div>
+    <button type="button" data-action="open-study" data-study-deck="{{ include.deck }}">Study</button>
+  </section>
+{% endif %}

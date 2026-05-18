@@ -1,0 +1,84 @@
+<style>
+  #sidebar .study-nav {
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0 1rem 1rem 1rem;
+    overflow-y: auto;
+  }
+
+  #sidebar .study-nav-label {
+    margin: 0.75rem 0 0.35rem;
+    color: var(--sidebar-muted-color);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04rem;
+    text-transform: uppercase;
+  }
+
+  #sidebar .study-nav a,
+  #sidebar .study-nav summary {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2rem;
+    color: var(--sidebar-muted-color);
+    text-decoration: none;
+  }
+
+  #sidebar .study-nav summary {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  #sidebar .study-nav summary::-webkit-details-marker {
+    display: none;
+  }
+
+  #sidebar .study-nav summary::after {
+    content: "\f105";
+    margin-left: auto;
+    font: var(--fa-font-solid);
+    transition: transform 0.15s ease;
+  }
+
+  #sidebar .study-nav details[open] > summary::after {
+    transform: rotate(90deg);
+  }
+
+  #sidebar .study-nav ul {
+    margin: 0 0 0.35rem 1.35rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  #sidebar .study-nav-link,
+  #sidebar .study-nav li a {
+    border-radius: 0.375rem;
+    padding: 0 0.45rem;
+  }
+
+  #sidebar .study-nav summary:hover,
+  #sidebar .study-nav a:hover,
+  #sidebar .study-nav a.active {
+    color: var(--sidebar-active-color);
+  }
+
+  .content > div[class^="language-"] {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 0.625rem;
+  }
+
+  div[class^="language-"] .highlight {
+    padding-bottom: 0;
+  }
+
+  div[class^="language-"] .highlight > code {
+    display: block;
+    overflow-x: auto;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    line-height: 1.4rem;
+    white-space: pre;
+  }
+</style>

@@ -1,0 +1,34 @@
+---
+layout: default
+---
+
+<header class="page-header">
+  <p class="eyebrow">Index</p>
+  <h1>{{ page.title }}</h1>
+  <p class="page-summary">A compact map of topics by tag. Use this as the site grows past a simple folder tree.</p>
+</header>
+
+{% assign tag_buffer = "" %}
+{% for item in site.pages %}
+  {% for tag in item.tags %}
+    {% assign tag_buffer = tag_buffer | append: tag | append: "|" %}
+  {% endfor %}
+{% endfor %}
+{% assign sorted_tags = tag_buffer | split: "|" | uniq | sort %}
+<div class="tag-index">
+  {% for tag in sorted_tags %}
+    {% if tag == "" %}{% continue %}{% endif %}
+    {% assign tagged_pages = site.pages | where_exp: "item", "item.tags contains tag" | sort: "title" %}
+    <section id="{{ tag | slugify }}" class="tag-section">
+      <h2>{{ tag }}</h2>
+      <div class="note-list">
+        {% for item in tagged_pages %}
+          <a href="{{ item.url | relative_url }}">
+            <strong>{{ item.title }}</strong>
+            {% if item.summary %}<span>{{ item.summary }}</span>{% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+</div>
