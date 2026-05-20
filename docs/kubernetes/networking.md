@@ -2,7 +2,7 @@
 title: Kubernetes Networking
 layout: page
 permalink: /docs/kubernetes/networking/
-summary: Pod networking, Services, CoreDNS, kube-dns history, Ingress, Gateway API, and load balancers.
+summary: Pod networking, Services, CoreDNS, kube-dns history, EndpointSlices, NetworkPolicy, Ingress, Gateway API, and load balancers.
 tags:
   - kubernetes
   - networking
@@ -13,6 +13,17 @@ tags:
 # Kubernetes Networking
 
 Kubernetes networking starts from a simple model: every Pod gets a cluster-wide IP, containers in the same Pod share a network namespace, and Pods should be able to communicate without manual port mapping. The hard part is that Kubernetes defines the model while plugins implement much of the datapath.
+
+## Critical Subtopics
+
+| Topic | Why It Matters |
+| --- | --- |
+| [Kubernetes DNS and CoreDNS](../dns-coredns/) | Covers Service DNS names, Pod `/etc/resolv.conf`, `dnsPolicy`, CoreDNS Corefile behavior, forwarding, `ndots`, and DNS failure modes. |
+| [Kubernetes ExternalDNS](../external-dns/) | Covers how Kubernetes hostnames from Services, Ingress, and Gateway API become provider DNS records with ownership, filters, and split-horizon concerns. |
+| [Services and EndpointSlices](../services-endpointslices/) | Explains selectors, readiness, EndpointSlices, kube-proxy, headless Services, LoadBalancer behavior, and source IP tradeoffs. |
+| [Pod Networking and CNI](../pod-networking-cni/) | Separates the Kubernetes network model from CNI implementation details such as routes, overlays, eBPF, Pod CIDRs, and MTU. |
+| [NetworkPolicy](../network-policy/) | Covers ingress and egress isolation, selectors, default deny, DNS egress, CNI enforcement, and policy debugging. |
+| [Ingress, Gateway, and Load Balancers](../ingress-gateway-load-balancers/) | Covers Ingress controllers, Gateway API, Service LoadBalancers, health checks, TLS, SNI, source IP, and edge debugging. |
 
 ## The Pod Network
 
@@ -59,6 +70,8 @@ Default lookup behavior matters:
 - Search paths and `ndots` can generate multiple queries for one application lookup.
 
 CoreDNS must have permissions to list and watch Services, namespaces, Pods, and EndpointSlices. Missing EndpointSlice RBAC can cause SERVFAIL or stale answers.
+
+ExternalDNS is separate from CoreDNS. It watches selected Kubernetes resources and writes records to a DNS provider so clients outside the cluster can resolve names such as `app.example.com`. Debug it through source object status, ExternalDNS logs, provider permissions, and authoritative DNS records rather than through the cluster DNS datapath alone.
 
 Common Kubernetes DNS failures:
 

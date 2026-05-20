@@ -128,45 +128,54 @@
           <button type="button" data-action="close-study" aria-label="Close study mode">Close</button>
         </div>
 
-        <div class="study-modal-grid">
-          <aside class="study-setup" aria-label="Study setup">
-            <fieldset>
-              <legend>Topics</legend>
-              <label class="study-check-all">
-                <input type="checkbox" id="study-all-topics" checked>
-                All topics
-              </label>
+        <div class="study-workspace">
+          <section class="study-setup" aria-label="Study setup">
+            <div class="study-topic-panel">
+              <div class="study-control-heading">
+                <span>Topics</span>
+                <label class="study-check-all">
+                  <input type="checkbox" id="study-all-topics" checked>
+                  All
+                </label>
+              </div>
               <div id="study-topic-list" class="study-topic-list"></div>
-            </fieldset>
-
-            <label>
-              Mode
-              <select id="study-mode-select">
-                <option value="review">Review</option>
-                <option value="test">Test</option>
-              </select>
-            </label>
-
-            <label>
-              Quiz size
-              <select id="study-size-select">
-                <option value="all">All selected</option>
-                <option value="10">10 cards</option>
-                <option value="25">25 cards</option>
-                <option value="50">50 cards</option>
-              </select>
-            </label>
-
-            <div class="study-actions">
-              <button type="button" data-action="start-study">Start</button>
-              <button type="button" data-action="reset-study">Reset</button>
             </div>
-          </aside>
+
+            <div class="study-option-panel">
+              <label>
+                Mode
+                <select id="study-mode-select">
+                  <option value="review">Review</option>
+                  <option value="test">Test</option>
+                </select>
+              </label>
+
+              <label>
+                Size
+                <select id="study-size-select">
+                  <option value="all">All selected</option>
+                  <option value="10">10 cards</option>
+                  <option value="25">25 cards</option>
+                  <option value="50">50 cards</option>
+                </select>
+              </label>
+
+              <div class="study-actions">
+                <button type="button" data-action="start-study">Start</button>
+                <button type="button" data-action="reset-study">Reset</button>
+              </div>
+            </div>
+          </section>
 
           <section class="study-session" aria-live="polite">
-            <div class="study-progress">
-              <span id="study-progress-text">0 / 0</span>
-              <span id="study-score-text">Score: 0 right, 0 wrong</span>
+            <div class="study-session-bar">
+              <div class="study-progress">
+                <span id="study-progress-text">0 / 0</span>
+                <span id="study-score-text">Score: 0 right, 0 wrong</span>
+              </div>
+              <div class="study-progress-track" aria-hidden="true">
+                <span id="study-progress-fill"></span>
+              </div>
             </div>
 
             <article class="study-stage-card" id="study-stage-card" role="button" tabindex="0" aria-pressed="false">

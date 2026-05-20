@@ -16,6 +16,8 @@ CloudNativePG is a Kubernetes operator for PostgreSQL. It introduces a `Cluster`
 
 Do not think of it as "PostgreSQL magically becomes stateless." It is still PostgreSQL with WAL, storage, replication, and restore requirements. The operator automates common lifecycle work around those realities.
 
+CloudNativePG changes quickly, especially around backup plugins and supported Kubernetes/PostgreSQL versions. Treat version-specific install, upgrade, and backup behavior as release-note driven; this page was reviewed against the current 1.28 documentation in May 2026.
+
 ## Core Model
 
 A typical CloudNativePG cluster has:
@@ -148,7 +150,8 @@ Check in this order:
 
 ## References
 
-- [CloudNativePG architecture](https://cloudnative-pg.io/documentation/1.27/architecture/)
+- [CloudNativePG architecture](https://cloudnative-pg.io/docs/1.28/architecture/)
 - [CloudNativePG cloud native overview](https://cloudnative-pg.io/info/cloud-native/)
-- [CloudNativePG backup documentation](https://cloudnative-pg.io/docs/1.27/backup)
-- [Barman Cloud Plugin concepts](https://cloudnative-pg.io/plugin-barman-cloud/docs/0.11.0/concepts/)
+- [CloudNativePG backup documentation](https://cloudnative-pg.io/docs/1.28/backup/)
+- [CloudNativePG supported releases](https://cloudnative-pg.io/docs/1.28/supported_releases/)
+- [Barman Cloud Plugin introduction](https://cloudnative-pg.io/plugin-barman-cloud/docs/intro/)

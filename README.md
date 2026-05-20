@@ -40,9 +40,36 @@ Useful targets:
 make docker-build
 make build
 make test
+make e2e
+make test-all
 make serve
 make stop
 make clean
+```
+
+## Browser Tests
+
+Playwright covers the interactive browser behavior: search, navigation, theme and reader controls, Study Mode, and current major topic pages.
+
+Install the Node dependencies and Chromium browser once:
+
+```bash
+npm install
+npm run playwright:install
+```
+
+Run the browser suite. This target starts the Docker Compose Jekyll server, waits for it, runs Playwright, and stops the server afterward:
+
+```bash
+make e2e
+```
+
+`npm run test:e2e` runs Playwright directly and expects a server to already be available at `BASE_URL` or `http://127.0.0.1:4030`.
+
+Run all local checks:
+
+```bash
+make test-all
 ```
 
 ## GitHub Pages

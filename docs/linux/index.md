@@ -12,7 +12,7 @@ tags:
 
 # Linux OS and Fundamentals
 
-Linux is the layer that turns hardware into process isolation, files, sockets, memory mappings, timers, signals, device drivers, and resource accounting. Developers need it because code eventually becomes processes, syscalls, pages, sockets, and file descriptors. Operators need it because incidents show up as CPU pressure, memory pressure, IO waits, scheduler latency, kernel logs, and device-driver behavior.
+Linux is the layer that turns hardware into process isolation, files, sockets, memory mappings, timers, signals, device drivers, and resource accounting. Developers need it because code eventually becomes processes, syscalls, pages, sockets, and file descriptors. Operators need it because incidents show up as CPU pressure, memory pressure, IO waits, scheduler latency, kernel logs, device-driver behavior, access failures, broken scheduled jobs, SSH lockouts, and host identity drift.
 
 ## Mental Model
 
@@ -36,13 +36,30 @@ The kernel is not only "the thing under user space." It is the shared arbiter fo
 | --- | --- |
 | [Boot and Userspace](boot-userspace/) | Explains how firmware, bootloader, kernel, initramfs, root mounts, and PID 1 turn hardware into services. |
 | [Filesystems and IO](filesystems-io/) | Connects application file operations to VFS, page cache, mounts, inodes, block devices, and durable writes. |
+| [Block Devices and Partitioning](block-devices-partitions/) | Covers `/dev` block devices, NVMe/SCSI naming, GPT, UUIDs, labels, udev, stable paths, and safe disk identity. |
+| [Mounts and fstab](mounts-fstab/) | Covers persistent mounts, `findmnt`, `/etc/fstab`, systemd mount units, automounts, bind mounts, and mount options. |
+| [Mount Namespaces and Propagation](mount-namespaces-propagation/) | Covers per-process mount views, bind mounts, shared subtree propagation, chroot, pivot_root, overlay, tmpfs, and container mount debugging. |
+| [ext4, XFS, and Repair](ext4-xfs-repair/) | Covers ext4/XFS differences, inodes, quotas, journals, online growth, repair tools, TRIM, and safe repair workflows. |
+| [RAID, Multipath, and Device Mapper](raid-multipath-device-mapper/) | Covers md RAID, dm-crypt/LUKS, device mapper, multipath, NVMe multipath, WWIDs, and layered storage troubleshooting. |
+| [Storage Health and Performance](storage-health-performance/) | Covers `iostat`, SMART, NVMe health, kernel I/O errors, discard, queueing, latency, saturation, and failure response. |
 | [Network Stack](network-stack/) | Shows how sockets, routes, namespaces, netfilter, conntrack, queues, and NICs move packets. |
+| [Kernel Network Performance](kernel-network-performance/) | Covers NAPI, softirq, NIC rings, RSS, RPS, RFS, XPS, offloads, qdisc, drops, and packet-processing bottlenecks. |
+| [TCP Kernel Tuning](tcp-kernel-tuning/) | Covers listen queues, `somaxconn`, SYN backlog, socket buffers, ephemeral ports, TIME_WAIT, keepalives, and conntrack limits. |
+| [Sockets and IPC](sockets-ipc/) | Covers TCP, UDP, Unix domain sockets, socket files, listen queues, buffers, file descriptors, pipes, shared memory, and IPC troubleshooting. |
+| [Processes and Threads](processes-threads/) | Covers tasks, PIDs, TIDs, thread groups, fork/exec/wait, zombies, signals, PID namespaces, scheduling, and thread debugging. |
 | [Debian and Ubuntu Operations](debian-ubuntu/) | Uses Ubuntu Server as the default distro lens for packages, services, Netplan, UFW, logs, and certificates. |
+| [Users, Permissions, and sudo](users-permissions-sudo/) | Covers UIDs, GIDs, `/etc/passwd`, `/etc/shadow`, mode bits, ACLs, service users, and sudo policy. |
+| [SSH Access](ssh-access/) | Covers OpenSSH server policy, keys, host keys, PAM, account state, firewalls, and login troubleshooting. |
+| [Logs and Observability](logs-observability/) | Covers journald, kernel logs, `/var/log`, log rotation, metrics, PSI, and incident evidence collection. |
+| [Scheduled Automation](scheduled-automation/) | Covers cron, systemd timers, job safety, idempotency, environment pitfalls, locking, and logs. |
+| [Time, Hostname, and Identity](time-hostname/) | Covers time sync, timezone, hostname, DNS identity, machine-id, certificates, and incident timelines. |
 | [LVM](lvm/) | Covers the storage mapping layer behind many Linux volumes. |
 | [systemd](systemd/) | Covers service lifecycle, dependencies, logs, cgroups, timers, and resource controls. |
+| [systemd Networking](systemd-networking/) | Covers systemd-networkd, systemd-resolved, `.network`, `.netdev`, `.link`, network targets, and wait-online behavior. |
+| [systemd Socket Activation](systemd-socket-network-services/) | Covers `.socket` units, `ListenStream`, `ListenDatagram`, `Accept=yes`, service activation, and network service controls. |
 | [resolv.conf](resolv-conf/) | Covers local DNS resolver behavior, search paths, and systemd-resolved interactions. |
 
-Unless a page is explicitly distro-neutral, examples prefer Debian-family Linux with Ubuntu Server as the default operational target. That means `apt`, `dpkg`, `systemctl`, `journalctl`, Netplan, UFW, `/etc/ssl/certs`, and `update-ca-certificates` are the expected baseline tools.
+Unless a page is explicitly distro-neutral, examples prefer Debian-family Linux with Ubuntu Server as the default operational target. That means `apt`, `dpkg`, `systemctl`, `journalctl`, Netplan, UFW, `/etc/ssl/certs`, `update-ca-certificates`, OpenSSH, `sudo`, `timedatectl`, and systemd timers are the expected baseline tools.
 
 ## Processes, Forking, Exec, and Wait
 
@@ -340,8 +357,25 @@ dmesg -T | tail -100
 - [NVIDIA driver persistence documentation](https://docs.nvidia.com/deploy/driver-persistence/index.html)
 - [Linux boot and userspace](boot-userspace/)
 - [Linux filesystems and IO](filesystems-io/)
+- [Linux block devices and partitioning](block-devices-partitions/)
+- [Linux mounts and fstab](mounts-fstab/)
+- [Linux mount namespaces and propagation](mount-namespaces-propagation/)
+- [ext4, XFS, and filesystem repair](ext4-xfs-repair/)
+- [RAID, multipath, and device mapper](raid-multipath-device-mapper/)
+- [Linux storage health and performance](storage-health-performance/)
 - [Linux network stack](network-stack/)
+- [Linux kernel network performance](kernel-network-performance/)
+- [Linux TCP kernel tuning](tcp-kernel-tuning/)
+- [Linux sockets and IPC](sockets-ipc/)
+- [Linux processes and threads](processes-threads/)
 - [Debian and Ubuntu operations](debian-ubuntu/)
+- [Users, permissions, and sudo](users-permissions-sudo/)
+- [SSH access](ssh-access/)
+- [Logs and observability](logs-observability/)
+- [Scheduled automation](scheduled-automation/)
+- [Time, hostname, and identity](time-hostname/)
 - [Linux LVM](lvm/)
 - [systemd](systemd/)
+- [systemd networking](systemd-networking/)
+- [systemd socket activation and network services](systemd-socket-network-services/)
 - [resolv.conf](resolv-conf/)

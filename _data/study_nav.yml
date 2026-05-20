@@ -8,10 +8,28 @@
       url: /docs/kubernetes/core-concepts/
     - title: Networking
       url: /docs/kubernetes/networking/
+    - title: DNS and CoreDNS
+      url: /docs/kubernetes/dns-coredns/
+    - title: ExternalDNS
+      url: /docs/kubernetes/external-dns/
+    - title: Services and EndpointSlices
+      url: /docs/kubernetes/services-endpointslices/
+    - title: Pod Networking and CNI
+      url: /docs/kubernetes/pod-networking-cni/
+    - title: NetworkPolicy
+      url: /docs/kubernetes/network-policy/
+    - title: Ingress, Gateway, and Load Balancers
+      url: /docs/kubernetes/ingress-gateway-load-balancers/
     - title: Storage and Upgrades
       url: /docs/kubernetes/storage-upgrades/
     - title: Troubleshooting
       url: /docs/kubernetes/troubleshooting/
+- title: Troubleshooting
+  url: /docs/troubleshooting/
+  icon: fas fa-exclamation-triangle
+  children:
+    - title: Overview
+      url: /docs/troubleshooting/
 - title: Linux
   url: /docs/linux/
   icon: fas fa-terminal
@@ -22,14 +40,48 @@
       url: /docs/linux/boot-userspace/
     - title: Filesystems and IO
       url: /docs/linux/filesystems-io/
+    - title: Block Devices and Partitioning
+      url: /docs/linux/block-devices-partitions/
+    - title: Mounts and fstab
+      url: /docs/linux/mounts-fstab/
+    - title: Mount Namespaces and Propagation
+      url: /docs/linux/mount-namespaces-propagation/
+    - title: ext4, XFS, and Repair
+      url: /docs/linux/ext4-xfs-repair/
+    - title: RAID, Multipath, and Device Mapper
+      url: /docs/linux/raid-multipath-device-mapper/
+    - title: Storage Health and Performance
+      url: /docs/linux/storage-health-performance/
     - title: Network Stack
       url: /docs/linux/network-stack/
+    - title: Kernel Network Performance
+      url: /docs/linux/kernel-network-performance/
+    - title: TCP Kernel Tuning
+      url: /docs/linux/tcp-kernel-tuning/
+    - title: Sockets and IPC
+      url: /docs/linux/sockets-ipc/
+    - title: Processes and Threads
+      url: /docs/linux/processes-threads/
     - title: Debian and Ubuntu
       url: /docs/linux/debian-ubuntu/
+    - title: Users, Permissions, and sudo
+      url: /docs/linux/users-permissions-sudo/
+    - title: SSH Access
+      url: /docs/linux/ssh-access/
+    - title: Logs and Observability
+      url: /docs/linux/logs-observability/
+    - title: Scheduled Automation
+      url: /docs/linux/scheduled-automation/
+    - title: Time, Hostname, and Identity
+      url: /docs/linux/time-hostname/
     - title: LVM
       url: /docs/linux/lvm/
     - title: systemd
       url: /docs/linux/systemd/
+    - title: systemd Networking
+      url: /docs/linux/systemd-networking/
+    - title: systemd Socket Activation
+      url: /docs/linux/systemd-socket-network-services/
     - title: resolv.conf
       url: /docs/linux/resolv-conf/
 - title: DNS
@@ -44,6 +96,10 @@
       url: /docs/dns/authoritative-zones/
     - title: DNSSEC and Privacy
       url: /docs/dns/dnssec-privacy/
+    - title: Records, Responses, and Transport
+      url: /docs/dns/records-transport-operations/
+    - title: Domain Controllers
+      url: /docs/dns/domain-controllers/
 - title: Networking
   url: /docs/networking/
   icon: fas fa-network-wired
@@ -54,10 +110,26 @@
       url: /docs/networking/packet-path/
     - title: Routing, NAT, and Firewalls
       url: /docs/networking/routing-nat-firewalls/
+    - title: NAT Gateways and NAT
+      url: /docs/networking/nat-gateways/
+    - title: Firewalls, iptables, and Netfilter
+      url: /docs/networking/firewalls-iptables-netfilter/
+    - title: VPNs and IPsec Tunnels
+      url: /docs/networking/vpn-ipsec-tunnels/
     - title: Switching, VLANs, and Hosts
       url: /docs/networking/switching-vlans-hosts/
+    - title: IP Addressing and Subnetting
+      url: /docs/networking/ip-addressing-subnetting/
+    - title: ICMP, MTU, and Path Testing
+      url: /docs/networking/icmp-mtu-path-testing/
     - title: TCP and Sockets
       url: /docs/networking/tcp-sockets/
+    - title: UDP, QUIC, and Connectionless Traffic
+      url: /docs/networking/udp-quic-connectionless/
+    - title: Load Balancers and Proxies
+      url: /docs/networking/load-balancers-proxies/
+    - title: Forward and Reverse Proxies
+      url: /docs/networking/proxies-forward-reverse/
     - title: Certificates and HTTPS
       url: /docs/networking/certificates-https/
     - title: TCP, TLS, and HTTP

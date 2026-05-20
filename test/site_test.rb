@@ -7,6 +7,15 @@ class SiteTest < Minitest::Test
   ROOT = File.expand_path("..", __dir__)
 
   COMMAND_BLOCKS = {
+    "docs/troubleshooting/index.html" => [
+      "date -Is",
+      "hostnamectl",
+      "systemctl --failed",
+      "journalctl -p warning..alert -b",
+      "kubectl get events --all-namespaces --sort-by=.lastTimestamp",
+      "curl -v https://example.com/",
+      "dig example.com"
+    ],
     "docs/linux/index.html" => [
       "ls -l /proc/<pid>/fd",
       "lsof -p <pid>",
@@ -31,6 +40,22 @@ class SiteTest < Minitest::Test
       "systemctl disable nginx.service",
       "systemctl daemon-reload"
     ],
+    "docs/linux/systemd-networking/index.html" => [
+      "networkctl status",
+      "networkctl list",
+      "resolvectl status",
+      "systemctl status systemd-networkd systemd-resolved",
+      "journalctl -u systemd-networkd -b",
+      "systemd-analyze critical-chain network-online.target"
+    ],
+    "docs/linux/systemd-socket-network-services/index.html" => [
+      "systemctl list-sockets",
+      "systemctl status ssh.socket",
+      "systemctl cat ssh.socket",
+      "systemctl show <service> -p IPAccounting -p IPAddressDeny -p SocketBindDeny",
+      "journalctl -u <service> -b",
+      "ss -tulpen"
+    ],
     "docs/linux/resolv-conf/index.html" => [
       "readlink -f /etc/resolv.conf",
       "cat /etc/resolv.conf",
@@ -54,6 +79,51 @@ class SiteTest < Minitest::Test
       "iostat -xz 1",
       "journalctl -k -g 'I/O error|EXT4|XFS|blk|nvme|scsi'"
     ],
+    "docs/linux/block-devices-partitions/index.html" => [
+      "lsblk -o NAME,MAJ:MIN,SIZE,TYPE,FSTYPE,MOUNTPOINTS",
+      "blkid",
+      "udevadm info --query=all --name=/dev/sda | head",
+      "parted -l",
+      "cat /proc/partitions"
+    ],
+    "docs/linux/mounts-fstab/index.html" => [
+      "findmnt",
+      "findmnt --verify",
+      "cat /etc/fstab",
+      "systemctl list-units --type=mount",
+      "mount -a -v"
+    ],
+    "docs/linux/mount-namespaces-propagation/index.html" => [
+      "findmnt -o TARGET,SOURCE,FSTYPE,OPTIONS,PROPAGATION",
+      "readlink /proc/<pid>/ns/mnt",
+      "cat /proc/<pid>/mountinfo",
+      "lsns -t mnt",
+      "nsenter --target <pid> --mount -- findmnt"
+    ],
+    "docs/linux/ext4-xfs-repair/index.html" => [
+      "df -hT",
+      "df -i",
+      "lsblk -f",
+      "sudo xfs_info /mountpoint",
+      "sudo tune2fs -l /dev/sdX1 | head",
+      "journalctl -k -g 'EXT4|XFS|I/O error|readonly'"
+    ],
+    "docs/linux/raid-multipath-device-mapper/index.html" => [
+      "cat /proc/mdstat",
+      "mdadm --detail --scan",
+      "dmsetup ls --tree",
+      "multipath -ll",
+      "cryptsetup status <name>",
+      "lsblk -o NAME,TYPE,FSTYPE,SIZE,MOUNTPOINTS"
+    ],
+    "docs/linux/storage-health-performance/index.html" => [
+      "iostat -xz 1",
+      "lsblk -D",
+      "smartctl -a /dev/sda",
+      "nvme smart-log /dev/nvme0",
+      "dmesg -T | grep -Ei 'I/O error|medium error|nvme|scsi|reset'",
+      "journalctl -k -p warning..alert"
+    ],
     "docs/linux/network-stack/index.html" => [
       "ip addr",
       "ip route",
@@ -63,6 +133,38 @@ class SiteTest < Minitest::Test
       "nft list ruleset",
       "cat /proc/net/softnet_stat"
     ],
+    "docs/linux/kernel-network-performance/index.html" => [
+      "sar -n DEV,TCP,ETCP 1",
+      "ss -s",
+      "ip -s link",
+      "ethtool -S <interface>",
+      "cat /proc/net/softnet_stat",
+      "mpstat -P ALL 1"
+    ],
+    "docs/linux/tcp-kernel-tuning/index.html" => [
+      "sysctl net.core.somaxconn",
+      "sysctl net.ipv4.tcp_max_syn_backlog",
+      "sysctl net.ipv4.ip_local_port_range",
+      "sysctl net.ipv4.tcp_fin_timeout",
+      "ss -ltn",
+      "cat /proc/net/sockstat"
+    ],
+    "docs/linux/sockets-ipc/index.html" => [
+      "ss -tulpen",
+      "ss -xap",
+      "lsof -p <pid>",
+      "ls -l /proc/<pid>/fd",
+      "cat /proc/net/sockstat",
+      "sysctl net.core.somaxconn"
+    ],
+    "docs/linux/processes-threads/index.html" => [
+      "ps -eLf",
+      "pstree -ap",
+      "top -H -p <pid>",
+      "cat /proc/<pid>/status",
+      "ls /proc/<pid>/task",
+      "cat /proc/<pid>/limits"
+    ],
     "docs/linux/debian-ubuntu/index.html" => [
       "cat /etc/os-release",
       "uname -a",
@@ -70,6 +172,44 @@ class SiteTest < Minitest::Test
       "systemctl --failed",
       "journalctl -p warning..alert -b",
       "ls -l /etc/netplan"
+    ],
+    "docs/linux/users-permissions-sudo/index.html" => [
+      "id",
+      "getent passwd",
+      "getent group sudo",
+      "sudo -l",
+      "ls -l /etc/passwd /etc/shadow /etc/sudoers",
+      "sudo visudo -c"
+    ],
+    "docs/linux/ssh-access/index.html" => [
+      "sudo systemctl status ssh",
+      "sudo sshd -T",
+      "grep -R '^[^#]' /etc/ssh/sshd_config /etc/ssh/sshd_config.d 2>/dev/null",
+      "journalctl -u ssh -b",
+      "ssh -vvv user@example.com"
+    ],
+    "docs/linux/logs-observability/index.html" => [
+      "journalctl -b",
+      "journalctl -p warning..alert -b",
+      "journalctl -u ssh -b",
+      "dmesg -T | tail -100",
+      "ls -lh /var/log",
+      "systemctl status systemd-journald"
+    ],
+    "docs/linux/scheduled-automation/index.html" => [
+      "systemctl list-timers --all",
+      "crontab -l",
+      "sudo ls -l /etc/cron.d /etc/cron.daily /var/spool/cron/crontabs",
+      "systemctl status cron",
+      "journalctl -u cron -b"
+    ],
+    "docs/linux/time-hostname/index.html" => [
+      "timedatectl",
+      "systemctl status systemd-timesyncd",
+      "journalctl -u systemd-timesyncd -b",
+      "date -Is",
+      "hostnamectl",
+      "cat /etc/hostname"
     ],
     "docs/kubernetes/index.html" => [
       "kubectl apply -f deployment.yaml"
@@ -85,6 +225,52 @@ class SiteTest < Minitest::Test
       "kubectl get nodes",
       "kubectl get pods --all-namespaces",
       "kubectl get events --sort-by=.lastTimestamp"
+    ],
+    "docs/kubernetes/dns-coredns/index.html" => [
+      "kubectl -n kube-system get deploy,svc,endpointslice -l k8s-app=kube-dns",
+      "kubectl -n kube-system logs deployment/coredns",
+      "kubectl exec -it <pod> -- cat /etc/resolv.conf",
+      "kubectl exec -it <pod> -- nslookup kubernetes.default.svc.cluster.local",
+      "kubectl -n kube-system get configmap coredns -o yaml"
+    ],
+    "docs/kubernetes/external-dns/index.html" => [
+      "kubectl -n external-dns get deploy,sa,secret",
+      "kubectl -n external-dns logs deployment/external-dns",
+      "kubectl get ingress,svc,gateway,httproute --all-namespaces",
+      "kubectl describe ingress <name> -n <namespace>",
+      "dig <hostname>"
+    ],
+    "docs/kubernetes/services-endpointslices/index.html" => [
+      "kubectl get svc <service> -o wide",
+      "kubectl describe svc <service>",
+      "kubectl get endpointslice -l kubernetes.io/service-name=<service>",
+      "kubectl get pods -l <selector> -o wide",
+      "kubectl describe pod <pod>",
+      "kubectl get events --sort-by=.lastTimestamp"
+    ],
+    "docs/kubernetes/pod-networking-cni/index.html" => [
+      "kubectl get nodes -o wide",
+      "kubectl get pods -A -o wide",
+      "kubectl describe node <node>",
+      "kubectl -n kube-system get pods -o wide",
+      "kubectl exec -it <pod> -- ip addr",
+      "kubectl exec -it <pod> -- ip route"
+    ],
+    "docs/kubernetes/network-policy/index.html" => [
+      "kubectl get networkpolicy -A",
+      "kubectl describe networkpolicy <policy>",
+      "kubectl get pods --show-labels",
+      "kubectl get namespace --show-labels",
+      "kubectl exec -it <pod> -- nc -vz <service> <port>",
+      "kubectl exec -it <pod> -- nslookup kubernetes.default.svc.cluster.local"
+    ],
+    "docs/kubernetes/ingress-gateway-load-balancers/index.html" => [
+      "kubectl get ingress,gateway,httproute --all-namespaces",
+      "kubectl describe ingress <name>",
+      "kubectl describe gateway <name>",
+      "kubectl get svc -A --field-selector spec.type=LoadBalancer",
+      "kubectl get endpointslice -l kubernetes.io/service-name=<service>",
+      "curl -vk https://<host>/"
     ],
     "docs/dns/index.html" => [
       "dig example.com A",
@@ -116,6 +302,23 @@ class SiteTest < Minitest::Test
       "delv example.com",
       "resolvectl query example.com"
     ],
+    "docs/dns/records-transport-operations/index.html" => [
+      "dig example.com A",
+      "dig example.com AAAA",
+      "dig example.com MX",
+      "dig example.com TXT",
+      "dig +bufsize=1232 example.com DNSKEY",
+      "dig +tcp example.com DNSKEY",
+      "dig -x 203.0.113.10"
+    ],
+    "docs/dns/domain-controllers/index.html" => [
+      "dig _ldap._tcp.dc._msdcs.example.com SRV",
+      "dig _kerberos._tcp.example.com SRV",
+      "dig example.com SOA",
+      "nslookup -type=SRV _ldap._tcp.dc._msdcs.example.com",
+      "nltest /dsgetdc:example.com",
+      "dcdiag /test:dns"
+    ],
     "docs/networking/index.html" => [
       "ip addr",
       "ip link",
@@ -142,6 +345,32 @@ class SiteTest < Minitest::Test
       "conntrack -S",
       "conntrack -L | head"
     ],
+    "docs/networking/nat-gateways/index.html" => [
+      "ip route get 198.51.100.10",
+      "ip rule",
+      "nft list ruleset",
+      "conntrack -S",
+      "conntrack -L -p tcp --orig-src 10.0.0.10 2>/dev/null | head",
+      "ss -tan state established",
+      "tcpdump -nn -i any 'host 198.51.100.10 or host 10.0.0.10'"
+    ],
+    "docs/networking/firewalls-iptables-netfilter/index.html" => [
+      "nft list ruleset",
+      "iptables-save",
+      "ip6tables-save",
+      "conntrack -S",
+      "conntrack -L | head",
+      "journalctl -k -g 'DROP|REJECT|nft|iptables|conntrack'"
+    ],
+    "docs/networking/vpn-ipsec-tunnels/index.html" => [
+      "ip route",
+      "ip rule",
+      "ip xfrm state",
+      "ip xfrm policy",
+      "ipsec statusall",
+      "tcpdump -nn -i any udp port 500 or udp port 4500 or esp",
+      "ping -M do -s 1372 <remote-ip>"
+    ],
     "docs/networking/switching-vlans-hosts/index.html" => [
       "ip link",
       "bridge link",
@@ -149,6 +378,22 @@ class SiteTest < Minitest::Test
       "ip -d link show",
       "cat /etc/hosts",
       "getent hosts example.internal"
+    ],
+    "docs/networking/ip-addressing-subnetting/index.html" => [
+      "ip addr show",
+      "ip route show",
+      "ip route get 198.51.100.10",
+      "ip -6 route show",
+      "ip -6 neigh show",
+      "getent ahosts example.com"
+    ],
+    "docs/networking/icmp-mtu-path-testing/index.html" => [
+      "ping -c 4 198.51.100.10",
+      "ping -M do -s 1472 198.51.100.10",
+      "tracepath 198.51.100.10",
+      "traceroute 198.51.100.10",
+      "ip link show",
+      "tcpdump -nn -i any icmp or icmp6"
     ],
     "docs/networking/tcp-tls-http/index.html" => [
       "nc -vz example.com 443",
@@ -171,6 +416,30 @@ class SiteTest < Minitest::Test
       "sysctl net.ipv4.ip_local_port_range",
       "sysctl net.core.somaxconn",
       "cat /proc/net/sockstat"
+    ],
+    "docs/networking/udp-quic-connectionless/index.html" => [
+      "ss -uan",
+      "sudo tcpdump -nn -i any udp",
+      "conntrack -L -p udp 2>/dev/null | head",
+      "dig +notcp example.com A",
+      "dig +tcp example.com A",
+      "openssl s_client -connect example.com:443 -servername example.com"
+    ],
+    "docs/networking/load-balancers-proxies/index.html" => [
+      "curl -v https://example.com/",
+      "curl -vk --resolve example.com:443:198.51.100.10 https://example.com/",
+      "openssl s_client -connect example.com:443 -servername example.com",
+      "dig example.com A",
+      "ss -tan state established",
+      "tcpdump -nn -i any host 198.51.100.10"
+    ],
+    "docs/networking/proxies-forward-reverse/index.html" => [
+      "env | grep -i proxy",
+      "curl -v --proxy http://proxy.example:3128 https://example.com/",
+      "curl -v --noproxy '*' https://example.com/",
+      "openssl s_client -proxy proxy.example:3128 -connect example.com:443 -servername example.com",
+      "dig proxy.example",
+      "tcpdump -nn -i any host proxy.example"
     ],
     "docs/kubernetes/storage-upgrades/index.html" => [
       "kubectl get pv,pvc,storageclass,volumesnapshotclass",
@@ -302,47 +571,117 @@ class SiteTest < Minitest::Test
   def test_search_index_contains_pages_tags_and_content
     index = JSON.parse(read_site("assets/js/search-index.json"))
     postgres = index.find { |item| item["title"] == "PostgreSQL" }
+    troubleshooting = index.find { |item| item["title"] == "Troubleshooting and Error Handling" }
     ceph = index.find { |item| item["title"] == "Ceph" }
     lvm = index.find { |item| item["title"] == "Linux LVM" }
     systemd = index.find { |item| item["title"] == "systemd" }
     resolv = index.find { |item| item["title"] == "resolv.conf" }
     boot = index.find { |item| item["title"] == "Linux Boot and Userspace" }
     filesystems = index.find { |item| item["title"] == "Linux Filesystems and IO" }
+    block_devices = index.find { |item| item["title"] == "Linux Block Devices and Partitioning" }
+    mounts = index.find { |item| item["title"] == "Linux Mounts and fstab" }
+    mount_namespaces = index.find { |item| item["title"] == "Linux Mount Namespaces and Propagation" }
+    ext4_xfs = index.find { |item| item["title"] == "ext4, XFS, and Filesystem Repair" }
+    raid_multipath = index.find { |item| item["title"] == "RAID, Multipath, and Device Mapper" }
+    storage_health = index.find { |item| item["title"] == "Linux Storage Health and Performance" }
     linux_network = index.find { |item| item["title"] == "Linux Network Stack" }
+    kernel_network_performance = index.find { |item| item["title"] == "Linux Kernel Network Performance" }
+    tcp_kernel_tuning = index.find { |item| item["title"] == "Linux TCP Kernel Tuning" }
+    sockets_ipc = index.find { |item| item["title"] == "Linux Sockets and IPC" }
+    processes_threads = index.find { |item| item["title"] == "Linux Processes and Threads" }
+    users_permissions = index.find { |item| item["title"] == "Users, Permissions, and sudo" }
+    ssh_access = index.find { |item| item["title"] == "SSH Access" }
+    logs = index.find { |item| item["title"] == "Logs and Observability" }
+    scheduled = index.find { |item| item["title"] == "Scheduled Automation" }
+    time_hostname = index.find { |item| item["title"] == "Time, Hostname, and Identity" }
+    systemd_networking = index.find { |item| item["title"] == "systemd Networking" }
+    systemd_socket_network = index.find { |item| item["title"] == "systemd Socket Activation and Network Services" }
     dns_cache = index.find { |item| item["title"] == "DNS Resolution and Caching" }
     zones = index.find { |item| item["title"] == "Authoritative DNS and Zones" }
     dnssec = index.find { |item| item["title"] == "DNSSEC and DNS Privacy" }
+    dns_records = index.find { |item| item["title"] == "DNS Records, Responses, and Transport" }
     packet_path = index.find { |item| item["title"] == "Packet Path" }
     routing = index.find { |item| item["title"] == "Routing, NAT, and Firewalls" }
+    nat_gateways = index.find { |item| item["title"] == "NAT Gateways and Network Address Translation" }
+    firewall_netfilter = index.find { |item| item["title"] == "Firewalls, iptables, and Netfilter" }
+    vpn_ipsec = index.find { |item| item["title"] == "VPNs and IPsec Tunnels" }
     switching = index.find { |item| item["title"] == "Switching, VLANs, and Hosts" }
+    ip_addressing = index.find { |item| item["title"] == "IP Addressing and Subnetting" }
+    icmp_mtu = index.find { |item| item["title"] == "ICMP, MTU, and Path Testing" }
     certificates = index.find { |item| item["title"] == "Certificates and HTTPS" }
     tcp_sockets = index.find { |item| item["title"] == "TCP and Sockets" }
+    udp_quic = index.find { |item| item["title"] == "UDP, QUIC, and Connectionless Traffic" }
+    load_balancers = index.find { |item| item["title"] == "Load Balancers and Proxies" }
+    forward_reverse_proxies = index.find { |item| item["title"] == "Forward and Reverse Proxies" }
     tcp_tls = index.find { |item| item["title"] == "TCP, TLS, and HTTP" }
+    k8s_dns = index.find { |item| item["title"] == "Kubernetes DNS and CoreDNS" }
+    k8s_external_dns = index.find { |item| item["title"] == "Kubernetes ExternalDNS" }
+    k8s_services = index.find { |item| item["title"] == "Kubernetes Services and EndpointSlices" }
+    k8s_pod_networking = index.find { |item| item["title"] == "Kubernetes Pod Networking and CNI" }
+    k8s_network_policy = index.find { |item| item["title"] == "Kubernetes NetworkPolicy" }
+    k8s_ingress_gateway = index.find { |item| item["title"] == "Kubernetes Ingress, Gateway, and Load Balancers" }
+    domain_controllers = index.find { |item| item["title"] == "Domain Controllers and Directory DNS" }
     debian = index.find { |item| item["title"] == "Debian and Ubuntu Operations" }
     istio = index.find { |item| item["title"] == "Istio" }
     service_mesh = index.find { |item| item["title"] == "Istio Service Mesh" }
 
     refute_nil postgres
+    refute_nil troubleshooting
     refute_nil ceph
     refute_nil lvm
     refute_nil systemd
     refute_nil resolv
     refute_nil boot
     refute_nil filesystems
+    refute_nil block_devices
+    refute_nil mounts
+    refute_nil mount_namespaces
+    refute_nil ext4_xfs
+    refute_nil raid_multipath
+    refute_nil storage_health
     refute_nil linux_network
+    refute_nil kernel_network_performance
+    refute_nil tcp_kernel_tuning
+    refute_nil sockets_ipc
+    refute_nil processes_threads
+    refute_nil users_permissions
+    refute_nil ssh_access
+    refute_nil logs
+    refute_nil scheduled
+    refute_nil time_hostname
+    refute_nil systemd_networking
+    refute_nil systemd_socket_network
     refute_nil dns_cache
     refute_nil zones
     refute_nil dnssec
+    refute_nil dns_records
     refute_nil packet_path
     refute_nil routing
+    refute_nil nat_gateways
+    refute_nil firewall_netfilter
+    refute_nil vpn_ipsec
     refute_nil switching
+    refute_nil ip_addressing
+    refute_nil icmp_mtu
     refute_nil certificates
     refute_nil tcp_sockets
+    refute_nil udp_quic
+    refute_nil load_balancers
+    refute_nil forward_reverse_proxies
     refute_nil tcp_tls
+    refute_nil k8s_dns
+    refute_nil k8s_external_dns
+    refute_nil k8s_services
+    refute_nil k8s_pod_networking
+    refute_nil k8s_network_policy
+    refute_nil k8s_ingress_gateway
+    refute_nil domain_controllers
     refute_nil debian
     refute_nil istio
     refute_nil service_mesh
     assert_includes postgres["tags"], "databases"
+    assert_includes troubleshooting["content"], "CrashLoopBackOff"
+    assert_includes troubleshooting["content"], "SQLSTATE"
     assert_includes postgres["content"], "EXPLAIN"
     assert_includes ceph["content"], "RADOS"
     assert_includes lvm["content"], "pvmove"
@@ -350,21 +689,67 @@ class SiteTest < Minitest::Test
     assert_includes resolv["content"], "ndots"
     assert_includes boot["content"], "initramfs"
     assert_includes filesystems["content"], "VFS"
+    assert_includes block_devices["content"], "/dev/disk/by-id"
+    assert_includes mounts["content"], "findmnt --verify"
+    assert_includes mount_namespaces["content"], "mountinfo"
+    assert_includes ext4_xfs["content"], "xfs_repair"
+    assert_includes raid_multipath["content"], "LUKS"
+    assert_includes storage_health["content"], "SMART"
     assert_includes linux_network["content"], "conntrack"
+    assert_includes kernel_network_performance["content"], "NAPI"
+    assert_includes kernel_network_performance["content"], "RPS"
+    assert_includes tcp_kernel_tuning["content"], "tcp_max_syn_backlog"
+    assert_includes sockets_ipc["content"], "Unix domain sockets"
+    assert_includes processes_threads["content"], "thread group"
+    assert_includes users_permissions["content"], "visudo"
+    assert_includes ssh_access["content"], "host keys"
+    assert_includes logs["content"], "logrotate"
+    assert_includes scheduled["content"], "systemd timers"
+    assert_includes time_hostname["content"], "machine-id"
+    assert_includes systemd_networking["content"], "network-online.target"
+    assert_includes systemd_socket_network["content"], "ListenStream"
     assert_includes dns_cache["content"], "negative answer"
     assert_includes zones["content"], "SOA serial"
     assert_includes dnssec["content"], "DNSKEY"
+    assert_includes dns_records["content"], "NODATA"
+    assert_includes dns_records["content"], "EDNS"
     assert_includes packet_path["content"], "qdisc"
     assert_includes routing["content"], "policy routing"
+    assert_includes nat_gateways["content"], "port exhaustion"
+    assert_includes nat_gateways["content"], "hairpin NAT"
+    assert_includes nat_gateways["content"], "PAT"
+    assert_includes nat_gateways["content"], "split-horizon DNS"
+    assert_includes nat_gateways["content"], "NodeLocal DNSCache"
+    assert_includes firewall_netfilter["content"], "conntrack"
+    assert_includes firewall_netfilter["content"], "iptables-save"
+    assert_includes vpn_ipsec["content"], "IKEv2"
+    assert_includes vpn_ipsec["content"], "traffic selectors"
     assert_includes switching["content"], "/etc/hosts"
     assert_includes switching["content"], "802.1Q"
+    assert_includes ip_addressing["content"], "CIDR"
+    assert_includes icmp_mtu["content"], "Path MTU Discovery"
     assert_includes certificates["content"], "update-ca-certificates"
     assert_includes tcp_sockets["content"], "TIME_WAIT"
+    assert_includes udp_quic["content"], "HTTP/3"
+    assert_includes load_balancers["content"], "X-Forwarded-For"
+    assert_includes forward_reverse_proxies["content"], "CONNECT"
+    assert_includes forward_reverse_proxies["content"], "NO_PROXY"
     assert_includes tcp_tls["content"], "SNI"
+    assert_includes k8s_dns["content"], "ndots"
+    assert_includes k8s_external_dns["content"], "TXT registry"
+    assert_includes k8s_external_dns["content"], "owner ID"
+    assert_includes k8s_external_dns["content"], "external-dns.alpha.kubernetes.io/hostname"
+    assert_includes k8s_services["content"], "EndpointSlices"
+    assert_includes k8s_pod_networking["content"], "CNI"
+    assert_includes k8s_network_policy["content"], "default-deny"
+    assert_includes k8s_ingress_gateway["content"], "Gateway API"
+    assert_includes domain_controllers["content"], "_msdcs"
+    assert_includes domain_controllers["content"], "Kerberos"
+    assert_includes domain_controllers["content"], "Global Catalog"
     assert_includes debian["content"], "Ubuntu Server"
     assert_includes istio["content"], "ambient mode"
     assert_includes service_mesh["content"], "ztunnel"
-    assert_operator index.length, :>=, 29
+    assert_operator index.length, :>=, 63
   end
 
   def test_tag_index_and_knowledge_graph_render
@@ -377,17 +762,51 @@ class SiteTest < Minitest::Test
     assert_includes graph, 'class="graph-board"'
     assert_includes graph, 'class="tag-cloud"'
     assert_includes graph, "Kubernetes"
+    assert_includes graph, "Troubleshooting"
+    assert_includes graph, "DNS and CoreDNS"
+    assert_includes graph, "ExternalDNS"
+    assert_includes graph, "Services and EndpointSlices"
+    assert_includes graph, "Pod Networking and CNI"
+    assert_includes graph, "NetworkPolicy"
+    assert_includes graph, "Ingress, Gateway, and Load Balancers"
     assert_includes graph, "PostgreSQL"
     assert_includes graph, "CloudNativePG"
     assert_includes graph, "Ceph"
     assert_includes graph, "Rook-Ceph"
     assert_includes graph, "Resolution and Caching"
+    assert_includes graph, "Records, Responses, and Transport"
+    assert_includes graph, "Domain Controllers"
     assert_includes graph, "Packet Path"
+    assert_includes graph, "NAT Gateways and NAT"
+    assert_includes graph, "Firewalls, iptables, and Netfilter"
+    assert_includes graph, "VPNs and IPsec Tunnels"
     assert_includes graph, "Boot and Userspace"
+    assert_includes graph, "Block Devices and Partitioning"
+    assert_includes graph, "Mounts and fstab"
+    assert_includes graph, "Mount Namespaces and Propagation"
+    assert_includes graph, "ext4, XFS, and Repair"
+    assert_includes graph, "RAID, Multipath, and Device Mapper"
+    assert_includes graph, "Storage Health and Performance"
+    assert_includes graph, "Kernel Network Performance"
+    assert_includes graph, "TCP Kernel Tuning"
+    assert_includes graph, "Sockets and IPC"
+    assert_includes graph, "Processes and Threads"
     assert_includes graph, "Certificates and HTTPS"
     assert_includes graph, "TCP and Sockets"
     assert_includes graph, "Switching, VLANs, and Hosts"
+    assert_includes graph, "IP Addressing and Subnetting"
+    assert_includes graph, "ICMP, MTU, and Path Testing"
+    assert_includes graph, "UDP, QUIC, and Connectionless Traffic"
+    assert_includes graph, "Load Balancers and Proxies"
+    assert_includes graph, "Forward and Reverse Proxies"
     assert_includes graph, "Debian and Ubuntu"
+    assert_includes graph, "Users, Permissions, and sudo"
+    assert_includes graph, "SSH Access"
+    assert_includes graph, "Logs and Observability"
+    assert_includes graph, "Scheduled Automation"
+    assert_includes graph, "Time, Hostname, and Identity"
+    assert_includes graph, "systemd Networking"
+    assert_includes graph, "systemd Socket Activation"
     assert_includes graph, "Istio"
     assert_includes graph, "Service Mesh"
   end
@@ -412,22 +831,56 @@ class SiteTest < Minitest::Test
       "docs/linux/resolv-conf/index.html",
       "docs/linux/boot-userspace/index.html",
       "docs/linux/filesystems-io/index.html",
+      "docs/linux/block-devices-partitions/index.html",
+      "docs/linux/mounts-fstab/index.html",
+      "docs/linux/mount-namespaces-propagation/index.html",
+      "docs/linux/ext4-xfs-repair/index.html",
+      "docs/linux/raid-multipath-device-mapper/index.html",
+      "docs/linux/storage-health-performance/index.html",
       "docs/linux/network-stack/index.html",
+      "docs/linux/kernel-network-performance/index.html",
+      "docs/linux/tcp-kernel-tuning/index.html",
+      "docs/linux/sockets-ipc/index.html",
+      "docs/linux/processes-threads/index.html",
       "docs/linux/debian-ubuntu/index.html",
+      "docs/linux/users-permissions-sudo/index.html",
+      "docs/linux/ssh-access/index.html",
+      "docs/linux/logs-observability/index.html",
+      "docs/linux/scheduled-automation/index.html",
+      "docs/linux/time-hostname/index.html",
+      "docs/linux/systemd-networking/index.html",
+      "docs/linux/systemd-socket-network-services/index.html",
+      "docs/troubleshooting/index.html",
       "docs/kubernetes/index.html",
       "docs/kubernetes/core-concepts/index.html",
       "docs/kubernetes/networking/index.html",
+      "docs/kubernetes/dns-coredns/index.html",
+      "docs/kubernetes/external-dns/index.html",
+      "docs/kubernetes/services-endpointslices/index.html",
+      "docs/kubernetes/pod-networking-cni/index.html",
+      "docs/kubernetes/network-policy/index.html",
+      "docs/kubernetes/ingress-gateway-load-balancers/index.html",
       "docs/kubernetes/storage-upgrades/index.html",
       "docs/dns/index.html",
       "docs/dns/resolution-caching/index.html",
       "docs/dns/authoritative-zones/index.html",
       "docs/dns/dnssec-privacy/index.html",
+      "docs/dns/records-transport-operations/index.html",
+      "docs/dns/domain-controllers/index.html",
       "docs/networking/index.html",
       "docs/networking/packet-path/index.html",
       "docs/networking/routing-nat-firewalls/index.html",
+      "docs/networking/nat-gateways/index.html",
+      "docs/networking/firewalls-iptables-netfilter/index.html",
+      "docs/networking/vpn-ipsec-tunnels/index.html",
       "docs/networking/switching-vlans-hosts/index.html",
+      "docs/networking/ip-addressing-subnetting/index.html",
+      "docs/networking/icmp-mtu-path-testing/index.html",
       "docs/networking/certificates-https/index.html",
       "docs/networking/tcp-sockets/index.html",
+      "docs/networking/udp-quic-connectionless/index.html",
+      "docs/networking/load-balancers-proxies/index.html",
+      "docs/networking/proxies-forward-reverse/index.html",
       "docs/networking/tcp-tls-http/index.html",
       "docs/istio/service-mesh/index.html",
       "docs/ceph/rook-ceph/index.html",
@@ -484,6 +937,9 @@ class SiteTest < Minitest::Test
     css = read_site("assets/css/study.css")
 
     assert_includes html, 'id="study-modal"'
+    assert_includes html, 'class="study-workspace"'
+    assert_includes html, 'class="study-topic-panel"'
+    assert_includes html, 'class="study-option-panel"'
     assert_includes html, 'id="study-all-topics"'
     assert_includes html, 'id="study-topic-list"'
     assert_includes html, 'id="study-mode-select"'
@@ -498,10 +954,12 @@ class SiteTest < Minitest::Test
     assert_includes html, 'data-action="mark-right"'
     assert_includes html, 'data-action="mark-wrong"'
     assert_includes html, 'data-action="reset-study"'
+    assert_includes html, 'id="study-progress-fill"'
     assert_includes html, 'id="study-stage-card" role="button" tabindex="0" aria-pressed="false"'
 
     assert_includes script, "study-decks.json"
     assert_includes script, "openStudy"
+    assert_includes script, "studyProgressFill"
     assert_includes script, "selectedStudyDecks"
     assert_includes script, "moveStudyCard"
     assert_includes script, 'studyStageCard.addEventListener("click"'
@@ -513,6 +971,9 @@ class SiteTest < Minitest::Test
     assert_includes css, ".study-card-grid"
     assert_includes css, "display: none"
     assert_includes css, ".study-modal"
+    assert_includes css, ".study-workspace"
+    assert_includes css, ".study-topic-chip"
+    assert_includes css, ".study-progress-track"
     assert_includes css, ".study-stage-card"
   end
 
@@ -524,22 +985,56 @@ class SiteTest < Minitest::Test
       "docs/linux/resolv-conf/index.html",
       "docs/linux/boot-userspace/index.html",
       "docs/linux/filesystems-io/index.html",
+      "docs/linux/block-devices-partitions/index.html",
+      "docs/linux/mounts-fstab/index.html",
+      "docs/linux/mount-namespaces-propagation/index.html",
+      "docs/linux/ext4-xfs-repair/index.html",
+      "docs/linux/raid-multipath-device-mapper/index.html",
+      "docs/linux/storage-health-performance/index.html",
       "docs/linux/network-stack/index.html",
+      "docs/linux/kernel-network-performance/index.html",
+      "docs/linux/tcp-kernel-tuning/index.html",
+      "docs/linux/sockets-ipc/index.html",
+      "docs/linux/processes-threads/index.html",
       "docs/linux/debian-ubuntu/index.html",
+      "docs/linux/users-permissions-sudo/index.html",
+      "docs/linux/ssh-access/index.html",
+      "docs/linux/logs-observability/index.html",
+      "docs/linux/scheduled-automation/index.html",
+      "docs/linux/time-hostname/index.html",
+      "docs/linux/systemd-networking/index.html",
+      "docs/linux/systemd-socket-network-services/index.html",
+      "docs/troubleshooting/index.html",
       "docs/kubernetes/index.html",
       "docs/kubernetes/core-concepts/index.html",
       "docs/kubernetes/networking/index.html",
+      "docs/kubernetes/dns-coredns/index.html",
+      "docs/kubernetes/external-dns/index.html",
+      "docs/kubernetes/services-endpointslices/index.html",
+      "docs/kubernetes/pod-networking-cni/index.html",
+      "docs/kubernetes/network-policy/index.html",
+      "docs/kubernetes/ingress-gateway-load-balancers/index.html",
       "docs/kubernetes/storage-upgrades/index.html",
       "docs/dns/index.html",
       "docs/dns/resolution-caching/index.html",
       "docs/dns/authoritative-zones/index.html",
       "docs/dns/dnssec-privacy/index.html",
+      "docs/dns/records-transport-operations/index.html",
+      "docs/dns/domain-controllers/index.html",
       "docs/networking/index.html",
       "docs/networking/packet-path/index.html",
       "docs/networking/routing-nat-firewalls/index.html",
+      "docs/networking/nat-gateways/index.html",
+      "docs/networking/firewalls-iptables-netfilter/index.html",
+      "docs/networking/vpn-ipsec-tunnels/index.html",
       "docs/networking/switching-vlans-hosts/index.html",
+      "docs/networking/ip-addressing-subnetting/index.html",
+      "docs/networking/icmp-mtu-path-testing/index.html",
       "docs/networking/certificates-https/index.html",
       "docs/networking/tcp-sockets/index.html",
+      "docs/networking/udp-quic-connectionless/index.html",
+      "docs/networking/load-balancers-proxies/index.html",
+      "docs/networking/proxies-forward-reverse/index.html",
       "docs/networking/tcp-tls-http/index.html",
       "docs/istio/index.html",
       "docs/istio/service-mesh/index.html",
@@ -575,15 +1070,152 @@ class SiteTest < Minitest::Test
       "inode",
       "page cache",
       "fsync",
+      "/dev/disk/by-id",
+      "GPT",
+      "UUID",
+      "udev",
+      "findmnt --verify",
+      "/etc/fstab",
+      "systemd mount",
+      "x-systemd.automount",
+      "mount namespace",
+      "mountinfo",
+      "bind mount",
+      "propagation",
+      "nsenter",
+      "chroot",
+      "pivot_root",
+      "overlay",
+      "tmpfs",
+      "ext4",
+      "XFS",
+      "xfs_repair",
+      "e2fsck",
+      "fstrim",
+      "md RAID",
+      "mdadm",
+      "device mapper",
+      "dm-crypt",
+      "LUKS",
+      "multipath",
+      "WWID",
+      "SMART",
+      "NVMe health",
+      "iostat",
+      "I/O errors",
+      "Unix domain sockets",
+      "AF_UNIX",
+      "sockstat",
+      "listen queues",
+      "pipes",
+      "shared memory",
+      "TID",
+      "thread group",
+      "PID namespace",
+      "SIGTERM",
+      "SIGKILL",
+      "top -H",
       "network namespace",
       "netfilter",
       "conntrack",
       "qdisc",
+      "NAT gateway",
+      "SNAT",
+      "DNAT",
+      "PAT",
+      "NAPT",
+      "masquerade",
+      "static NAT",
+      "hairpin NAT",
+      "CGNAT",
+      "port exhaustion",
+      "port allocation",
+      "private service endpoints",
+      "source allow lists",
+      "egress gateway",
+      "split-horizon DNS",
+      "private DNS zones",
+      "DNS64",
+      "NAT64",
+      "CoreDNS",
+      "NodeLocal DNSCache",
+      "DNS query volume",
+      "UDP 53",
+      "TCP 53",
+      "NAPI",
+      "softirq",
+      "RPS",
+      "RFS",
+      "XPS",
+      "IRQ affinity",
+      "NIC rings",
+      "offloads",
+      "GSO",
+      "GRO",
+      "somaxconn",
+      "tcp_max_syn_backlog",
+      "ip_local_port_range",
+      "SYN backlog",
+      "ephemeral port",
+      "conntrack table",
       "Ubuntu Server",
       "apt-cache policy",
       "Netplan",
       "UFW",
       "update-ca-certificates",
+      "UID",
+      "GID",
+      "/etc/passwd",
+      "/etc/shadow",
+      "sudoers",
+      "visudo",
+      "ACL",
+      "OpenSSH",
+      "sshd_config",
+      "host keys",
+      "authorized_keys",
+      "PAM",
+      "journald",
+      "/var/log",
+      "logrotate",
+      "dmesg",
+      "systemd timers",
+      "cron",
+      "idempotent",
+      "timedatectl",
+      "systemd-timesyncd",
+      "hostnamectl",
+      "machine-id",
+      "systemd-networkd",
+      "systemd-resolved",
+      "network-online.target",
+      "systemd-networkd-wait-online",
+      ".network",
+      ".netdev",
+      ".link",
+      "socket activation",
+      "ListenStream",
+      "ListenDatagram",
+      "Accept=yes",
+      "IPAccounting",
+      "PrivateNetwork",
+      "RestrictAddressFamilies",
+      "evidence preservation",
+      "correlation ID",
+      "blast radius",
+      "exit code",
+      "CrashLoopBackOff",
+      "ImagePullBackOff",
+      "OOMKilled",
+      "xDS",
+      "PG states",
+      "SQLSTATE",
+      "idempotency key",
+      "backoff with jitter",
+      "circuit breaker",
+      "dead-letter queue",
+      "outbox pattern",
+      "partial failure",
       "recursive resolver",
       "TTL",
       "SOA serial",
@@ -591,11 +1223,42 @@ class SiteTest < Minitest::Test
       "DNSKEY",
       "DNS over TLS",
       "DNS over HTTPS",
+      "NODATA",
+      "SERVFAIL",
+      "REFUSED",
+      "EDNS",
+      "truncated",
+      "CAA",
+      "PTR",
+      "DMARC",
       "kube-apiserver",
       "etcd",
       "kube-scheduler",
       "CoreDNS",
       "kube-dns",
+      "cluster.local",
+      "dnsPolicy",
+      "Corefile",
+      "ExternalDNS",
+      "TXT registry",
+      "owner ID",
+      "domain filter",
+      "external-dns.alpha.kubernetes.io/hostname",
+      "upsert-only",
+      "sync policy",
+      "DNS provider API",
+      "hosted zone",
+      "EndpointSlice",
+      "kube-proxy",
+      "externalTrafficPolicy",
+      "Pod CIDR",
+      "hostNetwork",
+      "CNI",
+      "default-deny",
+      "egress",
+      "ingressClassName",
+      "GatewayClass",
+      "HTTPRoute",
       "Ingress",
       "Gateway API",
       "LoadBalancer",
@@ -604,6 +1267,19 @@ class SiteTest < Minitest::Test
       "authoritative nameserver",
       "negative caching",
       "split-horizon",
+      "Domain Controller",
+      "Active Directory",
+      "AD DS",
+      "_msdcs",
+      "_ldap._tcp.dc._msdcs",
+      "_kerberos._tcp",
+      "Global Catalog",
+      "FSMO",
+      "dcdiag",
+      "repadmin",
+      "nltest",
+      "Kerberos clock skew",
+      "secure dynamic updates",
       "ARP",
       "NIC",
       "OSI",
@@ -615,6 +1291,63 @@ class SiteTest < Minitest::Test
       "getent hosts",
       "policy routing",
       "asymmetric",
+      "CIDR",
+      "longest-prefix match",
+      "source address selection",
+      "overlapping private ranges",
+      "ICMPv6",
+      "Path MTU Discovery",
+      "tracepath",
+      "fragmentation-needed",
+      "UDP 443",
+      "QUIC",
+      "HTTP/3",
+      "DHCP",
+      "L4",
+      "L7",
+      "health checks",
+      "X-Forwarded-For",
+      "PROXY protocol",
+      "timeout budget",
+      "VPN",
+      "IPsec",
+      "IKEv2",
+      "ESP",
+      "NAT-T",
+      "traffic selectors",
+      "Child SA",
+      "SPD",
+      "SAD",
+      "XFRM",
+      "route-based VPN",
+      "policy-based",
+      "split tunneling",
+      "MSS",
+      "netfilter",
+      "nftables",
+      "iptables",
+      "iptables-save",
+      "ip6tables-save",
+      "INPUT",
+      "FORWARD",
+      "prerouting",
+      "postrouting",
+      "ESTABLISHED",
+      "RELATED",
+      "INVALID",
+      "DROP",
+      "REJECT",
+      "UFW",
+      "firewalld",
+      "forward proxy",
+      "reverse proxy",
+      "transparent proxy",
+      "HTTP CONNECT",
+      "NO_PROXY",
+      "HTTPS_PROXY",
+      "TLS interception",
+      "Forwarded",
+      "X-Forwarded-Proto",
       "X.509",
       "SAN",
       "SNI",

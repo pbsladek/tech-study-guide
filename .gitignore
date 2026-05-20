@@ -3,4 +3,8 @@ _site/
 .sass-cache/
 .bundle/
 vendor/
+node_modules/
+playwright-report/
+test-results/
+.playwright/
 .DS_Store

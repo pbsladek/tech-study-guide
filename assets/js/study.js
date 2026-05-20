@@ -10,6 +10,7 @@
   const studySizeSelect = document.querySelector("#study-size-select");
   const studyStatus = document.querySelector("#study-status");
   const studyProgressText = document.querySelector("#study-progress-text");
+  const studyProgressFill = document.querySelector("#study-progress-fill");
   const studyScoreText = document.querySelector("#study-score-text");
   const studyCardLabel = document.querySelector("#study-card-label");
   const studyCardText = document.querySelector("#study-card-text");
@@ -82,6 +83,7 @@
       const checkbox = document.createElement("input");
       const cardCount = studyDecks[deckName].cards.length;
 
+      label.className = "study-topic-chip";
       checkbox.type = "checkbox";
       checkbox.value = deckName;
       checkbox.checked = preferredDeck ? deckName === preferredDeck : true;
@@ -142,6 +144,7 @@
     if (studyCardLabel) studyCardLabel.textContent = "Question";
     if (studyCardText) studyCardText.textContent = "Start a study session.";
     if (studyProgressText) studyProgressText.textContent = "0 / 0";
+    if (studyProgressFill) studyProgressFill.style.width = "0%";
     if (studyScoreText) studyScoreText.textContent = "Score: 0 right, 0 wrong";
     if (studyReport) {
       studyReport.hidden = true;
@@ -160,6 +163,9 @@
     }
     if (studyScoreText) {
       studyScoreText.textContent = `Score: ${right} right, ${wrong} wrong`;
+    }
+    if (studyProgressFill) {
+      studyProgressFill.style.width = total > 0 ? `${Math.round(((studyIndex + 1) / total) * 100)}%` : "0%";
     }
   }
 
@@ -385,6 +391,7 @@
             searchResults.appendChild(link);
           });
         });
+        searchResults.dataset.ready = "true";
       })
       .catch(() => {
         searchResults.innerHTML = "";

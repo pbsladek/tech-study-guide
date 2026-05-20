@@ -13,7 +13,7 @@ tags:
 
 Kubernetes is an API-driven reconciliation system. You submit desired state as objects, the API server persists those objects, controllers observe them, and node agents make the actual workloads run. The important mental shift is that most components do not "call each other" in a long command chain. They watch the API, compare desired state to observed state, and take small corrective actions.
 
-The current upstream release line is Kubernetes v1.36, released on April 22, 2026, while the official releases page also lists supported patch releases for earlier minor lines. Treat this guide as version-aware: always check release notes before upgrades, because feature gates, removals, and skew rules are operationally important.
+The current upstream minor release line is Kubernetes v1.36, first released on April 22, 2026. At this review on May 19, 2026, the official releases page lists v1.36.1 as the latest patch release, released on May 13, 2026, and also tracks supported patch releases for earlier minor lines. Treat this guide as version-aware: always check release notes before upgrades, because feature gates, removals, and skew rules are operationally important.
 
 ## The Control Plane
 
@@ -86,7 +86,13 @@ The most useful troubleshooting question is: "Which controller owns the next ste
 ## Study Path
 
 - [Core Concepts](core-concepts/) for API objects, controllers, scheduling, and reconciliation.
-- [Kubernetes Networking](networking/) for Pod networking, Services, CoreDNS, Ingress, Gateway API, and load balancers.
+- [Kubernetes Networking](networking/) for the top-level networking model.
+- [Kubernetes DNS and CoreDNS](dns-coredns/) for Service names, Pod resolver behavior, CoreDNS, `ndots`, forwarding, and DNS debugging.
+- [Kubernetes ExternalDNS](external-dns/) for reconciling Ingress, Service, and Gateway hostnames into public or private DNS provider records.
+- [Kubernetes Services and EndpointSlices](services-endpointslices/) for selectors, readiness, EndpointSlices, kube-proxy, headless Services, and LoadBalancer behavior.
+- [Kubernetes Pod Networking and CNI](pod-networking-cni/) for Pod IPs, Pod CIDRs, overlays, eBPF, MTU, hostNetwork, and node datapath checks.
+- [Kubernetes NetworkPolicy](network-policy/) for ingress and egress isolation, selectors, default deny, DNS egress, and CNI enforcement.
+- [Kubernetes Ingress, Gateway, and Load Balancers](ingress-gateway-load-balancers/) for external traffic, Ingress controllers, Gateway API, TLS, SNI, health checks, and source IP behavior.
 - [Storage and Upgrades](storage-upgrades/) for PV/PVC, CSI, StatefulSets, and kubeadm-style upgrade flow.
 - [Troubleshooting](troubleshooting/) for incident entry points and practical commands.
 

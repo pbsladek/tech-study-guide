@@ -11,7 +11,7 @@ tags:
 
 # Networking
 
-Networking is a stack of encapsulation, addressing, forwarding, and state. The key is to know what each layer is responsible for and where to observe it when something breaks.
+Networking is a stack of encapsulation, addressing, forwarding, control messages, name resolution, encryption, proxy behavior, and state. The key is to know what each layer is responsible for and where to observe it when something breaks.
 
 ## Mental Model
 
@@ -33,8 +33,16 @@ Each boundary can fail independently.
 | --- | --- |
 | [Packet Path](packet-path/) | Tracks packets through sockets, routing, neighbor lookup, firewall hooks, qdisc, NIC queues, and return paths. |
 | [Routing, NAT, and Firewalls](routing-nat-firewalls/) | Covers route selection, policy routing, NAT state, conntrack, asymmetric routing, and load-balancer edge cases. |
+| [NAT Gateways and NAT](nat-gateways/) | Covers SNAT, DNAT, PAT, masquerade, cloud NAT gateways, port exhaustion, hairpin NAT, Kubernetes egress, and NAT troubleshooting. |
+| [Firewalls, iptables, and Netfilter](firewalls-iptables-netfilter/) | Covers netfilter hooks, nftables, iptables, chains, tables, conntrack, NAT, counters, logging, and policy troubleshooting. |
+| [VPNs and IPsec Tunnels](vpn-ipsec-tunnels/) | Covers VPN types, IPsec tunnel mode, IKEv2, ESP, NAT-T, selectors, route-based tunnels, split tunneling, and MTU. |
 | [Switching, VLANs, and Hosts](switching-vlans-hosts/) | Covers switches, MAC learning, access and trunk ports, 802.1Q VLAN tags, Linux bridges, and `/etc/hosts`. |
+| [IP Addressing and Subnetting](ip-addressing-subnetting/) | Covers CIDR, prefixes, private ranges, default gateways, IPv6, source address selection, and overlapping networks. |
+| [ICMP, MTU, and Path Testing](icmp-mtu-path-testing/) | Covers ping, traceroute, tracepath, Path MTU Discovery, fragmentation, tunnel overhead, loss, latency, and jitter. |
 | [TCP and Sockets](tcp-sockets/) | Explains listen queues, socket buffers, TIME_WAIT, ephemeral ports, keepalive, and kernel TCP state. |
+| [UDP, QUIC, and Connectionless Traffic](udp-quic-connectionless/) | Covers UDP datagrams, DNS/DHCP/NTP, QUIC, HTTP/3, conntrack timers, UDP 443, and packet capture. |
+| [Load Balancers and Proxies](load-balancers-proxies/) | Covers L4/L7 balancing, reverse proxies, health checks, TLS termination, source IP preservation, forwarding headers, and timeouts. |
+| [Forward and Reverse Proxies](proxies-forward-reverse/) | Covers explicit forward proxies, reverse proxies, transparent interception, CONNECT tunnels, proxy env vars, headers, and TLS interception. |
 | [Certificates and HTTPS](certificates-https/) | Covers certificate chains, SANs, SNI, CA stores, trust failures, and Ubuntu certificate operations. |
 | [TCP, TLS, and HTTP](tcp-tls-http/) | Separates transport, encryption, and application-layer failures in the request path. |
 
@@ -142,6 +150,7 @@ tcpdump -nn -i any host example.com
 7. Test TCP handshake or UDP request.
 8. Capture packets on both sides when possible.
 9. Check intermediate NAT/load balancer/firewall state.
+10. Check ICMP, MTU, timeout, and proxy behavior when only large or long-lived requests fail.
 
 ## Study Cards
 
@@ -160,10 +169,17 @@ tcpdump -nn -i any host example.com
 ## References
 
 - [RFC 826: Address Resolution Protocol](https://www.rfc-editor.org/rfc/rfc826)
+- [RFC 4632: Classless Inter-domain Routing](https://www.rfc-editor.org/rfc/rfc4632)
+- [RFC 792: Internet Control Message Protocol](https://www.rfc-editor.org/rfc/rfc792)
+- [RFC 768: User Datagram Protocol](https://www.rfc-editor.org/rfc/rfc768)
 - [RFC 9293: Transmission Control Protocol](https://www.ietf.org/rfc/rfc9293.html)
+- [RFC 9000: QUIC](https://www.rfc-editor.org/rfc/rfc9000)
 - [RFC 8446: The Transport Layer Security Protocol Version 1.3](https://www.rfc-editor.org/rfc/rfc8446)
 - [RFC 5280: PKIX Certificate and CRL Profile](https://www.rfc-editor.org/rfc/rfc5280)
 - [hosts(5) Linux manual page](https://man7.org/linux/man-pages/man5/hosts.5.html)
 - [IEEE 802.1Q VLANs](https://www.ieee802.org/1/pages/802.1Q.html)
 - [Linux kernel networking documentation](https://docs.kernel.org/networking/index.html)
+- [VPNs and IPsec tunnels](vpn-ipsec-tunnels/)
+- [Firewalls, iptables, and Netfilter](firewalls-iptables-netfilter/)
+- [Forward and reverse proxies](proxies-forward-reverse/)
 - [TechTarget: OSI model overview](https://www.techtarget.com/searchnetworking/definition/OSI)

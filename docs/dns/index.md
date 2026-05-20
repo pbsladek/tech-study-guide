@@ -11,7 +11,7 @@ tags:
 
 # DNS
 
-DNS is a distributed, cached database for names. The protocol looks simple until caching, delegation, CNAME chains, split-horizon zones, DNSSEC, search paths, and resolver behavior interact. Ops people need to understand the full path from application lookup to authoritative answer.
+DNS is a distributed, cached database for names. The protocol looks simple until caching, delegation, CNAME chains, split-horizon zones, DNSSEC, search paths, response codes, EDNS, UDP/TCP transport, and resolver behavior interact. Ops people need to understand the full path from application lookup to authoritative answer.
 
 ## The Actors
 
@@ -32,6 +32,8 @@ Most clients do not talk to root or authoritative servers directly. They ask a r
 | [Resolution and Caching](resolution-caching/) | Explains resolver paths, local caches, recursive caches, TTLs, negative answers, search domains, and `ndots`. |
 | [Authoritative DNS and Zones](authoritative-zones/) | Explains source-of-truth zone data, delegation, NS/SOA records, glue, apex constraints, and wildcard behavior. |
 | [DNSSEC and DNS Privacy](dnssec-privacy/) | Separates signed-data validation from encrypted resolver transport and covers common validation failures. |
+| [DNS Records, Responses, and Transport](records-transport-operations/) | Covers record types, NOERROR/NXDOMAIN/SERVFAIL/REFUSED, NODATA, EDNS, UDP/TCP 53, truncation, reverse DNS, and mail records. |
+| [Domain Controllers and Directory DNS](domain-controllers/) | Covers AD DS domain controller discovery through SRV records, `_msdcs`, Kerberos, LDAP, Global Catalog, replication, and time sync. |
 
 ## Walkthrough: Resolving `www.example.com`
 
@@ -58,7 +60,7 @@ DNS "propagation" is usually cache expiration. There is no global push of new re
 | SOA | Zone metadata and negative-cache TTL source. | The SOA matters for NXDOMAIN/NODATA caching. |
 | MX | Mail exchanger. | Points to names, not raw IPs. |
 | TXT | Arbitrary text, often verification and SPF. | Quoting and splitting can surprise automation. |
-| SRV | Service discovery with priority, weight, port, target. | Target is a hostname. |
+| SRV | Service discovery with priority, weight, port, target. | Target is a hostname; Active Directory uses SRV records heavily for domain controller, Kerberos, LDAP, and Global Catalog discovery. |
 | PTR | Reverse DNS. | Lives under `in-addr.arpa` or `ip6.arpa`, delegated separately. |
 | CAA | Restricts which CAs may issue certificates. | Misconfiguration can block certificate issuance. |
 
@@ -116,6 +118,7 @@ If Pods use a search list and `ndots`, a lookup for an external name may first t
 6. Check delegation from the parent.
 7. Check DNSSEC validation if only validating resolvers fail.
 8. Check search paths and `/etc/resolv.conf` in containers.
+9. Check response code, EDNS size, and UDP versus TCP behavior for large or signed answers.
 
 ## Commands
 
@@ -149,4 +152,5 @@ dig +dnssec example.com
 - [RFC 1035: Domain Names - Implementation and Specification](https://www.rfc-editor.org/rfc/rfc1035)
 - [RFC 2308: Negative Caching of DNS Queries](https://www.rfc-editor.org/rfc/rfc2308)
 - [RFC 4033: DNS Security Introduction and Requirements](https://www.rfc-editor.org/rfc/rfc4033)
+- [RFC 6891: Extension Mechanisms for DNS](https://www.rfc-editor.org/rfc/rfc6891)
 - [Cloudflare: How DNS works](https://www.cloudflare.com/learning/dns/what-is-dns/)
