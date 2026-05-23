@@ -34,7 +34,7 @@ PostgreSQL stores data in pages. Queries read pages into shared buffers. Changes
 
 | Topic | Why It Matters |
 | --- | --- |
-| [PostgreSQL Operations, HA, Replication, and Recovery](operations-ha/) | Covers managed HA, failover, physical and logical replication, base backups, PITR, WAL retention, high CPU, high RAM, and incident checks. |
+| [PostgreSQL Operations, HA, Replication, and Recovery](operations-ha/) | Covers managed HA, failover, physical and logical replication, sharding, base backups, PITR, WAL retention, high CPU, high RAM, and incident checks. |
 | [PgBouncer](pgbouncer/) | Explains connection pooling, transaction/session/statement pooling, sizing, HA placement, failover behavior, admin commands, prepared statement caveats, and failure modes. |
 | [CloudNativePG](cloudnativepg/) | Covers running PostgreSQL in Kubernetes with operator-managed clusters, services, failover, backups, and restore cautions. |
 
@@ -150,6 +150,8 @@ SELECT * FROM pg_stat_replication;
 SELECT * FROM pg_replication_slots;
 SELECT now() - pg_last_xact_replay_timestamp() AS replica_lag;
 ```
+
+PostgreSQL partitioning is not the same as sharding. Partitioning splits one logical table inside a cluster. Sharding distributes data across clusters or nodes and needs routing, shard maps, backup coordination, and cross-shard failure handling. For the operational details, see [PostgreSQL Operations, HA, Replication, and Recovery](operations-ha/).
 
 ## Operations Checklist
 

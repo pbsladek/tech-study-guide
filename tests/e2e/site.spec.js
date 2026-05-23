@@ -163,6 +163,9 @@ test("topic pages for current coverage render important content", async ({ page 
   await page.goto("/docs/databases/postgres/operations-ha/");
   await expect(page.locator("#postgresql-operations-ha-replication-and-recovery")).toBeVisible();
   await expect(article.getByText("replication slots").first()).toBeVisible();
+  await expect(article.getByText("HA Failover").first()).toBeVisible();
+  await expect(article.getByText("Sharding").first()).toBeVisible();
+  await expect(article.getByText("shard key").first()).toBeVisible();
   await expect(article.getByText("pg_verifybackup").first()).toBeVisible();
   await expect(article.getByText("idle_in_transaction_session_timeout").first()).toBeVisible();
   await expect(article.getByText("High CPU").first()).toBeVisible();
@@ -175,6 +178,14 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("cl_waiting").first()).toBeVisible();
   await expect(article.getByText("server_reset_query").first()).toBeVisible();
 
+  await page.goto("/docs/databases/opensearch/");
+  await expect(page.locator("#opensearch-operations-replication-sharding-and-ha")).toBeVisible();
+  await expect(article.getByText("Cross-Cluster Replication").first()).toBeVisible();
+  await expect(article.getByText("primary shard").first()).toBeVisible();
+  await expect(article.getByText("replica shard").first()).toBeVisible();
+  await expect(article.getByText("allocation awareness").first()).toBeVisible();
+  await expect(article.getByText("Snapshots and Recovery").first()).toBeVisible();
+
   await page.goto("/docs/dns/domain-controllers/");
   await expect(page.locator("#domain-controllers-and-directory-dns")).toBeVisible();
   await expect(article.getByText("_msdcs").first()).toBeVisible();
@@ -185,10 +196,27 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("LUKS").first()).toBeVisible();
   await expect(article.getByText("multipath").first()).toBeVisible();
 
+  await page.goto("/docs/linux/storage-drives-raid-database-performance/");
+  await expect(page.locator("#storage-drives-raid-and-database-performance")).toBeVisible();
+  await expect(article.getByText("RAID 10").first()).toBeVisible();
+  await expect(article.getByText("RAID 0+1").first()).toBeVisible();
+  await expect(article.getByText("RAID Failure Modes").first()).toBeVisible();
+  await expect(article.getByText("LVM With RAID").first()).toBeVisible();
+  await expect(article.getByText("Disk Failure Recovery").first()).toBeVisible();
+  await expect(article.getByText("PostgreSQL Storage Mapping").first()).toBeVisible();
+  await expect(article.getByText("Elasticsearch Storage Mapping").first()).toBeVisible();
+
   await page.goto("/docs/linux/boot-userspace/");
   await expect(page.locator("#linux-boot-and-userspace")).toBeVisible();
   await expect(article.getByText("EFI System Partition").first()).toBeVisible();
   await expect(article.getByText("systemd-boot").first()).toBeVisible();
+
+  await page.goto("/docs/linux/network-boot-automated-provisioning/");
+  await expect(page.locator("#network-boot-and-automated-provisioning")).toBeVisible();
+  await expect(article.getByText("PXE").first()).toBeVisible();
+  await expect(article.getByText("iPXE").first()).toBeVisible();
+  await expect(article.getByText("Ubuntu autoinstall").first()).toBeVisible();
+  await expect(article.getByText("reinstall loops").first()).toBeVisible();
 
   await page.goto("/docs/linux/kernel-modules-devices/");
   await expect(page.locator("#linux-kernel-modules-and-devices")).toBeVisible();
@@ -200,6 +228,13 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(page.locator("#linux-storage-health-and-performance")).toBeVisible();
   await expect(article.getByText("SMART").first()).toBeVisible();
   await expect(article.getByText("iostat").first()).toBeVisible();
+
+  await page.goto("/docs/linux/containerization-oci-vms/");
+  await expect(page.locator("#containerization-oci-and-vms")).toBeVisible();
+  await expect(article.getByText("OCI").first()).toBeVisible();
+  await expect(article.getByText("cgroups").first()).toBeVisible();
+  await expect(article.getByText("KVM").first()).toBeVisible();
+  await expect(article.getByText("Hyper-V isolation").first()).toBeVisible();
 
   await page.goto("/docs/linux/mount-namespaces-propagation/");
   await expect(page.locator("#linux-mount-namespaces-and-propagation")).toBeVisible();

@@ -71,6 +71,13 @@ class SiteTest < Minitest::Test
       "lsinitrd 2>/dev/null || lsinitramfs /boot/initrd.img-$(uname -r)",
       "findmnt /"
     ],
+    "docs/linux/network-boot-automated-provisioning/index.html" => [
+      "tcpdump -ni <interface> 'port 67 or port 68 or port 69 or port 80 or port 4011'",
+      "journalctl -u isc-dhcp-server -u dnsmasq -u tftpd-hpa --no-pager",
+      "curl -fsS http://<boot-server>/boot.ipxe",
+      "curl -fsS http://<boot-server>/autoinstall/user-data",
+      "ls -l /srv/tftp /var/lib/tftpboot /var/www/html"
+    ],
     "docs/linux/kernel-modules-devices/index.html" => [
       "lsmod",
       "modinfo <module>",
@@ -125,6 +132,14 @@ class SiteTest < Minitest::Test
       "cryptsetup status <name>",
       "lsblk -o NAME,TYPE,FSTYPE,SIZE,MOUNTPOINTS"
     ],
+    "docs/linux/storage-drives-raid-database-performance/index.html" => [
+      "lsblk -o NAME,TYPE,MODEL,SERIAL,ROTA,SIZE,FSTYPE,MOUNTPOINTS",
+      "cat /proc/mdstat",
+      "mdadm --detail /dev/md0",
+      "iostat -xz 1",
+      "smartctl -a /dev/sda",
+      "nvme smart-log /dev/nvme0"
+    ],
     "docs/linux/storage-health-performance/index.html" => [
       "iostat -xz 1",
       "lsblk -D",
@@ -132,6 +147,14 @@ class SiteTest < Minitest::Test
       "nvme smart-log /dev/nvme0",
       "dmesg -T | grep -Ei 'I/O error|medium error|nvme|scsi|reset'",
       "journalctl -k -p warning..alert"
+    ],
+    "docs/linux/containerization-oci-vms/index.html" => [
+      "docker info",
+      "docker image inspect <image>",
+      "docker container inspect <container>",
+      "cat /proc/<pid>/status",
+      "cat /proc/<pid>/cgroup",
+      "lsns -p <pid>"
     ],
     "docs/linux/network-stack/index.html" => [
       "ip addr",
@@ -533,7 +556,9 @@ class SiteTest < Minitest::Test
       "psql -d <database> -c \"SELECT slot_name, active, restart_lsn, wal_status FROM pg_replication_slots;\"",
       "psql -d <database> -c \"SELECT * FROM pg_stat_archiver;\"",
       "psql -d <database> -c \"SELECT checkpoints_timed, checkpoints_req, buffers_checkpoint FROM pg_stat_checkpointer;\"",
-      "psql -d <database> -c \"SELECT wal_records, wal_fpi, wal_bytes FROM pg_stat_wal;\""
+      "psql -d <database> -c \"SELECT wal_records, wal_fpi, wal_bytes FROM pg_stat_wal;\"",
+      "psql -d <database> -c \"SELECT pg_is_in_recovery(), pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn(), now() - pg_last_xact_replay_timestamp() AS replay_delay;\"",
+      "psql -d <database> -c \"SELECT subname, subenabled, subfailover FROM pg_subscription;\""
     ],
     "docs/databases/postgres/pgbouncer/index.html" => [
       "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW POOLS;\"",
@@ -542,6 +567,14 @@ class SiteTest < Minitest::Test
       "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW SERVERS;\"",
       "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW DATABASES;\"",
       "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW CONFIG;\""
+    ],
+    "docs/databases/opensearch/index.html" => [
+      "curl -sS https://<opensearch>:9200/_cluster/health?pretty",
+      "curl -sS https://<opensearch>:9200/_cat/nodes?v",
+      "curl -sS https://<opensearch>:9200/_cat/shards?v",
+      "curl -sS https://<opensearch>:9200/_cluster/allocation/explain?pretty -H 'Content-Type: application/json' -d '{}'",
+      "curl -sS https://<opensearch>:9200/_cat/indices?v",
+      "curl -sS https://<opensearch>:9200/_plugins/_replication/<follower-index>/_status?pretty"
     ]
   }.freeze
 
@@ -608,6 +641,21 @@ class SiteTest < Minitest::Test
     assert_includes html, "StudyGraph"
   end
 
+  def test_github_pages_workflow_builds_project_pages_site
+    config = YAML.load_file(File.join(ROOT, "_config.yml"))
+    workflow = YAML.load_file(File.join(ROOT, ".github/workflows/pages.yml"))
+    build_steps = workflow.fetch("jobs").fetch("build").fetch("steps")
+    deploy_steps = workflow.fetch("jobs").fetch("deploy").fetch("steps")
+    build_command = build_steps.find { |step| step["name"] == "Build with Jekyll" }.fetch("run")
+
+    assert_equal "https://pbsladek.github.io", config.fetch("url")
+    assert_equal "", config.fetch("baseurl")
+    assert_includes build_steps.map { |step| step["uses"] }.compact, "actions/configure-pages@v5"
+    assert_includes build_steps.map { |step| step["uses"] }.compact, "actions/upload-pages-artifact@v3"
+    assert_includes deploy_steps.map { |step| step["uses"] }.compact, "actions/deploy-pages@v4"
+    assert_includes build_command, '--baseurl "${{ steps.pages.outputs.base_path }}"'
+  end
+
   def test_sidebar_navigation_theme_toggle_and_reader_controls_render
     html = read_site("docs/databases/postgres/index.html")
 
@@ -630,20 +678,24 @@ class SiteTest < Minitest::Test
     postgres = index.find { |item| item["title"] == "PostgreSQL" }
     postgres_ops = index.find { |item| item["title"] == "PostgreSQL Operations, HA, Replication, and Recovery" }
     pgbouncer = index.find { |item| item["title"] == "PgBouncer" }
+    opensearch = index.find { |item| item["title"] == "OpenSearch Operations, Replication, Sharding, and HA" }
     troubleshooting = index.find { |item| item["title"] == "Troubleshooting and Error Handling" }
     ceph = index.find { |item| item["title"] == "Ceph" }
     lvm = index.find { |item| item["title"] == "Linux LVM" }
     systemd = index.find { |item| item["title"] == "systemd" }
     resolv = index.find { |item| item["title"] == "resolv.conf" }
     boot = index.find { |item| item["title"] == "Linux Boot and Userspace" }
+    network_boot = index.find { |item| item["title"] == "Network Boot and Automated Provisioning" }
     kernel_modules_devices = index.find { |item| item["title"] == "Linux Kernel Modules and Devices" }
     filesystems = index.find { |item| item["title"] == "Linux Filesystems and IO" }
     block_devices = index.find { |item| item["title"] == "Linux Block Devices and Partitioning" }
     mounts = index.find { |item| item["title"] == "Linux Mounts and fstab" }
     mount_namespaces = index.find { |item| item["title"] == "Linux Mount Namespaces and Propagation" }
     ext4_xfs = index.find { |item| item["title"] == "ext4, XFS, and Filesystem Repair" }
+    storage_drives_raid_db = index.find { |item| item["title"] == "Storage Drives, RAID, and Database Performance" }
     raid_multipath = index.find { |item| item["title"] == "RAID, Multipath, and Device Mapper" }
     storage_health = index.find { |item| item["title"] == "Linux Storage Health and Performance" }
+    containerization_oci_vms = index.find { |item| item["title"] == "Containerization, OCI, and VMs" }
     linux_network = index.find { |item| item["title"] == "Linux Network Stack" }
     kernel_network_performance = index.find { |item| item["title"] == "Linux Kernel Network Performance" }
     tcp_kernel_tuning = index.find { |item| item["title"] == "Linux TCP Kernel Tuning" }
@@ -693,20 +745,24 @@ class SiteTest < Minitest::Test
     refute_nil postgres
     refute_nil postgres_ops
     refute_nil pgbouncer
+    refute_nil opensearch
     refute_nil troubleshooting
     refute_nil ceph
     refute_nil lvm
     refute_nil systemd
     refute_nil resolv
     refute_nil boot
+    refute_nil network_boot
     refute_nil kernel_modules_devices
     refute_nil filesystems
     refute_nil block_devices
     refute_nil mounts
     refute_nil mount_namespaces
     refute_nil ext4_xfs
+    refute_nil storage_drives_raid_db
     refute_nil raid_multipath
     refute_nil storage_health
+    refute_nil containerization_oci_vms
     refute_nil linux_network
     refute_nil kernel_network_performance
     refute_nil tcp_kernel_tuning
@@ -756,6 +812,13 @@ class SiteTest < Minitest::Test
     assert_includes postgres["content"], "PgBouncer"
     assert_includes postgres_ops["content"], "managed HA"
     assert_includes postgres_ops["content"], "replication slots"
+    assert_includes postgres_ops["content"], "HA Failover"
+    assert_includes postgres_ops["content"], "Split brain"
+    assert_includes postgres_ops["content"], "Logical replication model"
+    assert_includes postgres_ops["content"], "Logical failover"
+    assert_includes postgres_ops["content"], "Sharding"
+    assert_includes postgres_ops["content"], "shard key"
+    assert_includes postgres_ops["content"], "postgres_fdw"
     assert_includes postgres_ops["content"], "PITR"
     assert_includes postgres_ops["content"], "pg_verifybackup"
     assert_includes postgres_ops["content"], "pg_dumpall"
@@ -770,6 +833,15 @@ class SiteTest < Minitest::Test
     assert_includes pgbouncer["content"], "max_client_conn"
     assert_includes pgbouncer["content"], "server_reset_query"
     assert_includes pgbouncer["content"], "auth_query"
+    assert_includes opensearch["tags"], "opensearch"
+    assert_includes opensearch["content"], "Cross-Cluster Replication"
+    assert_includes opensearch["content"], "cluster-manager"
+    assert_includes opensearch["content"], "primary shard"
+    assert_includes opensearch["content"], "replica shard"
+    assert_includes opensearch["content"], "allocation awareness"
+    assert_includes opensearch["content"], "forced awareness"
+    assert_includes opensearch["content"], "wait_for_active_shards"
+    assert_includes opensearch["content"], "Snapshots and Recovery"
     assert_includes troubleshooting["content"], "CrashLoopBackOff"
     assert_includes troubleshooting["content"], "SQLSTATE"
     assert_includes postgres["content"], "EXPLAIN"
@@ -780,6 +852,13 @@ class SiteTest < Minitest::Test
     assert_includes boot["content"], "initramfs"
     assert_includes boot["content"], "EFI System Partition"
     assert_includes boot["content"], "systemd-boot"
+    assert_includes network_boot["content"], "PXE"
+    assert_includes network_boot["content"], "iPXE"
+    assert_includes network_boot["content"], "ProxyDHCP"
+    assert_includes network_boot["content"], "Ubuntu autoinstall"
+    assert_includes network_boot["content"], "cloud-init NoCloud"
+    assert_includes network_boot["content"], "Kickstart"
+    assert_includes network_boot["content"], "reinstall loops"
     assert_includes kernel_modules_devices["content"], "modprobe"
     assert_includes kernel_modules_devices["content"], "modalias"
     assert_includes kernel_modules_devices["content"], "devtmpfs"
@@ -792,8 +871,28 @@ class SiteTest < Minitest::Test
     assert_includes mounts["content"], "x-systemd.device-timeout"
     assert_includes mount_namespaces["content"], "mountinfo"
     assert_includes ext4_xfs["content"], "xfs_repair"
+    assert_includes storage_drives_raid_db["content"], "SSD"
+    assert_includes storage_drives_raid_db["content"], "HDD"
+    assert_includes storage_drives_raid_db["content"], "RAID 0"
+    assert_includes storage_drives_raid_db["content"], "RAID 10"
+    assert_includes storage_drives_raid_db["content"], "RAID 0+1"
+    assert_includes storage_drives_raid_db["content"], "write penalty"
+    assert_includes storage_drives_raid_db["content"], "LVM With RAID"
+    assert_includes storage_drives_raid_db["content"], "Disk Failure Recovery"
+    assert_includes storage_drives_raid_db["content"], "RAID Failure Modes"
+    assert_includes storage_drives_raid_db["content"], "PostgreSQL Storage Mapping"
+    assert_includes storage_drives_raid_db["content"], "PostgreSQL examples"
+    assert_includes storage_drives_raid_db["content"], "Elasticsearch Storage Mapping"
+    assert_includes storage_drives_raid_db["content"], "Elasticsearch examples"
     assert_includes raid_multipath["content"], "LUKS"
+    assert_includes lvm["content"], "LVM and RAID"
     assert_includes storage_health["content"], "SMART"
+    assert_includes containerization_oci_vms["content"], "OCI"
+    assert_includes containerization_oci_vms["content"], "cgroups"
+    assert_includes containerization_oci_vms["content"], "namespaces"
+    assert_includes containerization_oci_vms["content"], "KVM"
+    assert_includes containerization_oci_vms["content"], "Hyper-V isolation"
+    assert_includes containerization_oci_vms["content"], "Virtual Machine"
     assert_includes linux_network["content"], "conntrack"
     assert_includes kernel_network_performance["content"], "NAPI"
     assert_includes kernel_network_performance["content"], "RPS"
@@ -879,7 +978,7 @@ class SiteTest < Minitest::Test
     assert_includes debian["content"], "Ubuntu Server"
     assert_includes istio["content"], "ambient mode"
     assert_includes service_mesh["content"], "ztunnel"
-    assert_operator index.length, :>=, 67
+    assert_operator index.length, :>=, 70
   end
 
   def test_tag_index_and_knowledge_graph_render
@@ -906,6 +1005,7 @@ class SiteTest < Minitest::Test
     assert_includes graph, "PostgreSQL Operations and HA"
     assert_includes graph, "PgBouncer"
     assert_includes graph, "CloudNativePG"
+    assert_includes graph, "OpenSearch"
     assert_includes graph, "Ceph"
     assert_includes graph, "Rook-Ceph"
     assert_includes graph, "Resolution and Caching"
@@ -916,13 +1016,16 @@ class SiteTest < Minitest::Test
     assert_includes graph, "Firewalls, iptables, and Netfilter"
     assert_includes graph, "VPNs and IPsec Tunnels"
     assert_includes graph, "Boot and Userspace"
+    assert_includes graph, "Network Boot and Provisioning"
     assert_includes graph, "Kernel Modules and Devices"
     assert_includes graph, "Block Devices and Partitioning"
     assert_includes graph, "Mounts and fstab"
     assert_includes graph, "Mount Namespaces and Propagation"
     assert_includes graph, "ext4, XFS, and Repair"
+    assert_includes graph, "Storage Drives, RAID, and DB Performance"
     assert_includes graph, "RAID, Multipath, and Device Mapper"
     assert_includes graph, "Storage Health and Performance"
+    assert_includes graph, "Containerization, OCI, and VMs"
     assert_includes graph, "Kernel Network Performance"
     assert_includes graph, "TCP Kernel Tuning"
     assert_includes graph, "Sockets and IPC"
@@ -968,14 +1071,17 @@ class SiteTest < Minitest::Test
       "docs/linux/systemd/index.html",
       "docs/linux/resolv-conf/index.html",
       "docs/linux/boot-userspace/index.html",
+      "docs/linux/network-boot-automated-provisioning/index.html",
       "docs/linux/kernel-modules-devices/index.html",
       "docs/linux/filesystems-io/index.html",
       "docs/linux/block-devices-partitions/index.html",
       "docs/linux/mounts-fstab/index.html",
       "docs/linux/mount-namespaces-propagation/index.html",
       "docs/linux/ext4-xfs-repair/index.html",
+      "docs/linux/storage-drives-raid-database-performance/index.html",
       "docs/linux/raid-multipath-device-mapper/index.html",
       "docs/linux/storage-health-performance/index.html",
+      "docs/linux/containerization-oci-vms/index.html",
       "docs/linux/network-stack/index.html",
       "docs/linux/kernel-network-performance/index.html",
       "docs/linux/tcp-kernel-tuning/index.html",
@@ -1031,7 +1137,8 @@ class SiteTest < Minitest::Test
       "docs/databases/postgres/index.html",
       "docs/databases/postgres/operations-ha/index.html",
       "docs/databases/postgres/pgbouncer/index.html",
-      "docs/databases/postgres/cloudnativepg/index.html"
+      "docs/databases/postgres/cloudnativepg/index.html",
+      "docs/databases/opensearch/index.html"
     ].each do |relative_path|
       html = read_site(relative_path)
 
@@ -1130,14 +1237,17 @@ class SiteTest < Minitest::Test
       "docs/linux/systemd/index.html",
       "docs/linux/resolv-conf/index.html",
       "docs/linux/boot-userspace/index.html",
+      "docs/linux/network-boot-automated-provisioning/index.html",
       "docs/linux/kernel-modules-devices/index.html",
       "docs/linux/filesystems-io/index.html",
       "docs/linux/block-devices-partitions/index.html",
       "docs/linux/mounts-fstab/index.html",
       "docs/linux/mount-namespaces-propagation/index.html",
       "docs/linux/ext4-xfs-repair/index.html",
+      "docs/linux/storage-drives-raid-database-performance/index.html",
       "docs/linux/raid-multipath-device-mapper/index.html",
       "docs/linux/storage-health-performance/index.html",
+      "docs/linux/containerization-oci-vms/index.html",
       "docs/linux/network-stack/index.html",
       "docs/linux/kernel-network-performance/index.html",
       "docs/linux/tcp-kernel-tuning/index.html",
@@ -1195,7 +1305,8 @@ class SiteTest < Minitest::Test
       "docs/databases/postgres/index.html",
       "docs/databases/postgres/operations-ha/index.html",
       "docs/databases/postgres/pgbouncer/index.html",
-      "docs/databases/postgres/cloudnativepg/index.html"
+      "docs/databases/postgres/cloudnativepg/index.html",
+      "docs/databases/opensearch/index.html"
     ].map { |path| text_content(read_site(path)) }.join("\n")
 
     [
@@ -1225,6 +1336,18 @@ class SiteTest < Minitest::Test
       "EFI System Partition",
       "systemd-boot",
       "Unified Kernel Image",
+      "PXE",
+      "iPXE",
+      "TFTP",
+      "ProxyDHCP",
+      "UEFI HTTP Boot",
+      "Ubuntu autoinstall",
+      "cloud-init NoCloud",
+      "Kickstart",
+      "preseed",
+      "NoCloud-Net",
+      "BMC",
+      "one-time boot",
       "rootwait",
       "rootdelay",
       "modprobe",
@@ -1263,6 +1386,35 @@ class SiteTest < Minitest::Test
       "xfs_repair",
       "e2fsck",
       "fstrim",
+      "SSD",
+      "HDD",
+      "RAID 0",
+      "RAID 1",
+      "RAID 5",
+      "RAID 6",
+      "RAID 10",
+      "RAID 0+1",
+      "striping",
+      "mirroring",
+      "parity",
+      "write penalty",
+      "read-modify-write",
+      "stripe width",
+      "Write-intent bitmap",
+      "Disk Failure Recovery",
+      "RAID Failure Modes",
+      "degraded array",
+      "rebuild",
+      "LVM With RAID",
+      "lvmraid",
+      "lv_health_status",
+      "PostgreSQL Storage Mapping",
+      "PostgreSQL examples",
+      "Elasticsearch Storage Mapping",
+      "Elasticsearch examples",
+      "random_page_cost",
+      "effective_io_concurrency",
+      "shard replicas",
       "md RAID",
       "mdadm",
       "device mapper",
@@ -1287,6 +1439,22 @@ class SiteTest < Minitest::Test
       "SIGKILL",
       "top -H",
       "network namespace",
+      "OCI",
+      "Open Container Initiative",
+      "Runtime Specification",
+      "Image Specification",
+      "Distribution Specification",
+      "containerd",
+      "runc",
+      "seccomp",
+      "capabilities",
+      "user namespace",
+      "cgroups",
+      "KVM",
+      "hypervisor",
+      "Hyper-V isolation",
+      "WSL 2",
+      "Virtual Machine",
       "netfilter",
       "conntrack",
       "qdisc",
@@ -1618,9 +1786,21 @@ class SiteTest < Minitest::Test
       "streaming replication",
       "logical replication",
       "replication slots",
+      "Logical replication model",
+      "logical replication failover",
       "pg_stat_replication",
       "pg_stat_archiver",
       "pg_stat_wal",
+      "HA Failover",
+      "Split brain",
+      "pg_promote",
+      "pg_rewind",
+      "timeline",
+      "Sharding",
+      "shard key",
+      "shard map",
+      "cross-shard",
+      "postgres_fdw",
       "point-in-time recovery",
       "PITR",
       "pg_verifybackup",
@@ -1650,7 +1830,21 @@ class SiteTest < Minitest::Test
       "server_reset_query_always",
       "auth_query",
       "CloudNativePG",
-      "Barman Cloud Plugin"
+      "Barman Cloud Plugin",
+      "OpenSearch",
+      "cluster-manager",
+      "primary shard",
+      "replica shard",
+      "Cross-Cluster Replication",
+      "cross-cluster replication",
+      "allocation awareness",
+      "forced awareness",
+      "wait_for_active_shards",
+      "remote_cluster_client",
+      "follower index",
+      "leader index",
+      "Segment replication",
+      "Snapshots and Recovery"
     ].each do |term|
       assert_includes corpus, term
     end

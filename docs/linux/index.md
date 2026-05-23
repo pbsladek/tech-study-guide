@@ -35,14 +35,17 @@ The kernel is not only "the thing under user space." It is the shared arbiter fo
 | Topic | Why It Matters |
 | --- | --- |
 | [Boot and Userspace](boot-userspace/) | Explains how firmware, bootloader, kernel, initramfs, root mounts, and PID 1 turn hardware into services. |
+| [Network Boot and Automated Provisioning](network-boot-automated-provisioning/) | Covers PXE, UEFI HTTP Boot, iPXE, DHCP, TFTP, Ubuntu autoinstall, cloud-init NoCloud, Kickstart, inventory-driven provisioning, and reinstall-loop prevention. |
 | [Kernel Modules and Devices](kernel-modules-devices/) | Covers loadable and built-in modules, `modprobe`, module aliases and parameters, sysfs, devtmpfs, udev, device nodes, initramfs, Secure Boot, and DKMS. |
 | [Filesystems and IO](filesystems-io/) | Connects application file operations to VFS, page cache, mounts, inodes, block devices, and durable writes. |
 | [Block Devices and Partitioning](block-devices-partitions/) | Covers `/dev` block devices, NVMe/SCSI naming, GPT, UUIDs, labels, udev, stable paths, and safe disk identity. |
 | [Mounts and fstab](mounts-fstab/) | Covers persistent mounts, `findmnt`, `/etc/fstab`, systemd mount units, automounts, bind mounts, and mount options. |
 | [Mount Namespaces and Propagation](mount-namespaces-propagation/) | Covers per-process mount views, bind mounts, shared subtree propagation, chroot, pivot_root, overlay, tmpfs, and container mount debugging. |
 | [ext4, XFS, and Repair](ext4-xfs-repair/) | Covers ext4/XFS differences, inodes, quotas, journals, online growth, repair tools, TRIM, and safe repair workflows. |
+| [Storage Drives, RAID, and Database Performance](storage-drives-raid-database-performance/) | Covers SSD, HDD, NVMe, RAID 0/1/5/6/10, striping, mirroring, parity, disk-failure recovery, rebuild risk, and PostgreSQL and Elasticsearch storage tradeoffs. |
 | [RAID, Multipath, and Device Mapper](raid-multipath-device-mapper/) | Covers md RAID, dm-crypt/LUKS, device mapper, multipath, NVMe multipath, WWIDs, and layered storage troubleshooting. |
 | [Storage Health and Performance](storage-health-performance/) | Covers `iostat`, SMART, NVMe health, kernel I/O errors, discard, queueing, latency, saturation, and failure response. |
+| [Containerization, OCI, and VMs](containerization-oci-vms/) | Explains containers versus VMs, OCI standards, namespaces, cgroups, capabilities, seccomp, macOS/Windows container behavior, KVM, and hypervisors. |
 | [Network Stack](network-stack/) | Shows how sockets, routes, namespaces, netfilter, conntrack, queues, and NICs move packets. |
 | [Kernel Network Performance](kernel-network-performance/) | Covers NAPI, softirq, NIC rings, RSS, RPS, RFS, XPS, offloads, qdisc, drops, and packet-processing bottlenecks. |
 | [TCP Kernel Tuning](tcp-kernel-tuning/) | Covers listen queues, `somaxconn`, SYN backlog, socket buffers, ephemeral ports, TIME_WAIT, keepalives, and conntrack limits. |

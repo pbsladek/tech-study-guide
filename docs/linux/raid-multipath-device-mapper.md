@@ -29,6 +29,8 @@ lsblk -o NAME,TYPE,FSTYPE,SIZE,MOUNTPOINTS
 
 `mdadm` manages Linux software RAID. Common levels include RAID1 mirrors, RAID10, RAID5, and RAID6. RAID improves availability or aggregate capacity, but it is not a backup.
 
+For RAID level behavior, parity write penalties, PostgreSQL and Elasticsearch examples, degraded-array recovery, and LVM native RAID, see [Storage Drives, RAID, and Database Performance](../storage-drives-raid-database-performance/).
+
 Operational rules:
 
 - monitor degraded arrays,

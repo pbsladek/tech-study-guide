@@ -40,6 +40,8 @@
       url: /docs/linux/
     - title: Boot and Userspace
       url: /docs/linux/boot-userspace/
+    - title: Network Boot and Provisioning
+      url: /docs/linux/network-boot-automated-provisioning/
     - title: Kernel Modules and Devices
       url: /docs/linux/kernel-modules-devices/
     - title: Filesystems and IO
@@ -52,10 +54,14 @@
       url: /docs/linux/mount-namespaces-propagation/
     - title: ext4, XFS, and Repair
       url: /docs/linux/ext4-xfs-repair/
+    - title: Storage Drives, RAID, and DB Performance
+      url: /docs/linux/storage-drives-raid-database-performance/
     - title: RAID, Multipath, and Device Mapper
       url: /docs/linux/raid-multipath-device-mapper/
     - title: Storage Health and Performance
       url: /docs/linux/storage-health-performance/
+    - title: Containerization, OCI, and VMs
+      url: /docs/linux/containerization-oci-vms/
     - title: Network Stack
       url: /docs/linux/network-stack/
     - title: Kernel Network Performance
@@ -180,6 +186,8 @@
       url: /docs/databases/postgres/pgbouncer/
     - title: CloudNativePG
       url: /docs/databases/postgres/cloudnativepg/
+    - title: OpenSearch
+      url: /docs/databases/opensearch/
 - title: Study Template
   url: /docs/template/
   icon: fas fa-file-lines

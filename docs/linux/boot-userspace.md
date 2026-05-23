@@ -13,6 +13,8 @@ tags:
 
 Boot is the chain that turns powered-off hardware into running services. Understanding it connects firmware, storage, kernel drivers, filesystems, initramfs, PID 1, and service supervision.
 
+For booting machines from the network and installing them automatically, see [Network Boot and Automated Provisioning](../network-boot-automated-provisioning/).
+
 ## Boot Checks
 
 ```bash

@@ -81,6 +81,23 @@ pvremove /dev/sdb
 
 For production storage, verify redundancy, backups, and IO health first. `pvmove` creates extra IO and can expose weak disks.
 
+## LVM and RAID
+
+LVM can either consume a RAID device or provide RAID itself.
+
+The common server pattern is LVM on top of md RAID: disks or partitions form `/dev/md*`, the md device becomes an LVM physical volume, and logical volumes are created from that redundant pool. In that layout, md owns RAID health and LVM owns flexible allocation.
+
+LVM can also create native RAID logical volumes with segment types such as `raid0`, `raid1`, `raid5`, `raid6`, and `raid10`. Those LVs use device mapper for the visible block device and Linux md logic for data placement. Use `lvs -a` because native LVM RAID creates hidden `_rimage_` and `_rmeta_` sub-LVs for data and RAID metadata.
+
+```bash
+lvs -a -o lv_name,segtype,attr,devices,lv_health_status,sync_percent
+lvconvert --type raid10 /dev/vg_data/lv_db
+lvchange --syncaction check /dev/vg_data/lv_db
+vgcfgbackup vg_data
+```
+
+Do not treat RAID as a replacement for LVM metadata backups or data backups. If an LV reports missing PVs, degraded RAID health, or metadata damage, stabilize the lower storage layer before resizing, shrinking, moving extents, or repairing filesystems. For RAID behavior, database examples, and failure recovery details, see [Storage Drives, RAID, and Database Performance](../storage-drives-raid-database-performance/).
+
 ## Snapshots
 
 Classic LVM snapshots use copy-on-write. They are useful for short-lived backup consistency points, not long-term version history.
@@ -146,6 +163,7 @@ journalctl -k -g 'lvm|device-mapper|dm-|blk|I/O error'
   {% include study-card.html question="What is the role of a volume group?" answer="It pools one or more physical volumes and provides extents for logical volumes." %}
   {% include study-card.html question="Why is shrinking an LV riskier than growing one?" answer="The filesystem and block device must shrink in the correct order, and some filesystems such as XFS do not support shrink." %}
   {% include study-card.html question="What does pvmove do?" answer="It migrates allocated extents from one physical volume to another physical volume in the same volume group." %}
+  {% include study-card.html question="How can LVM interact with RAID?" answer="LVM can sit on top of md RAID, or it can create native RAID logical volumes with segment types such as raid1, raid5, raid6, and raid10." %}
   {% include study-card.html question="What must be monitored in an LVM thin pool?" answer="Both data usage and metadata usage, because exhausting either can break writes." %}
 </div>
 
@@ -154,5 +172,6 @@ journalctl -k -g 'lvm|device-mapper|dm-|blk|I/O error'
 - [pvcreate(8) Linux manual page](https://man7.org/linux/man-pages/man8/pvcreate.8.html)
 - [vgcreate(8) Linux manual page](https://man7.org/linux/man-pages/man8/vgcreate.8.html)
 - [lvmthin(7) Linux manual page](https://man7.org/linux/man-pages/man7/lvmthin.7.html)
+- [lvmraid(7) Linux manual page](https://man7.org/linux/man-pages/man7/lvmraid.7.html)
 - [vgcfgbackup(8) Linux manual page](https://man7.org/linux/man-pages/man8/vgcfgbackup.8.html)
 - [Red Hat LVM volume group administration](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/configuring_and_managing_logical_volumes/managing-lvm-volume-groups_configuring-and-managing-logical-volumes)
