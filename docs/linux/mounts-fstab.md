@@ -46,18 +46,23 @@ Operational options to know:
 | Option | Why it matters |
 | --- | --- |
 | `defaults` | Baseline option set, not a full security policy. |
+| `noauto` | Do not mount automatically with `mount -a` or normal boot handling. |
 | `nofail` | Boot continues if the device is missing. |
+| `x-systemd.device-timeout=` | Controls how long systemd waits for the backing device. |
 | `x-systemd.automount` | systemd creates an automount unit and mounts on first access. |
 | `_netdev` | Marks a filesystem as network-dependent. |
 | `ro` / `rw` | Read-only or read-write. |
 | `noatime` / `relatime` | Access-time update behavior. |
 | `nosuid`, `nodev`, `noexec` | Security-relevant restrictions for some mountpoints. |
+| `fs_passno` field | Controls fsck ordering in traditional fstab semantics; root is usually `1`, other checked filesystems `2`, unchecked `0`. |
 
 Always run `findmnt --verify` or `mount -a` after editing fstab while you still have a shell.
 
 ## systemd Mount Units
 
-systemd converts fstab entries into `.mount` units. Mount unit names are derived from paths, such as `srv-data.mount` for `/srv/data`. Automount units can reduce boot coupling for slow or optional storage.
+systemd-fstab-generator converts fstab entries into `.mount` units at boot and daemon reload. Mount unit names are derived from paths, such as `srv-data.mount` for `/srv/data`. Automount units can reduce boot coupling for slow or optional storage.
+
+Mount ordering matters. A local required mount can hold boot in emergency mode if the device is missing. A network mount without `_netdev`, automounting, or correct network dependencies can race the network. Optional or slow storage should be designed deliberately with `nofail`, `noauto`, `x-systemd.automount`, device timeouts, and application-level readiness.
 
 Use:
 
@@ -85,6 +90,7 @@ Bind mounts expose an existing path somewhere else. Containers commonly use bind
 
 <div class="study-card-grid">
   {% include study-card.html question="Why run findmnt --verify after editing fstab?" answer="It catches syntax and source/target problems before a reboot turns them into boot failures." %}
+  {% include study-card.html question="What does systemd-fstab-generator do?" answer="It turns /etc/fstab entries into systemd mount and automount units at boot or daemon reload." %}
   {% include study-card.html question="What does nofail do in fstab?" answer="It lets boot continue when the configured filesystem is unavailable." %}
   {% include study-card.html question="Why can a mount look different inside a container?" answer="Containers often run in separate mount namespaces with bind mounts chosen by the runtime." %}
 </div>

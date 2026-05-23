@@ -35,9 +35,9 @@ These commands show link state, address assignment, DNS state, unit health, netw
 | --- | --- |
 | `.network` | Matches interfaces and applies addresses, DHCP, routes, DNS, and link behavior. |
 | `.netdev` | Creates virtual network devices such as bridges, bonds, VLANs, VXLANs, and tunnels. |
-| `.link` | Sets lower-level link attributes such as names, aliases, MTU, and MAC policy. |
+| `.link` | Sets lower-level link attributes such as names, aliases, MTU, and MAC policy through `systemd-udevd` link setup. |
 
-Files are read from system and admin directories such as `/usr/lib/systemd/network`, `/run/systemd/network`, and `/etc/systemd/network`. Numbered filenames such as `10-lan.network` make ordering explicit.
+Network files are read from system, runtime, and admin directories such as `/usr/lib/systemd/network`, `/run/systemd/network`, and `/etc/systemd/network`. Numbered filenames such as `10-lan.network` make ordering explicit. Link files are applied earlier by udev's network-device setup, so link naming and MTU policy can affect what later `.network` matches see.
 
 ## Static and DHCP Examples
 
@@ -72,7 +72,7 @@ networkctl status enp1s0
 journalctl -u systemd-networkd -b
 ```
 
-On Ubuntu, prefer editing Netplan when Netplan owns the source configuration. Direct networkd files may be overwritten or ignored depending on the host build.
+On Ubuntu, prefer editing Netplan when Netplan owns the source configuration. Direct networkd files under `/etc/systemd/network` can conflict with or override generated runtime files, so confirm the active renderer and generated state before mixing layers.
 
 ## network.target vs network-online.target
 

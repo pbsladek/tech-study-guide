@@ -37,6 +37,16 @@ Key ideas:
 - source address selection affects return traffic,
 - ECMP can split flows across next hops.
 
+Routers often provide the first routed boundary for DHCP. Because DHCPv4 starts with local broadcast, a router interface or relay agent must forward requests to DHCP servers on other subnets. The relay-selected interface address, commonly recorded in `giaddr`, is how the server chooses the right scope. A routing device can therefore break DHCP even while ordinary routed traffic works.
+
+Router-provided host configuration commonly arrives through DHCP options:
+
+- router/default gateway option,
+- DNS server option,
+- domain/search suffix,
+- classless static routes,
+- PXE/TFTP boot information.
+
 ## NAT
 
 SNAT changes the source. DNAT changes the destination. Masquerade is dynamic SNAT for changing egress addresses. NAT requires connection tracking for most stateful behavior.

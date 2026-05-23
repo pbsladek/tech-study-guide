@@ -88,6 +88,7 @@ The most useful troubleshooting question is: "Which controller owns the next ste
 - [Core Concepts](core-concepts/) for API objects, controllers, scheduling, and reconciliation.
 - [Kubernetes Networking](networking/) for the top-level networking model.
 - [Kubernetes DNS and CoreDNS](dns-coredns/) for Service names, Pod resolver behavior, CoreDNS, `ndots`, forwarding, and DNS debugging.
+- [NATS, DNS, and Kubernetes Networking](nats-dns-kubernetes/) for NATS client Service DNS, StatefulSet and headless Service route discovery, advertise names, TLS SANs, NetworkPolicy, and reconnect behavior.
 - [Kubernetes ExternalDNS](external-dns/) for reconciling Ingress, Service, and Gateway hostnames into public or private DNS provider records.
 - [Kubernetes Services and EndpointSlices](services-endpointslices/) for selectors, readiness, EndpointSlices, kube-proxy, headless Services, and LoadBalancer behavior.
 - [Kubernetes Pod Networking and CNI](pod-networking-cni/) for Pod IPs, Pod CIDRs, overlays, eBPF, MTU, hostNetwork, and node datapath checks.

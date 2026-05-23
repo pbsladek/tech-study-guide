@@ -71,6 +71,15 @@ class SiteTest < Minitest::Test
       "lsinitrd 2>/dev/null || lsinitramfs /boot/initrd.img-$(uname -r)",
       "findmnt /"
     ],
+    "docs/linux/kernel-modules-devices/index.html" => [
+      "lsmod",
+      "modinfo <module>",
+      "modprobe --show-depends <module>",
+      "cat /proc/modules",
+      "find /sys -name modalias -print | head",
+      "udevadm info --query=all --name=/dev/sda | head",
+      "dmesg -T | grep -i -E 'module|firmware|udev|driver|taint'"
+    ],
     "docs/linux/filesystems-io/index.html" => [
       "findmnt",
       "df -h",
@@ -211,6 +220,14 @@ class SiteTest < Minitest::Test
       "hostnamectl",
       "cat /etc/hostname"
     ],
+    "docs/linux/gpu-drivers/index.html" => [
+      "lspci -nnk | grep -A4 -E 'VGA|3D|Display'",
+      "lsmod | grep -E 'amdgpu|radeon|nvidia|nouveau'",
+      "ls -l /dev/dri /dev/nvidia* 2>/dev/null",
+      "dmesg -T | grep -Ei 'drm|amdgpu|nvidia|nouveau|xid|firmware'",
+      "cat /proc/driver/nvidia/version 2>/dev/null",
+      "nvidia-smi 2>/dev/null"
+    ],
     "docs/kubernetes/index.html" => [
       "kubectl apply -f deployment.yaml"
     ],
@@ -226,12 +243,27 @@ class SiteTest < Minitest::Test
       "kubectl get pods --all-namespaces",
       "kubectl get events --sort-by=.lastTimestamp"
     ],
+    "docs/identity/auth-protocols/index.html" => [
+      "curl -sS https://<idp-domain>/.well-known/openid-configuration",
+      "curl -sS https://<idp-domain>/.well-known/jwks.json",
+      "openssl x509 -in <saml-signing-cert.pem> -noout -subject -issuer -dates -fingerprint -sha256",
+      "python3 -m json.tool <token-payload.json>"
+    ],
     "docs/kubernetes/dns-coredns/index.html" => [
       "kubectl -n kube-system get deploy,svc,endpointslice -l k8s-app=kube-dns",
       "kubectl -n kube-system logs deployment/coredns",
       "kubectl exec -it <pod> -- cat /etc/resolv.conf",
       "kubectl exec -it <pod> -- nslookup kubernetes.default.svc.cluster.local",
       "kubectl -n kube-system get configmap coredns -o yaml"
+    ],
+    "docs/kubernetes/nats-dns-kubernetes/index.html" => [
+      "kubectl -n <namespace> get statefulset,svc,endpointslice,pod -l app.kubernetes.io/name=nats",
+      "kubectl -n <namespace> get svc <nats-service> <nats-headless-service> -o wide",
+      "kubectl -n <namespace> get endpointslice -l kubernetes.io/service-name=<nats-headless-service>",
+      "kubectl -n <namespace> exec -it <debug-pod> -- nslookup <nats-service>.<namespace>.svc.cluster.local",
+      "kubectl -n <namespace> exec -it <debug-pod> -- nslookup <nats-0>.<nats-headless-service>.<namespace>.svc.cluster.local",
+      "kubectl -n <namespace> exec -it <debug-pod> -- nslookup -type=SRV _nats._tcp.<nats-headless-service>.<namespace>.svc.cluster.local",
+      "kubectl -n <namespace> logs statefulset/<nats-statefulset> --all-containers"
     ],
     "docs/kubernetes/external-dns/index.html" => [
       "kubectl -n external-dns get deploy,sa,secret",
@@ -371,6 +403,15 @@ class SiteTest < Minitest::Test
       "tcpdump -nn -i any udp port 500 or udp port 4500 or esp",
       "ping -M do -s 1372 <remote-ip>"
     ],
+    "docs/networking/dhcp-routers-switches/index.html" => [
+      "ip addr",
+      "ip route",
+      "resolvectl status 2>/dev/null || cat /etc/resolv.conf",
+      "journalctl -b -u systemd-networkd -u NetworkManager --no-pager",
+      "tcpdump -ni <interface> 'udp port 67 or udp port 68'",
+      "dhclient -v -r <interface> 2>/dev/null || true",
+      "dhclient -v <interface> 2>/dev/null || true"
+    ],
     "docs/networking/switching-vlans-hosts/index.html" => [
       "ip link",
       "bridge link",
@@ -485,6 +526,22 @@ class SiteTest < Minitest::Test
       "psql -d <database>",
       "EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM table_name;",
       "VACUUM (ANALYZE) table_name;"
+    ],
+    "docs/databases/postgres/operations-ha/index.html" => [
+      "psql -d <database> -c \"SELECT pid, state, wait_event_type, wait_event, now() - query_start AS age, query FROM pg_stat_activity ORDER BY query_start NULLS LAST LIMIT 20;\"",
+      "psql -d <database> -c \"SELECT * FROM pg_stat_replication;\"",
+      "psql -d <database> -c \"SELECT slot_name, active, restart_lsn, wal_status FROM pg_replication_slots;\"",
+      "psql -d <database> -c \"SELECT * FROM pg_stat_archiver;\"",
+      "psql -d <database> -c \"SELECT checkpoints_timed, checkpoints_req, buffers_checkpoint FROM pg_stat_checkpointer;\"",
+      "psql -d <database> -c \"SELECT wal_records, wal_fpi, wal_bytes FROM pg_stat_wal;\""
+    ],
+    "docs/databases/postgres/pgbouncer/index.html" => [
+      "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW POOLS;\"",
+      "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW STATS;\"",
+      "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW CLIENTS;\"",
+      "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW SERVERS;\"",
+      "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW DATABASES;\"",
+      "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW CONFIG;\""
     ]
   }.freeze
 
@@ -571,12 +628,15 @@ class SiteTest < Minitest::Test
   def test_search_index_contains_pages_tags_and_content
     index = JSON.parse(read_site("assets/js/search-index.json"))
     postgres = index.find { |item| item["title"] == "PostgreSQL" }
+    postgres_ops = index.find { |item| item["title"] == "PostgreSQL Operations, HA, Replication, and Recovery" }
+    pgbouncer = index.find { |item| item["title"] == "PgBouncer" }
     troubleshooting = index.find { |item| item["title"] == "Troubleshooting and Error Handling" }
     ceph = index.find { |item| item["title"] == "Ceph" }
     lvm = index.find { |item| item["title"] == "Linux LVM" }
     systemd = index.find { |item| item["title"] == "systemd" }
     resolv = index.find { |item| item["title"] == "resolv.conf" }
     boot = index.find { |item| item["title"] == "Linux Boot and Userspace" }
+    kernel_modules_devices = index.find { |item| item["title"] == "Linux Kernel Modules and Devices" }
     filesystems = index.find { |item| item["title"] == "Linux Filesystems and IO" }
     block_devices = index.find { |item| item["title"] == "Linux Block Devices and Partitioning" }
     mounts = index.find { |item| item["title"] == "Linux Mounts and fstab" }
@@ -594,6 +654,7 @@ class SiteTest < Minitest::Test
     logs = index.find { |item| item["title"] == "Logs and Observability" }
     scheduled = index.find { |item| item["title"] == "Scheduled Automation" }
     time_hostname = index.find { |item| item["title"] == "Time, Hostname, and Identity" }
+    gpu_drivers = index.find { |item| item["title"] == "Linux GPU Drivers" }
     systemd_networking = index.find { |item| item["title"] == "systemd Networking" }
     systemd_socket_network = index.find { |item| item["title"] == "systemd Socket Activation and Network Services" }
     dns_cache = index.find { |item| item["title"] == "DNS Resolution and Caching" }
@@ -605,6 +666,7 @@ class SiteTest < Minitest::Test
     nat_gateways = index.find { |item| item["title"] == "NAT Gateways and Network Address Translation" }
     firewall_netfilter = index.find { |item| item["title"] == "Firewalls, iptables, and Netfilter" }
     vpn_ipsec = index.find { |item| item["title"] == "VPNs and IPsec Tunnels" }
+    dhcp_routers_switches = index.find { |item| item["title"] == "DHCP, Routers, and Switches" }
     switching = index.find { |item| item["title"] == "Switching, VLANs, and Hosts" }
     ip_addressing = index.find { |item| item["title"] == "IP Addressing and Subnetting" }
     icmp_mtu = index.find { |item| item["title"] == "ICMP, MTU, and Path Testing" }
@@ -615,23 +677,29 @@ class SiteTest < Minitest::Test
     forward_reverse_proxies = index.find { |item| item["title"] == "Forward and Reverse Proxies" }
     tcp_tls = index.find { |item| item["title"] == "TCP, TLS, and HTTP" }
     k8s_dns = index.find { |item| item["title"] == "Kubernetes DNS and CoreDNS" }
+    k8s_nats_dns = index.find { |item| item["title"] == "NATS, DNS, and Kubernetes Networking" }
     k8s_external_dns = index.find { |item| item["title"] == "Kubernetes ExternalDNS" }
     k8s_services = index.find { |item| item["title"] == "Kubernetes Services and EndpointSlices" }
     k8s_pod_networking = index.find { |item| item["title"] == "Kubernetes Pod Networking and CNI" }
     k8s_network_policy = index.find { |item| item["title"] == "Kubernetes NetworkPolicy" }
     k8s_ingress_gateway = index.find { |item| item["title"] == "Kubernetes Ingress, Gateway, and Load Balancers" }
+    identity = index.find { |item| item["title"] == "Identity and Access" }
+    auth_protocols = index.find { |item| item["title"] == "IdP, SAML, JWT, OAuth, and OIDC" }
     domain_controllers = index.find { |item| item["title"] == "Domain Controllers and Directory DNS" }
     debian = index.find { |item| item["title"] == "Debian and Ubuntu Operations" }
     istio = index.find { |item| item["title"] == "Istio" }
     service_mesh = index.find { |item| item["title"] == "Istio Service Mesh" }
 
     refute_nil postgres
+    refute_nil postgres_ops
+    refute_nil pgbouncer
     refute_nil troubleshooting
     refute_nil ceph
     refute_nil lvm
     refute_nil systemd
     refute_nil resolv
     refute_nil boot
+    refute_nil kernel_modules_devices
     refute_nil filesystems
     refute_nil block_devices
     refute_nil mounts
@@ -649,6 +717,7 @@ class SiteTest < Minitest::Test
     refute_nil logs
     refute_nil scheduled
     refute_nil time_hostname
+    refute_nil gpu_drivers
     refute_nil systemd_networking
     refute_nil systemd_socket_network
     refute_nil dns_cache
@@ -660,6 +729,7 @@ class SiteTest < Minitest::Test
     refute_nil nat_gateways
     refute_nil firewall_netfilter
     refute_nil vpn_ipsec
+    refute_nil dhcp_routers_switches
     refute_nil switching
     refute_nil ip_addressing
     refute_nil icmp_mtu
@@ -670,16 +740,36 @@ class SiteTest < Minitest::Test
     refute_nil forward_reverse_proxies
     refute_nil tcp_tls
     refute_nil k8s_dns
+    refute_nil k8s_nats_dns
     refute_nil k8s_external_dns
     refute_nil k8s_services
     refute_nil k8s_pod_networking
     refute_nil k8s_network_policy
     refute_nil k8s_ingress_gateway
+    refute_nil identity
+    refute_nil auth_protocols
     refute_nil domain_controllers
     refute_nil debian
     refute_nil istio
     refute_nil service_mesh
     assert_includes postgres["tags"], "databases"
+    assert_includes postgres["content"], "PgBouncer"
+    assert_includes postgres_ops["content"], "managed HA"
+    assert_includes postgres_ops["content"], "replication slots"
+    assert_includes postgres_ops["content"], "PITR"
+    assert_includes postgres_ops["content"], "pg_verifybackup"
+    assert_includes postgres_ops["content"], "pg_dumpall"
+    assert_includes postgres_ops["content"], "pg_locks"
+    assert_includes postgres_ops["content"], "idle_in_transaction_session_timeout"
+    assert_includes postgres_ops["content"], "remote_apply"
+    assert_includes postgres_ops["content"], "High CPU"
+    assert_includes postgres_ops["content"], "High RAM"
+    assert_includes pgbouncer["content"], "transaction pooling"
+    assert_includes pgbouncer["content"], "SHOW POOLS"
+    assert_includes pgbouncer["content"], "cl_waiting"
+    assert_includes pgbouncer["content"], "max_client_conn"
+    assert_includes pgbouncer["content"], "server_reset_query"
+    assert_includes pgbouncer["content"], "auth_query"
     assert_includes troubleshooting["content"], "CrashLoopBackOff"
     assert_includes troubleshooting["content"], "SQLSTATE"
     assert_includes postgres["content"], "EXPLAIN"
@@ -688,9 +778,18 @@ class SiteTest < Minitest::Test
     assert_includes systemd["content"], "journalctl"
     assert_includes resolv["content"], "ndots"
     assert_includes boot["content"], "initramfs"
+    assert_includes boot["content"], "EFI System Partition"
+    assert_includes boot["content"], "systemd-boot"
+    assert_includes kernel_modules_devices["content"], "modprobe"
+    assert_includes kernel_modules_devices["content"], "modalias"
+    assert_includes kernel_modules_devices["content"], "devtmpfs"
+    assert_includes kernel_modules_devices["content"], "Secure Boot"
     assert_includes filesystems["content"], "VFS"
     assert_includes block_devices["content"], "/dev/disk/by-id"
+    assert_includes block_devices["content"], "PARTUUID"
     assert_includes mounts["content"], "findmnt --verify"
+    assert_includes mounts["content"], "systemd-fstab-generator"
+    assert_includes mounts["content"], "x-systemd.device-timeout"
     assert_includes mount_namespaces["content"], "mountinfo"
     assert_includes ext4_xfs["content"], "xfs_repair"
     assert_includes raid_multipath["content"], "LUKS"
@@ -706,6 +805,10 @@ class SiteTest < Minitest::Test
     assert_includes logs["content"], "logrotate"
     assert_includes scheduled["content"], "systemd timers"
     assert_includes time_hostname["content"], "machine-id"
+    assert_includes gpu_drivers["content"], "ROCm"
+    assert_includes gpu_drivers["content"], "RADV"
+    assert_includes gpu_drivers["content"], "nvidia-smi"
+    assert_includes gpu_drivers["content"], "Secure Boot"
     assert_includes systemd_networking["content"], "network-online.target"
     assert_includes systemd_socket_network["content"], "ListenStream"
     assert_includes dns_cache["content"], "negative answer"
@@ -724,7 +827,13 @@ class SiteTest < Minitest::Test
     assert_includes firewall_netfilter["content"], "iptables-save"
     assert_includes vpn_ipsec["content"], "IKEv2"
     assert_includes vpn_ipsec["content"], "traffic selectors"
+    assert_includes dhcp_routers_switches["content"], "DORA"
+    assert_includes dhcp_routers_switches["content"], "DHCP relay"
+    assert_includes dhcp_routers_switches["content"], "Option 82"
+    assert_includes dhcp_routers_switches["content"], "DHCP snooping"
+    assert_includes dhcp_routers_switches["content"], "Router Advertisements"
     assert_includes switching["content"], "/etc/hosts"
+    assert_includes switching["content"], "DHCP snooping"
     assert_includes switching["content"], "802.1Q"
     assert_includes ip_addressing["content"], "CIDR"
     assert_includes icmp_mtu["content"], "Path MTU Discovery"
@@ -736,6 +845,17 @@ class SiteTest < Minitest::Test
     assert_includes forward_reverse_proxies["content"], "NO_PROXY"
     assert_includes tcp_tls["content"], "SNI"
     assert_includes k8s_dns["content"], "ndots"
+    assert_includes k8s_dns["content"], "NATS"
+    assert_includes k8s_nats_dns["content"], "headless Service"
+    assert_includes k8s_nats_dns["content"], "StatefulSet Pod DNS"
+    assert_includes k8s_nats_dns["content"], "cluster.advertise"
+    assert_includes k8s_nats_dns["content"], "client_advertise"
+    assert_includes k8s_nats_dns["content"], "NetworkPolicy"
+    assert_includes k8s_nats_dns["content"], "certificate SAN"
+    assert_includes k8s_nats_dns["content"], "publishNotReadyAddresses"
+    assert_includes k8s_nats_dns["content"], "SRV records"
+    assert_includes k8s_nats_dns["content"], "NodeLocal DNSCache"
+    assert_includes k8s_nats_dns["content"], "gossiped server URLs"
     assert_includes k8s_external_dns["content"], "TXT registry"
     assert_includes k8s_external_dns["content"], "owner ID"
     assert_includes k8s_external_dns["content"], "external-dns.alpha.kubernetes.io/hostname"
@@ -743,13 +863,23 @@ class SiteTest < Minitest::Test
     assert_includes k8s_pod_networking["content"], "CNI"
     assert_includes k8s_network_policy["content"], "default-deny"
     assert_includes k8s_ingress_gateway["content"], "Gateway API"
+    assert_includes identity["content"], "Identity Provider"
+    assert_includes identity["content"], "authentication"
+    assert_includes identity["content"], "authorization"
+    assert_includes auth_protocols["content"], "SAML"
+    assert_includes auth_protocols["content"], "OAuth 2.0"
+    assert_includes auth_protocols["content"], "OpenID Connect"
+    assert_includes auth_protocols["content"], "JWT"
+    assert_includes auth_protocols["content"], "Authorization server"
+    assert_includes auth_protocols["content"], "JWKS"
+    assert_includes auth_protocols["content"], "PKCE"
     assert_includes domain_controllers["content"], "_msdcs"
     assert_includes domain_controllers["content"], "Kerberos"
     assert_includes domain_controllers["content"], "Global Catalog"
     assert_includes debian["content"], "Ubuntu Server"
     assert_includes istio["content"], "ambient mode"
     assert_includes service_mesh["content"], "ztunnel"
-    assert_operator index.length, :>=, 63
+    assert_operator index.length, :>=, 67
   end
 
   def test_tag_index_and_knowledge_graph_render
@@ -764,12 +894,17 @@ class SiteTest < Minitest::Test
     assert_includes graph, "Kubernetes"
     assert_includes graph, "Troubleshooting"
     assert_includes graph, "DNS and CoreDNS"
+    assert_includes graph, "NATS, DNS, and Kubernetes"
     assert_includes graph, "ExternalDNS"
     assert_includes graph, "Services and EndpointSlices"
     assert_includes graph, "Pod Networking and CNI"
     assert_includes graph, "NetworkPolicy"
     assert_includes graph, "Ingress, Gateway, and Load Balancers"
+    assert_includes graph, "Identity and Access"
+    assert_includes graph, "IdP, SAML, JWT, OAuth, and OIDC"
     assert_includes graph, "PostgreSQL"
+    assert_includes graph, "PostgreSQL Operations and HA"
+    assert_includes graph, "PgBouncer"
     assert_includes graph, "CloudNativePG"
     assert_includes graph, "Ceph"
     assert_includes graph, "Rook-Ceph"
@@ -781,6 +916,7 @@ class SiteTest < Minitest::Test
     assert_includes graph, "Firewalls, iptables, and Netfilter"
     assert_includes graph, "VPNs and IPsec Tunnels"
     assert_includes graph, "Boot and Userspace"
+    assert_includes graph, "Kernel Modules and Devices"
     assert_includes graph, "Block Devices and Partitioning"
     assert_includes graph, "Mounts and fstab"
     assert_includes graph, "Mount Namespaces and Propagation"
@@ -793,6 +929,7 @@ class SiteTest < Minitest::Test
     assert_includes graph, "Processes and Threads"
     assert_includes graph, "Certificates and HTTPS"
     assert_includes graph, "TCP and Sockets"
+    assert_includes graph, "DHCP, Routers, and Switches"
     assert_includes graph, "Switching, VLANs, and Hosts"
     assert_includes graph, "IP Addressing and Subnetting"
     assert_includes graph, "ICMP, MTU, and Path Testing"
@@ -805,6 +942,7 @@ class SiteTest < Minitest::Test
     assert_includes graph, "Logs and Observability"
     assert_includes graph, "Scheduled Automation"
     assert_includes graph, "Time, Hostname, and Identity"
+    assert_includes graph, "GPU Drivers"
     assert_includes graph, "systemd Networking"
     assert_includes graph, "systemd Socket Activation"
     assert_includes graph, "Istio"
@@ -830,6 +968,7 @@ class SiteTest < Minitest::Test
       "docs/linux/systemd/index.html",
       "docs/linux/resolv-conf/index.html",
       "docs/linux/boot-userspace/index.html",
+      "docs/linux/kernel-modules-devices/index.html",
       "docs/linux/filesystems-io/index.html",
       "docs/linux/block-devices-partitions/index.html",
       "docs/linux/mounts-fstab/index.html",
@@ -848,6 +987,7 @@ class SiteTest < Minitest::Test
       "docs/linux/logs-observability/index.html",
       "docs/linux/scheduled-automation/index.html",
       "docs/linux/time-hostname/index.html",
+      "docs/linux/gpu-drivers/index.html",
       "docs/linux/systemd-networking/index.html",
       "docs/linux/systemd-socket-network-services/index.html",
       "docs/troubleshooting/index.html",
@@ -855,12 +995,15 @@ class SiteTest < Minitest::Test
       "docs/kubernetes/core-concepts/index.html",
       "docs/kubernetes/networking/index.html",
       "docs/kubernetes/dns-coredns/index.html",
+      "docs/kubernetes/nats-dns-kubernetes/index.html",
       "docs/kubernetes/external-dns/index.html",
       "docs/kubernetes/services-endpointslices/index.html",
       "docs/kubernetes/pod-networking-cni/index.html",
       "docs/kubernetes/network-policy/index.html",
       "docs/kubernetes/ingress-gateway-load-balancers/index.html",
       "docs/kubernetes/storage-upgrades/index.html",
+      "docs/identity/index.html",
+      "docs/identity/auth-protocols/index.html",
       "docs/dns/index.html",
       "docs/dns/resolution-caching/index.html",
       "docs/dns/authoritative-zones/index.html",
@@ -873,6 +1016,7 @@ class SiteTest < Minitest::Test
       "docs/networking/nat-gateways/index.html",
       "docs/networking/firewalls-iptables-netfilter/index.html",
       "docs/networking/vpn-ipsec-tunnels/index.html",
+      "docs/networking/dhcp-routers-switches/index.html",
       "docs/networking/switching-vlans-hosts/index.html",
       "docs/networking/ip-addressing-subnetting/index.html",
       "docs/networking/icmp-mtu-path-testing/index.html",
@@ -885,6 +1029,8 @@ class SiteTest < Minitest::Test
       "docs/istio/service-mesh/index.html",
       "docs/ceph/rook-ceph/index.html",
       "docs/databases/postgres/index.html",
+      "docs/databases/postgres/operations-ha/index.html",
+      "docs/databases/postgres/pgbouncer/index.html",
       "docs/databases/postgres/cloudnativepg/index.html"
     ].each do |relative_path|
       html = read_site(relative_path)
@@ -984,6 +1130,7 @@ class SiteTest < Minitest::Test
       "docs/linux/systemd/index.html",
       "docs/linux/resolv-conf/index.html",
       "docs/linux/boot-userspace/index.html",
+      "docs/linux/kernel-modules-devices/index.html",
       "docs/linux/filesystems-io/index.html",
       "docs/linux/block-devices-partitions/index.html",
       "docs/linux/mounts-fstab/index.html",
@@ -1002,6 +1149,7 @@ class SiteTest < Minitest::Test
       "docs/linux/logs-observability/index.html",
       "docs/linux/scheduled-automation/index.html",
       "docs/linux/time-hostname/index.html",
+      "docs/linux/gpu-drivers/index.html",
       "docs/linux/systemd-networking/index.html",
       "docs/linux/systemd-socket-network-services/index.html",
       "docs/troubleshooting/index.html",
@@ -1009,12 +1157,15 @@ class SiteTest < Minitest::Test
       "docs/kubernetes/core-concepts/index.html",
       "docs/kubernetes/networking/index.html",
       "docs/kubernetes/dns-coredns/index.html",
+      "docs/kubernetes/nats-dns-kubernetes/index.html",
       "docs/kubernetes/external-dns/index.html",
       "docs/kubernetes/services-endpointslices/index.html",
       "docs/kubernetes/pod-networking-cni/index.html",
       "docs/kubernetes/network-policy/index.html",
       "docs/kubernetes/ingress-gateway-load-balancers/index.html",
       "docs/kubernetes/storage-upgrades/index.html",
+      "docs/identity/index.html",
+      "docs/identity/auth-protocols/index.html",
       "docs/dns/index.html",
       "docs/dns/resolution-caching/index.html",
       "docs/dns/authoritative-zones/index.html",
@@ -1027,6 +1178,7 @@ class SiteTest < Minitest::Test
       "docs/networking/nat-gateways/index.html",
       "docs/networking/firewalls-iptables-netfilter/index.html",
       "docs/networking/vpn-ipsec-tunnels/index.html",
+      "docs/networking/dhcp-routers-switches/index.html",
       "docs/networking/switching-vlans-hosts/index.html",
       "docs/networking/ip-addressing-subnetting/index.html",
       "docs/networking/icmp-mtu-path-testing/index.html",
@@ -1041,6 +1193,8 @@ class SiteTest < Minitest::Test
       "docs/ceph/index.html",
       "docs/ceph/rook-ceph/index.html",
       "docs/databases/postgres/index.html",
+      "docs/databases/postgres/operations-ha/index.html",
+      "docs/databases/postgres/pgbouncer/index.html",
       "docs/databases/postgres/cloudnativepg/index.html"
     ].map { |path| text_content(read_site(path)) }.join("\n")
 
@@ -1066,17 +1220,34 @@ class SiteTest < Minitest::Test
       "initramfs",
       "PID 1",
       "kernel command line",
+      "bootloader",
+      "UEFI",
+      "EFI System Partition",
+      "systemd-boot",
+      "Unified Kernel Image",
+      "rootwait",
+      "rootdelay",
+      "modprobe",
+      "modprobe.d",
+      "modalias",
+      "devtmpfs",
+      "sysfs",
+      "DKMS",
       "VFS",
       "inode",
       "page cache",
       "fsync",
       "/dev/disk/by-id",
+      "PARTUUID",
+      "major and minor",
       "GPT",
       "UUID",
       "udev",
       "findmnt --verify",
       "/etc/fstab",
       "systemd mount",
+      "systemd-fstab-generator",
+      "x-systemd.device-timeout",
       "x-systemd.automount",
       "mount namespace",
       "mountinfo",
@@ -1186,6 +1357,20 @@ class SiteTest < Minitest::Test
       "systemd-timesyncd",
       "hostnamectl",
       "machine-id",
+      "DRM render nodes",
+      "RadeonSI",
+      "RADV",
+      "ROCm",
+      "/dev/kfd",
+      "rocminfo",
+      "rocm-smi",
+      "CUDA",
+      "NVML",
+      "NVIDIA Container Toolkit",
+      "Secure Boot",
+      "DKMS",
+      "nvidia-persistenced",
+      "Xid",
       "systemd-networkd",
       "systemd-resolved",
       "network-online.target",
@@ -1239,6 +1424,18 @@ class SiteTest < Minitest::Test
       "cluster.local",
       "dnsPolicy",
       "Corefile",
+      "NATS",
+      "headless Service",
+      "StatefulSet Pod DNS",
+      "cluster.advertise",
+      "client_advertise",
+      "no_advertise",
+      "certificate SAN",
+      "route peer",
+      "publishNotReadyAddresses",
+      "SRV records",
+      "NodeLocal DNSCache",
+      "gossiped server URLs",
       "ExternalDNS",
       "TXT registry",
       "owner ID",
@@ -1264,6 +1461,31 @@ class SiteTest < Minitest::Test
       "LoadBalancer",
       "CSI",
       "kubeadm upgrade",
+      "Identity Provider",
+      "IdP",
+      "authentication",
+      "authorization",
+      "Service Provider",
+      "SAML assertion",
+      "AuthnRequest",
+      "ACS URL",
+      "Entity ID",
+      "NameID",
+      "OAuth 2.0",
+      "authorization code flow",
+      "PKCE",
+      "access token",
+      "refresh token",
+      "client credentials",
+      "OpenID Connect",
+      "ID token",
+      "UserInfo endpoint",
+      "JWKS",
+      "JWT",
+      "JWS",
+      "issuer",
+      "audience",
+      "Bearer token",
       "authoritative nameserver",
       "negative caching",
       "split-horizon",
@@ -1303,6 +1525,17 @@ class SiteTest < Minitest::Test
       "QUIC",
       "HTTP/3",
       "DHCP",
+      "DORA",
+      "DHCP relay",
+      "helper address",
+      "Option 82",
+      "DHCP snooping",
+      "lease time",
+      "DHCPv6",
+      "Router Advertisements",
+      "SLAAC",
+      "prefix delegation",
+      "giaddr",
       "L4",
       "L7",
       "health checks",
@@ -1381,6 +1614,41 @@ class SiteTest < Minitest::Test
       "MVCC",
       "Write-Ahead Logging",
       "EXPLAIN ANALYZE",
+      "managed HA",
+      "streaming replication",
+      "logical replication",
+      "replication slots",
+      "pg_stat_replication",
+      "pg_stat_archiver",
+      "pg_stat_wal",
+      "point-in-time recovery",
+      "PITR",
+      "pg_verifybackup",
+      "pg_dumpall --globals-only",
+      "pg_locks",
+      "pg_blocking_pids",
+      "idle_in_transaction_session_timeout",
+      "statement_timeout",
+      "lock_timeout",
+      "synchronous_commit",
+      "remote_apply",
+      "archive_command",
+      "restore_command",
+      "recovery target",
+      "High CPU",
+      "High RAM",
+      "work_mem",
+      "PgBouncer",
+      "transaction pooling",
+      "session pooling",
+      "statement pooling",
+      "max_client_conn",
+      "default_pool_size",
+      "cl_waiting",
+      "SHOW POOLS",
+      "server_reset_query",
+      "server_reset_query_always",
+      "auth_query",
       "CloudNativePG",
       "Barman Cloud Plugin"
     ].each do |term|

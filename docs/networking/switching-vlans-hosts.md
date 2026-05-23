@@ -51,6 +51,10 @@ Port types:
 
 802.1Q tagging inserts a VLAN identifier into Ethernet frames on trunks. A host or hypervisor can also use VLAN subinterfaces such as `eth0.100` when it needs to tag frames itself.
 
+DHCP depends on the VLAN boundary. A client Discover broadcast only reaches the DHCP server or relay in the same VLAN. If a host lands in the wrong access VLAN, if a trunk does not allow the VLAN, or if the native VLAN is wrong, the client may receive no lease or a lease from the wrong scope.
+
+Switch features such as DHCP snooping, port security, and storm control can also affect DHCP. Snooping is useful because it blocks rogue DHCP servers on untrusted ports, but a missing trusted uplink or relay port can drop legitimate offers.
+
 ## Linux Bridges and VLANs
 
 Linux bridges behave like software switches. They are common with virtualization, containers, Kubernetes nodes, and lab networks.
@@ -91,14 +95,16 @@ Gotchas:
 3. Confirm whether frames are tagged or untagged where expected.
 4. Confirm Linux bridge membership and VLAN filtering.
 5. Confirm ARP or IPv6 neighbor discovery works within the VLAN.
-6. Confirm routing exists between VLANs if crossing Layer 3.
-7. Use `getent hosts` to check local host-file and NSS behavior before DNS-only tests.
+6. For DHCP failures, check relay/helper address, DHCP snooping trust, and whether offers return on the same VLAN.
+7. Confirm routing exists between VLANs if crossing Layer 3.
+8. Use `getent hosts` to check local host-file and NSS behavior before DNS-only tests.
 
 ## Study Cards
 
 <div class="study-card-grid">
   {% include study-card.html question="What does a switch learn from?" answer="Source MAC addresses in Ethernet frames, mapping them to switch ports." %}
   {% include study-card.html question="What is a VLAN?" answer="A separate Layer 2 broadcast domain, often carried over shared switch infrastructure." %}
+  {% include study-card.html question="Why can a VLAN mistake break DHCP?" answer="DHCP Discover starts as local broadcast, so the client must be in the VLAN that has the expected server or relay." %}
   {% include study-card.html question="Why use getent hosts instead of dig for /etc/hosts checks?" answer="getent follows the system name-service path, while dig queries DNS and ignores /etc/hosts." %}
 </div>
 

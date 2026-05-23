@@ -41,6 +41,17 @@ Common naming patterns:
 
 Device names such as `/dev/sdb` are not stable identity. A reboot, controller change, or cloud attach order change can rename devices.
 
+Device state is visible in more than one place:
+
+| Path | Meaning |
+| --- | --- |
+| `/sys/block` | Kernel block device topology and attributes. |
+| `/sys/class/block` | Class view of block devices, including partitions and device-mapper nodes. |
+| `/dev` | Device nodes created by devtmpfs and adjusted by udev. |
+| `/dev/disk/by-*` | udev-created stable symlinks based on ID, path, UUID, label, or partition UUID. |
+
+Major and minor numbers connect `/dev` nodes to kernel devices. `lsblk -o NAME,MAJ:MIN,...` is useful because the same storage object can have multiple symlinks but only one major/minor identity at a time.
+
 ## Stable Identity
 
 Prefer stable names when configuring mounts, storage layers, and automation:
@@ -53,6 +64,8 @@ Prefer stable names when configuring mounts, storage layers, and automation:
 - LVM VG/LV names.
 
 Use `lsblk -f`, `blkid`, and `/dev/disk/by-*` to map friendly names to stable identity before changing anything.
+
+Be precise about which stable identifier you use. Filesystem UUIDs identify a filesystem, PARTUUID identifies a partition table entry, by-id often identifies physical or virtual media, and LVM logical volume paths identify a mapping. Cloning disks or VM images can duplicate UUIDs, so check for collisions after restores and golden-image cloning.
 
 ## Partition Tables
 
@@ -83,6 +96,7 @@ The storage stack is layered. A partition might be a physical volume, which back
 
 <div class="study-card-grid">
   {% include study-card.html question="Why avoid using /dev/sdb in persistent config?" answer="Kernel device names can change across boots or attach order; use UUIDs, labels, by-id paths, or logical names." %}
+  {% include study-card.html question="What is the difference between UUID and PARTUUID?" answer="UUID usually identifies the filesystem; PARTUUID identifies a partition table entry." %}
   {% include study-card.html question="What does /dev/dm-* usually indicate?" answer="A device-mapper target such as LVM, dm-crypt, or multipath." %}
   {% include study-card.html question="Why inspect lsblk before partitioning?" answer="It shows device type, size, filesystem, mountpoints, and parent-child relationships that prevent targeting the wrong layer." %}
 </div>

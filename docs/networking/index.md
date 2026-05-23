@@ -36,6 +36,7 @@ Each boundary can fail independently.
 | [NAT Gateways and NAT](nat-gateways/) | Covers SNAT, DNAT, PAT, masquerade, cloud NAT gateways, port exhaustion, hairpin NAT, Kubernetes egress, and NAT troubleshooting. |
 | [Firewalls, iptables, and Netfilter](firewalls-iptables-netfilter/) | Covers netfilter hooks, nftables, iptables, chains, tables, conntrack, NAT, counters, logging, and policy troubleshooting. |
 | [VPNs and IPsec Tunnels](vpn-ipsec-tunnels/) | Covers VPN types, IPsec tunnel mode, IKEv2, ESP, NAT-T, selectors, route-based tunnels, split tunneling, and MTU. |
+| [DHCP, Routers, and Switches](dhcp-routers-switches/) | Deep DHCP coverage: DORA, leases, options, default gateways, DNS options, relay/helper addresses, Option 82, VLAN boundaries, DHCP snooping, DHCPv6, SLAAC, and Router Advertisements. |
 | [Switching, VLANs, and Hosts](switching-vlans-hosts/) | Covers switches, MAC learning, access and trunk ports, 802.1Q VLAN tags, Linux bridges, and `/etc/hosts`. |
 | [IP Addressing and Subnetting](ip-addressing-subnetting/) | Covers CIDR, prefixes, private ranges, default gateways, IPv6, source address selection, and overlapping networks. |
 | [ICMP, MTU, and Path Testing](icmp-mtu-path-testing/) | Covers ping, traceroute, tracepath, Path MTU Discovery, fragmentation, tunnel overhead, loss, latency, and jitter. |
@@ -101,6 +102,8 @@ CIDR longest-prefix match is fundamental. `10.0.1.0/24` beats `10.0.0.0/8`, and 
 TCP provides reliable byte streams with connection state, retransmission, ordering, flow control, and congestion control. Connection setup uses a three-way handshake: SYN, SYN-ACK, ACK.
 
 UDP is message-oriented and connectionless. It is common for DNS, QUIC, telemetry, and latency-sensitive protocols. Reliability, ordering, and retransmission must be handled by the application or higher protocol when needed.
+
+DHCP also uses UDP and is often the first protocol that proves whether a VLAN, switch port, relay agent, router interface, and address-management policy agree. For a focused runbook, see [DHCP, Routers, and Switches](dhcp-routers-switches/).
 
 ## NAT and Load Balancing
 

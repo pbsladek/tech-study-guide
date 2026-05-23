@@ -10,6 +10,8 @@
       url: /docs/kubernetes/networking/
     - title: DNS and CoreDNS
       url: /docs/kubernetes/dns-coredns/
+    - title: NATS, DNS, and Kubernetes
+      url: /docs/kubernetes/nats-dns-kubernetes/
     - title: ExternalDNS
       url: /docs/kubernetes/external-dns/
     - title: Services and EndpointSlices
@@ -38,6 +40,8 @@
       url: /docs/linux/
     - title: Boot and Userspace
       url: /docs/linux/boot-userspace/
+    - title: Kernel Modules and Devices
+      url: /docs/linux/kernel-modules-devices/
     - title: Filesystems and IO
       url: /docs/linux/filesystems-io/
     - title: Block Devices and Partitioning
@@ -74,6 +78,8 @@
       url: /docs/linux/scheduled-automation/
     - title: Time, Hostname, and Identity
       url: /docs/linux/time-hostname/
+    - title: GPU Drivers
+      url: /docs/linux/gpu-drivers/
     - title: LVM
       url: /docs/linux/lvm/
     - title: systemd
@@ -100,6 +106,14 @@
       url: /docs/dns/records-transport-operations/
     - title: Domain Controllers
       url: /docs/dns/domain-controllers/
+- title: Identity and Access
+  url: /docs/identity/
+  icon: fas fa-id-card
+  children:
+    - title: Overview
+      url: /docs/identity/
+    - title: IdP, SAML, JWT, OAuth, and OIDC
+      url: /docs/identity/auth-protocols/
 - title: Networking
   url: /docs/networking/
   icon: fas fa-network-wired
@@ -116,6 +130,8 @@
       url: /docs/networking/firewalls-iptables-netfilter/
     - title: VPNs and IPsec Tunnels
       url: /docs/networking/vpn-ipsec-tunnels/
+    - title: DHCP, Routers, and Switches
+      url: /docs/networking/dhcp-routers-switches/
     - title: Switching, VLANs, and Hosts
       url: /docs/networking/switching-vlans-hosts/
     - title: IP Addressing and Subnetting
@@ -158,6 +174,10 @@
       url: /docs/databases/
     - title: PostgreSQL
       url: /docs/databases/postgres/
+    - title: PostgreSQL Operations and HA
+      url: /docs/databases/postgres/operations-ha/
+    - title: PgBouncer
+      url: /docs/databases/postgres/pgbouncer/
     - title: CloudNativePG
       url: /docs/databases/postgres/cloudnativepg/
 - title: Study Template

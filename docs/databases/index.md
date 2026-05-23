@@ -24,4 +24,6 @@ Database fundamentals and implementation-specific notes.
 ## Implementations
 
 - [PostgreSQL](postgres/)
+- [PostgreSQL Operations, HA, Replication, and Recovery](postgres/operations-ha/)
+- [PgBouncer](postgres/pgbouncer/)
 - [CloudNativePG](postgres/cloudnativepg/)

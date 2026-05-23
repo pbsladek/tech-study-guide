@@ -35,6 +35,7 @@ The kernel is not only "the thing under user space." It is the shared arbiter fo
 | Topic | Why It Matters |
 | --- | --- |
 | [Boot and Userspace](boot-userspace/) | Explains how firmware, bootloader, kernel, initramfs, root mounts, and PID 1 turn hardware into services. |
+| [Kernel Modules and Devices](kernel-modules-devices/) | Covers loadable and built-in modules, `modprobe`, module aliases and parameters, sysfs, devtmpfs, udev, device nodes, initramfs, Secure Boot, and DKMS. |
 | [Filesystems and IO](filesystems-io/) | Connects application file operations to VFS, page cache, mounts, inodes, block devices, and durable writes. |
 | [Block Devices and Partitioning](block-devices-partitions/) | Covers `/dev` block devices, NVMe/SCSI naming, GPT, UUIDs, labels, udev, stable paths, and safe disk identity. |
 | [Mounts and fstab](mounts-fstab/) | Covers persistent mounts, `findmnt`, `/etc/fstab`, systemd mount units, automounts, bind mounts, and mount options. |
@@ -53,6 +54,7 @@ The kernel is not only "the thing under user space." It is the shared arbiter fo
 | [Logs and Observability](logs-observability/) | Covers journald, kernel logs, `/var/log`, log rotation, metrics, PSI, and incident evidence collection. |
 | [Scheduled Automation](scheduled-automation/) | Covers cron, systemd timers, job safety, idempotency, environment pitfalls, locking, and logs. |
 | [Time, Hostname, and Identity](time-hostname/) | Covers time sync, timezone, hostname, DNS identity, machine-id, certificates, and incident timelines. |
+| [Linux GPU Drivers](gpu-drivers/) | Covers AMD and NVIDIA GPU stacks, kernel modules, firmware, Mesa, ROCm, CUDA, `nvidia-smi`, Secure Boot, containers, and troubleshooting. |
 | [LVM](lvm/) | Covers the storage mapping layer behind many Linux volumes. |
 | [systemd](systemd/) | Covers service lifecycle, dependencies, logs, cgroups, timers, and resource controls. |
 | [systemd Networking](systemd-networking/) | Covers systemd-networkd, systemd-resolved, `.network`, `.netdev`, `.link`, network targets, and wait-online behavior. |
@@ -230,18 +232,7 @@ cat /proc/pressure/io
 
 ## GPU Interactions: General Model
 
-Linux GPU stacks involve:
-
-- kernel driver,
-- firmware,
-- user-space driver libraries,
-- display server or compute runtime,
-- device files under `/dev`,
-- DRM/KMS for graphics/display,
-- PCIe topology and IOMMU,
-- container runtime device passthrough for GPU workloads.
-
-GPU incidents often cross user/kernel boundaries. An application may report CUDA, ROCm, Vulkan, OpenGL, or display errors, while the root cause is kernel driver mismatch, missing firmware, permissions, PCIe reset, thermal throttling, or device memory pressure.
+Linux GPU stacks involve PCIe enumeration, kernel modules, firmware, device files, display or compute userspace, and sometimes container runtime hooks. GPU incidents often cross user/kernel boundaries. An application may report CUDA, ROCm, Vulkan, OpenGL, or display errors, while the root cause is kernel driver mismatch, missing firmware, permissions, PCIe reset, thermal throttling, or device memory pressure.
 
 General GPU checks:
 
@@ -252,45 +243,7 @@ dmesg -T | grep -i -E 'drm|gpu|amdgpu|nvidia|xid'
 lsmod | grep -E 'amdgpu|nvidia'
 ```
 
-## AMD GPUs on Linux
-
-AMD's mainline kernel driver is `amdgpu`. The upstream kernel documentation describes support for Radeon GPUs based on GCN, RDNA, and CDNA architectures, with driver areas such as memory domains, buffer objects, virtual memory, interrupts, IP blocks, display, and module parameters.
-
-Operational notes:
-
-- Newer AMD GPU support often depends on kernel, firmware, Mesa, and ROCm versions together.
-- Graphics and compute stacks are related but not identical.
-- `/dev/dri/renderD*` permissions matter for non-root compute or graphics clients.
-- Power, reset, display, and firmware errors often appear in `dmesg`.
-- Containerized GPU access needs device nodes and user-space libraries inside the container.
-
-Useful checks:
-
-```bash
-lspci -nnk | grep -A3 -E 'VGA|3D|Display'
-modinfo amdgpu | head
-cat /sys/module/amdgpu/parameters/* 2>/dev/null
-find /sys/class/drm -maxdepth 3 -type f -name '*busy*' -o -name '*mem*'
-dmesg -T | grep -i amdgpu
-```
-
-## NVIDIA GPUs on Linux
-
-NVIDIA systems commonly use NVIDIA's driver stack and management tools. `nvidia-smi` talks to the driver through NVML and reports device state such as utilization, memory, power, temperature, ECC, MIG, and process usage depending on GPU and driver capabilities.
-
-Persistence mode keeps a GPU initialized when no clients are connected. NVIDIA documents both legacy persistence mode and the `nvidia-persistenced` daemon. Persistence can reduce initialization latency and avoid some lifecycle surprises on compute nodes, but it is not a substitute for driver health.
-
-Useful checks:
-
-```bash
-nvidia-smi
-nvidia-smi -L
-nvidia-smi dmon
-systemctl status nvidia-persistenced
-dmesg -T | grep -i -E 'nvidia|xid'
-```
-
-NVIDIA Xid messages in `dmesg` are important. They can point to driver, hardware, thermal, power, PCIe, application, or firmware problems. Correlate Xids with workload logs and power/thermal data.
+For deeper AMD, NVIDIA, ROCm, CUDA, Secure Boot, containers, `nvidia-smi`, and NVIDIA persistence mode details, see [Linux GPU Drivers](gpu-drivers/).
 
 ## High CPU Runbook
 
@@ -355,7 +308,9 @@ dmesg -T | tail -100
 - [wait(2) Linux manual page](https://man7.org/linux/man-pages/man2/wait.2.html)
 - [Linux kernel AMDGPU documentation](https://docs.kernel.org/gpu/amdgpu/index.html)
 - [NVIDIA driver persistence documentation](https://docs.nvidia.com/deploy/driver-persistence/index.html)
+- [Linux GPU drivers](gpu-drivers/)
 - [Linux boot and userspace](boot-userspace/)
+- [Linux kernel modules and devices](kernel-modules-devices/)
 - [Linux filesystems and IO](filesystems-io/)
 - [Linux block devices and partitioning](block-devices-partitions/)
 - [Linux mounts and fstab](mounts-fstab/)

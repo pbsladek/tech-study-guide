@@ -19,6 +19,7 @@ Kubernetes networking starts from a simple model: every Pod gets a cluster-wide 
 | Topic | Why It Matters |
 | --- | --- |
 | [Kubernetes DNS and CoreDNS](../dns-coredns/) | Covers Service DNS names, Pod `/etc/resolv.conf`, `dnsPolicy`, CoreDNS Corefile behavior, forwarding, `ndots`, and DNS failure modes. |
+| [NATS, DNS, and Kubernetes Networking](../nats-dns-kubernetes/) | Covers how NATS clients, StatefulSet Pods, headless Services, cluster routes, advertise settings, TLS names, and NetworkPolicy depend on DNS. |
 | [Kubernetes ExternalDNS](../external-dns/) | Covers how Kubernetes hostnames from Services, Ingress, and Gateway API become provider DNS records with ownership, filters, and split-horizon concerns. |
 | [Services and EndpointSlices](../services-endpointslices/) | Explains selectors, readiness, EndpointSlices, kube-proxy, headless Services, LoadBalancer behavior, and source IP tradeoffs. |
 | [Pod Networking and CNI](../pod-networking-cni/) | Separates the Kubernetes network model from CNI implementation details such as routes, overlays, eBPF, Pod CIDRs, and MTU. |

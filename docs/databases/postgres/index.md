@@ -30,6 +30,14 @@ Important processes and memory areas:
 
 PostgreSQL stores data in pages. Queries read pages into shared buffers. Changes create WAL records before dirty data pages become the durable source of truth.
 
+## Critical Subtopics
+
+| Topic | Why It Matters |
+| --- | --- |
+| [PostgreSQL Operations, HA, Replication, and Recovery](operations-ha/) | Covers managed HA, failover, physical and logical replication, base backups, PITR, WAL retention, high CPU, high RAM, and incident checks. |
+| [PgBouncer](pgbouncer/) | Explains connection pooling, transaction/session/statement pooling, sizing, HA placement, failover behavior, admin commands, prepared statement caveats, and failure modes. |
+| [CloudNativePG](cloudnativepg/) | Covers running PostgreSQL in Kubernetes with operator-managed clusters, services, failover, backups, and restore cautions. |
+
 ## MVCC
 
 MVCC means rows can have multiple visible versions. A transaction sees a snapshot, not a global lock on the whole table. This lets readers and writers proceed concurrently in many cases.
@@ -116,6 +124,10 @@ Vacuum is routine maintenance, not an emergency-only tool. It:
 
 Autovacuum must be tuned for write-heavy tables. Defaults are often conservative for high-churn workloads.
 
+Important missing mental model: vacuum usually makes dead tuple space reusable inside PostgreSQL; it does not necessarily shrink the table file on disk. `VACUUM FULL` rewrites the table and takes stronger locks, so it belongs in a planned maintenance decision, not as a reflex during an incident.
+
+Long transactions and idle-in-transaction sessions can keep old row versions visible, blocking cleanup even if autovacuum is running. Watch transaction age, `pg_stat_activity`, dead tuple counts, and wraparound warnings together.
+
 ## Backups and Recovery
 
 There are two broad backup families:
@@ -125,7 +137,7 @@ There are two broad backup families:
 
 `pg_basebackup` can take a base backup from a running cluster over the replication protocol. For PITR, you need a base backup plus the WAL stream from that backup to the target recovery time.
 
-Test restores. An untested backup is an assumption.
+Test restores. An untested backup is an assumption. `pg_verifybackup` can verify a manifest-backed physical base backup, but it is still not a substitute for restoring and validating an actual database. For logical backups, remember that `pg_dump` is per-database; cluster-global roles and tablespaces need `pg_dumpall --globals-only` or another managed source of truth.
 
 ## Replication
 
@@ -148,6 +160,7 @@ SELECT now() - pg_last_xact_replay_timestamp() AS replica_lag;
 - Alert on replication lag and inactive slots.
 - Keep statistics fresh.
 - Test major upgrades separately; physical replication does not cross arbitrary major versions as an upgrade plan.
+- For deeper runbooks, see [PostgreSQL Operations, HA, Replication, and Recovery](operations-ha/) and [PgBouncer](pgbouncer/).
 
 ## CloudNativePG
 
@@ -175,3 +188,4 @@ For running PostgreSQL on Kubernetes, see [CloudNativePG](cloudnativepg/). The o
 - [PostgreSQL 18: EXPLAIN](https://www.postgresql.org/docs/18/sql-explain.html)
 - [PostgreSQL 18: Routine vacuuming](https://www.postgresql.org/docs/18/routine-vacuuming.html)
 - [PostgreSQL 18: pg_basebackup](https://www.postgresql.org/docs/18/app-pgbasebackup.html)
+- [PgBouncer documentation](https://www.pgbouncer.org/)

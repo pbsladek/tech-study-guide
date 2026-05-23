@@ -46,6 +46,7 @@ Operational details:
 - EndpointSlices are normally created for selector-based Services.
 - Ready endpoints usually map to Pods passing readiness.
 - Headless Services publish endpoint records directly.
+- Stateful workloads such as NATS often use a normal Service for clients and a headless Service for stable peer DNS names.
 - Dual-stack Services may have separate EndpointSlices by address family.
 - Older Endpoints objects are not the main scalability path.
 

@@ -1,20 +1,26 @@
 # Tech Study Guide
 
-A personal, searchable Jekyll study guide for infrastructure, networking, databases, and related engineering topics.
+A searchable Jekyll study guide for infrastructure, networking, databases, Linux, Kubernetes, DNS, identity, and related engineering topics.
 
-The site uses a project-local theme called StudyGraph. It is built for study guides and technical notes with full-text search, tags, expandable navigation, light/dark mode, reader mode, live font controls, syntax highlighting, study cards, and a generated knowledge graph.
+The site uses a project-local theme called StudyGraph. It includes full-text search, tags, expandable navigation, light/dark mode, reader mode, live font controls, syntax highlighting, study cards, and a generated knowledge graph.
 
-## Local Preview
+## Requirements
 
-The local workflow uses Docker so the host machine does not need Ruby or Jekyll installed.
+- Docker Desktop or a Docker-compatible engine
+- Node.js and npm for Playwright browser tests
+- `make`
 
-Build the site:
+Ruby and Jekyll run inside Docker, so they do not need to be installed on the host.
+
+## Quick Start
+
+Build the Jekyll image and generated site:
 
 ```bash
 make build
 ```
 
-Serve the site locally with Docker Compose:
+Serve the site locally:
 
 ```bash
 make serve
@@ -22,47 +28,67 @@ make serve
 
 Open <http://127.0.0.1:4030/>.
 
-Press `Ctrl-C` in the `make serve` terminal to stop the local server. To clean up any already-running container for this site:
+`make serve` uses Docker Compose through [compose.yaml](compose.yaml). Press `Ctrl-C` in the terminal to stop the server; the Makefile trap runs `docker compose down --remove-orphans` afterward.
+
+If a container is already running for this app, stop it with:
 
 ```bash
 make stop
 ```
 
-The default local port is `4030` because `4000`, `4010`, and `4020` are commonly already in use. To use another port:
+Use a different port only when needed:
 
 ```bash
 make serve PORT=4040
 ```
 
-Useful targets:
+The default port is `4030`.
+
+## Common Commands
 
 ```bash
+make help
 make docker-build
 make build
 make test
 make e2e
 make test-all
+make check
 make serve
 make stop
+make cleanup
 make clean
 ```
 
+Command summary:
+
+| Command | Purpose |
+| --- | --- |
+| `make docker-build` | Build the local Jekyll Docker image. |
+| `make build` | Generate `_site` with production Jekyll settings. |
+| `make test` | Build the site and run Ruby generated-HTML tests. |
+| `make e2e` | Start the Compose server, run Playwright, then stop the server. |
+| `make test-all` | Run Ruby generated-HTML tests and Playwright browser tests. |
+| `make serve` | Serve the site at `http://127.0.0.1:4030/` by default. |
+| `make stop` | Stop Compose and any running containers with the project prefix. |
+| `make clean` | Remove generated Jekyll output. |
+
 ## Browser Tests
 
-Playwright covers the interactive browser behavior: search, navigation, theme and reader controls, Study Mode, and current major topic pages.
-
-Install the Node dependencies and Chromium browser once:
+Install Node dependencies and the Chromium browser once:
 
 ```bash
 npm install
 npm run playwright:install
 ```
 
-Run the browser suite. This target starts the Docker Compose Jekyll server, waits for it, runs Playwright, and stops the server afterward:
+Run the browser suite:
 
 ```bash
 make e2e
 ```
+
+`make e2e` starts the Docker Compose Jekyll server, waits for it to answer, runs Playwright, and stops the server afterward.
 
 `npm run test:e2e` runs Playwright directly and expects a server to already be available at `BASE_URL` or `http://127.0.0.1:4030`.
 
@@ -72,16 +98,33 @@ Run all local checks:
 make test-all
 ```
 
-## GitHub Pages
+## Project Layout
 
-This repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`.
-
-After pushing to GitHub:
-
-1. Open the repository settings.
-2. Go to **Pages**.
-3. Set **Build and deployment** to **GitHub Actions**.
-4. Push to `main` or run the workflow manually.
+```text
+.
+├── _data/
+│   ├── study_decks.yml
+│   └── study_nav.yml
+├── _includes/
+├── _layouts/
+├── assets/
+├── docs/
+│   ├── ceph/
+│   ├── databases/
+│   ├── dns/
+│   ├── identity/
+│   ├── istio/
+│   ├── kubernetes/
+│   ├── linux/
+│   └── networking/
+├── test/
+│   └── site_test.rb
+├── tests/e2e/
+├── compose.yaml
+├── Dockerfile
+├── Makefile
+└── package.json
+```
 
 ## Adding Study Notes
 
@@ -101,7 +144,7 @@ tags:
 ---
 ```
 
-Add the page to `_data/study_nav.yml` when it should appear in the left navigation. See `docs/template.md` for a reusable note structure.
+Add the page to [_data/study_nav.yml](_data/study_nav.yml) when it should appear in the left navigation. See [docs/template.md](docs/template.md) for a reusable note structure.
 
 Study cards can be added to any page:
 
@@ -109,15 +152,34 @@ Study cards can be added to any page:
 {% include study-card.html question="What problem does this solve?" answer="A short answer for active recall." %}
 ```
 
-## Current Structure
+For broad topic decks, add cards to [_data/study_decks.yml](_data/study_decks.yml).
 
-```text
-docs/
-  linux/
-  kubernetes/
-  dns/
-  networking/
-  ceph/
-  databases/
-    postgres/
+## Testing New Content
+
+For substantive content changes, update tests so the important terms cannot disappear silently:
+
+- Add first-command-block expectations in [test/site_test.rb](test/site_test.rb) when the page starts with a command block.
+- Add search-index content assertions for important terms.
+- Add the page to study-card and researched-topic coverage when appropriate.
+- Add Playwright visibility checks in [tests/e2e/site.spec.js](tests/e2e/site.spec.js) for major new pages.
+
+Then run:
+
+```bash
+make test-all
 ```
+
+## GitHub Pages
+
+This repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`.
+
+After pushing to GitHub:
+
+1. Open the repository settings.
+2. Go to **Pages**.
+3. Set **Build and deployment** to **GitHub Actions**.
+4. Push to `main` or run the workflow manually.
+
+## Agent Notes
+
+See [AGENTS.md](AGENTS.md) for repo-specific guidance for coding agents and future automation.

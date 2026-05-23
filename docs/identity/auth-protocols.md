@@ -1,0 +1,199 @@
+---
+title: IdP, SAML, JWT, OAuth, and OIDC
+layout: page
+permalink: /docs/identity/auth-protocols/
+summary: "Identity provider basics, SAML assertions, OAuth 2.0 authorization, OpenID Connect authentication, JWT structure, validation checks, and troubleshooting."
+tags:
+  - identity
+  - security
+  - saml
+  - oauth
+  - jwt
+  - oidc
+---
+
+# IdP, SAML, JWT, OAuth, and OIDC
+
+Modern SSO is a trust system. One system authenticates the user, another system consumes a signed assertion or token, and an application decides what the user can do. Most incidents come from mixing up authentication, authorization, token type, audience, redirect endpoint, or trust metadata.
+
+## First Checks
+
+```bash
+curl -sS https://<idp-domain>/.well-known/openid-configuration
+curl -sS https://<idp-domain>/.well-known/jwks.json
+openssl x509 -in <saml-signing-cert.pem> -noout -subject -issuer -dates -fingerprint -sha256
+python3 -m json.tool <token-payload.json>
+```
+
+## Authentication vs Authorization
+
+| Question | Common Component | Common Artifact |
+| --- | --- | --- |
+| Who is this user? | IdP, OpenID Provider, enterprise directory. | SAML assertion, OIDC ID token, session cookie. |
+| Can this client call this API? | OAuth authorization server and resource server. | Access token with scopes, audience, and expiry. |
+| What can this user do in this app? | Application, policy engine, RBAC/ABAC system. | Local roles, groups, claims, entitlements, ACLs. |
+
+OAuth is primarily an authorization framework. OpenID Connect adds an identity layer on top of OAuth 2.0. SAML is a federation protocol commonly used for browser SSO. JWT is a token format, not an authorization framework by itself.
+
+## Identity Provider
+
+An Identity Provider (IdP) authenticates a principal and issues identity data to another system. That system might be a SAML Service Provider, an OIDC Relying Party, or a custom application consuming tokens.
+
+IdP responsibilities commonly include:
+
+- user authentication and MFA policy,
+- session lifetime and reauthentication rules,
+- group or attribute release,
+- signing keys and certificate rotation,
+- application registration,
+- redirect URI or ACS URL allow lists,
+- audit logs for authentication and token issuance.
+
+An IdP does not automatically grant application permissions. Applications still need their own authorization model, because the IdP may only prove identity and release attributes.
+
+## SAML
+
+SAML 2.0 is XML-based federation. The main browser SSO roles are:
+
+| Role | Job |
+| --- | --- |
+| Principal | Usually the human user. |
+| Identity Provider | Authenticates the user and issues assertions. |
+| Service Provider | Consumes assertions and creates the application session. |
+
+Important SAML objects:
+
+- Assertion: signed statement about authentication, subject, attributes, and conditions.
+- Response: protocol message that carries the assertion to the SP.
+- AuthnRequest: SP request asking the IdP to authenticate the user.
+- ACS URL: Assertion Consumer Service endpoint where the IdP posts the response.
+- Entity ID: stable identifier for the IdP or SP in metadata.
+- NameID: subject identifier format and value.
+- Metadata: XML describing endpoints, signing certificates, identifiers, and supported bindings.
+
+SAML failures are often metadata failures. If the SP entity ID, ACS URL, signing certificate, clock, or NameID format does not match what the IdP expects, login can fail before the application sees a user.
+
+## OAuth 2.0
+
+OAuth 2.0 defines roles:
+
+| Role | Meaning |
+| --- | --- |
+| Resource owner | User or principal that owns protected resources. |
+| Client | Application requesting access. |
+| Authorization server | Issues tokens after authorization. |
+| Resource server | API that accepts and validates access tokens. |
+
+The authorization code flow with PKCE is the common default for browser-based and native applications. The client sends the user to the authorization server, receives an authorization code on the redirect URI, exchanges that code for tokens, and then presents an access token to the API.
+
+Operational details:
+
+- Redirect URIs must be exact and pre-registered.
+- Scopes describe requested access, but APIs still need local enforcement.
+- Access tokens are for resource servers, not for proving login to the client.
+- Refresh tokens need careful storage, rotation, revocation, and theft detection.
+- A refresh token is a high-value credential because it can mint new access tokens after the original access token expires.
+- A Bearer token can be used by whoever possesses it, so storage, transport, logs, and browser exposure matter.
+- Client credentials flow is for machine-to-machine access, not human login.
+- New systems should avoid implicit flow and resource owner password credentials unless a specific legacy constraint forces them.
+
+## OpenID Connect
+
+OpenID Connect (OIDC) adds authentication and identity data to OAuth 2.0. The OpenID Provider issues an ID token to the client. The client validates it and uses it to establish who authenticated.
+
+Important OIDC pieces:
+
+- ID token: JWT carrying identity claims for the client.
+- Access token: token for an API or resource server.
+- UserInfo endpoint: optional way to fetch additional user claims.
+- Discovery document: `.well-known/openid-configuration` metadata for endpoints and supported settings.
+- JWKS: JSON Web Key Set used to publish public keys for token verification.
+- `nonce`: binds an authentication response to a client request and helps prevent replay.
+
+Do not send an ID token to an API as proof of API authorization unless that API is explicitly designed to accept that token and audience. Most APIs should validate access tokens.
+
+## JWT
+
+JSON Web Token (JWT) is a compact claims format. A signed JWT is commonly a JWS with three base64url parts:
+
+| Part | Contents |
+| --- | --- |
+| Header | Token type, signing algorithm, and often `kid`. |
+| Payload | Claims such as issuer, subject, audience, expiry, and custom data. |
+| Signature | Cryptographic signature over header and payload. |
+
+Common claims:
+
+| Claim | Meaning |
+| --- | --- |
+| `iss` | Issuer. |
+| `sub` | Subject. |
+| `aud` | Intended audience. |
+| `exp` | Expiration time. |
+| `nbf` | Not valid before. |
+| `iat` | Issued at. |
+| `jti` | Token identifier, useful for replay or revocation systems. |
+
+JWT validation checklist:
+
+1. Parse the token without trusting the claims yet.
+2. Select the verification key from trusted issuer metadata, often by `kid`.
+3. Allow only expected algorithms; do not accept arbitrary `alg` values from the token.
+4. Verify the signature.
+5. Verify `iss`, `aud`, `exp`, `nbf`, and acceptable clock skew.
+6. Enforce scopes, roles, groups, or entitlements locally.
+7. Decide revocation behavior for long-lived sessions or high-risk actions.
+
+Decoding a JWT is not validation. Anyone can base64url-decode the header and payload.
+
+## Which One Do I Use?
+
+| Need | Common Choice |
+| --- | --- |
+| Enterprise browser SSO to SaaS or internal apps | SAML or OIDC. |
+| Modern application login | OIDC authorization code flow with PKCE. |
+| API delegated access | OAuth 2.0 access tokens. |
+| Machine-to-machine API access | OAuth client credentials, mTLS, workload identity, or signed service tokens. |
+| Portable claims token | JWT when receivers can validate issuer, keys, audience, and lifetime. |
+
+## Common Mistakes
+
+- Calling OAuth "login" without OIDC and then treating an access token as identity.
+- Accepting a JWT after decoding it but before verifying signature and claims.
+- Reusing one token audience across many APIs.
+- Storing long-lived bearer tokens where browser JavaScript, logs, or support tools can expose them.
+- Missing SAML certificate rollover and breaking every SP at once.
+- Confusing SAML IdP-initiated convenience with complete request correlation.
+- Trusting groups or roles from an IdP without checking whether the application expected those exact claim names and formats.
+- Ignoring clock sync; SAML and JWT validation are time-sensitive.
+
+## Debugging Flow
+
+1. Identify the protocol: SAML, OAuth, OIDC, or a custom JWT flow.
+2. Identify the failing hop: redirect, login, assertion/token issuance, token exchange, callback, session creation, or API call.
+3. Check issuer, audience, redirect URI or ACS URL, signing key, and time validity.
+4. Separate ID tokens from access tokens.
+5. For SAML, compare IdP and SP metadata: entity ID, ACS URL, bindings, NameID format, and signing certificate.
+6. For OIDC/OAuth, inspect discovery metadata, JWKS, client registration, scopes, response type, grant type, and PKCE settings.
+7. Check local application authorization after token validation succeeds.
+
+## Study Cards
+
+<div class="study-card-grid">
+  {% include study-card.html question="What is an IdP?" answer="An identity provider authenticates users or principals and issues trusted identity information to applications or service providers." %}
+  {% include study-card.html question="What is SAML commonly used for?" answer="Browser-based federation and SSO between an Identity Provider and a Service Provider using signed XML assertions." %}
+  {% include study-card.html question="What is OAuth 2.0 primarily for?" answer="Delegated authorization: issuing access tokens a client can present to resource servers." %}
+  {% include study-card.html question="What does OpenID Connect add to OAuth?" answer="An identity layer, including ID tokens and standard user identity claims." %}
+  {% include study-card.html question="Is JWT a protocol like OAuth?" answer="No. JWT is a compact token format that protocols such as OIDC and OAuth deployments may use." %}
+  {% include study-card.html question="Why is decoding a JWT not enough?" answer="Decoded claims are untrusted until the signature, issuer, audience, expiry, algorithm, and local policy are validated." %}
+</div>
+
+## References
+
+- [OAuth 2.0 Authorization Framework, RFC 6749](https://www.rfc-editor.org/rfc/rfc6749)
+- [OAuth 2.0 Bearer Token Usage, RFC 6750](https://www.rfc-editor.org/rfc/rfc6750)
+- [JSON Web Token, RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)
+- [JSON Web Signature, RFC 7515](https://www.rfc-editor.org/rfc/rfc7515)
+- [JSON Web Key, RFC 7517](https://www.rfc-editor.org/rfc/rfc7517)
+- [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0-18.html)
+- [OASIS SAML 2.0 Technical Overview](https://docs.oasis-open.org/security/saml/Post2.0/sstc-saml-tech-overview-2.0.html)

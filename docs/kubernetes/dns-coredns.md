@@ -78,6 +78,12 @@ NAT-related DNS issues:
 
 When a Pod can resolve a name but cannot connect, keep the DNS answer and the NAT path together: `nslookup` shows the selected address, while `ip route get`, flow logs, NAT gateway metrics, and packet captures show how that address leaves the cluster.
 
+## NATS Example
+
+NATS shows why Kubernetes DNS details matter. Application clients usually connect to a stable Service name on the NATS client port, while NATS servers in a cluster often use StatefulSet Pod DNS names behind a headless Service for peer route connections. The route names that NATS gossips through `advertise` settings must be names that the receiving peers or clients can resolve, reach, and validate with TLS.
+
+For the full walkthrough, see [NATS, DNS, and Kubernetes Networking](../nats-dns-kubernetes/).
+
 ## Debugging Flow
 
 1. Test from inside an affected Pod, not only from a node.

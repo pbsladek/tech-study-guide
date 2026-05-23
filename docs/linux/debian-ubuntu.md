@@ -12,7 +12,7 @@ tags:
 
 # Debian and Ubuntu Operations
 
-The study guide is Linux-first, but the default operational assumption is now Debian-family systems, especially Ubuntu Server. That matters because package tools, network configuration, service defaults, certificate stores, log locations, and firewall tooling differ by distribution.
+The study guide is Linux-first, but the default operational assumption is now Debian-family systems, especially Ubuntu Server. That matters because package tools, network configuration, service defaults, certificate stores, log locations, and firewall tooling differ by distribution. Canonical's Ubuntu Server documentation tracks the latest LTS, so always check the target release notes or manpages before relying on release-specific behavior.
 
 ## First Checks
 
@@ -94,4 +94,4 @@ ls -l /usr/local/share/ca-certificates /etc/ssl/certs
 - [Ubuntu Server documentation](https://ubuntu.com/server/docs)
 - [Debian apt user manual](https://www.debian.org/doc/manuals/debian-handbook/sect.apt-get.en.html)
 - [Ubuntu Netplan documentation](https://netplan.readthedocs.io/)
-- [Ubuntu update-ca-certificates(8)](https://manpages.ubuntu.com/manpages/jammy/man8/update-ca-certificates.8.html)
+- [Ubuntu update-ca-certificates(8)](https://manpages.ubuntu.com/manpages/resolute/man8/update-ca-certificates.8.html)

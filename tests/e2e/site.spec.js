@@ -66,7 +66,14 @@ test("topic pages for current coverage render important content", async ({ page 
   await page.goto("/docs/networking/switching-vlans-hosts/");
   await expect(page.locator("#switching-vlans-and-hosts")).toBeVisible();
   await expect(article.getByText("802.1Q").first()).toBeVisible();
+  await expect(article.getByText("DHCP snooping").first()).toBeVisible();
   await expect(article.getByText("/etc/hosts").first()).toBeVisible();
+
+  await page.goto("/docs/networking/dhcp-routers-switches/");
+  await expect(page.locator("#dhcp-routers-and-switches")).toBeVisible();
+  await expect(article.getByText("DORA").first()).toBeVisible();
+  await expect(article.getByText("Option 82").first()).toBeVisible();
+  await expect(article.getByText("Router Advertisements").first()).toBeVisible();
 
   await page.goto("/docs/istio/");
   await expect(page.locator("#istio")).toBeVisible();
@@ -122,6 +129,14 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("ndots").first()).toBeVisible();
   await expect(article.getByText("Corefile").first()).toBeVisible();
 
+  await page.goto("/docs/kubernetes/nats-dns-kubernetes/");
+  await expect(page.locator("#nats-dns-and-kubernetes-networking")).toBeVisible();
+  await expect(article.getByText("headless Service").first()).toBeVisible();
+  await expect(article.getByText("cluster.advertise").first()).toBeVisible();
+  await expect(article.getByText("publishNotReadyAddresses").first()).toBeVisible();
+  await expect(article.getByText("gossiped server URLs").first()).toBeVisible();
+  await expect(article.getByText("NetworkPolicy").first()).toBeVisible();
+
   await page.goto("/docs/kubernetes/external-dns/");
   await expect(page.locator("#kubernetes-externaldns")).toBeVisible();
   await expect(article.getByText("TXT registry").first()).toBeVisible();
@@ -132,6 +147,34 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("default-deny").first()).toBeVisible();
   await expect(article.getByText("CNI plugin").first()).toBeVisible();
 
+  await page.goto("/docs/identity/");
+  await expect(page.locator("#identity-and-access")).toBeVisible();
+  await expect(article.getByText("Identity Provider").first()).toBeVisible();
+  await expect(article.getByText("authentication").first()).toBeVisible();
+
+  await page.goto("/docs/identity/auth-protocols/");
+  await expect(page.locator("#idp-saml-jwt-oauth-and-oidc")).toBeVisible();
+  await expect(article.getByText("SAML").first()).toBeVisible();
+  await expect(article.getByText("OAuth 2.0").first()).toBeVisible();
+  await expect(article.getByText("OpenID Connect").first()).toBeVisible();
+  await expect(article.getByText("JWT").first()).toBeVisible();
+  await expect(article.getByText("PKCE").first()).toBeVisible();
+
+  await page.goto("/docs/databases/postgres/operations-ha/");
+  await expect(page.locator("#postgresql-operations-ha-replication-and-recovery")).toBeVisible();
+  await expect(article.getByText("replication slots").first()).toBeVisible();
+  await expect(article.getByText("pg_verifybackup").first()).toBeVisible();
+  await expect(article.getByText("idle_in_transaction_session_timeout").first()).toBeVisible();
+  await expect(article.getByText("High CPU").first()).toBeVisible();
+  await expect(article.getByText("High RAM").first()).toBeVisible();
+
+  await page.goto("/docs/databases/postgres/pgbouncer/");
+  await expect(page.locator("#pgbouncer")).toBeVisible();
+  await expect(article.getByText("transaction pooling").first()).toBeVisible();
+  await expect(article.getByText("SHOW POOLS").first()).toBeVisible();
+  await expect(article.getByText("cl_waiting").first()).toBeVisible();
+  await expect(article.getByText("server_reset_query").first()).toBeVisible();
+
   await page.goto("/docs/dns/domain-controllers/");
   await expect(page.locator("#domain-controllers-and-directory-dns")).toBeVisible();
   await expect(article.getByText("_msdcs").first()).toBeVisible();
@@ -141,6 +184,17 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(page.locator("#raid-multipath-and-device-mapper")).toBeVisible();
   await expect(article.getByText("LUKS").first()).toBeVisible();
   await expect(article.getByText("multipath").first()).toBeVisible();
+
+  await page.goto("/docs/linux/boot-userspace/");
+  await expect(page.locator("#linux-boot-and-userspace")).toBeVisible();
+  await expect(article.getByText("EFI System Partition").first()).toBeVisible();
+  await expect(article.getByText("systemd-boot").first()).toBeVisible();
+
+  await page.goto("/docs/linux/kernel-modules-devices/");
+  await expect(page.locator("#linux-kernel-modules-and-devices")).toBeVisible();
+  await expect(article.getByText("modprobe").first()).toBeVisible();
+  await expect(article.getByText("modalias").first()).toBeVisible();
+  await expect(article.getByText("devtmpfs").first()).toBeVisible();
 
   await page.goto("/docs/linux/storage-health-performance/");
   await expect(page.locator("#linux-storage-health-and-performance")).toBeVisible();
@@ -161,6 +215,13 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(page.locator("#linux-processes-and-threads")).toBeVisible();
   await expect(article.getByText("thread group").first()).toBeVisible();
   await expect(article.getByText("PID 1").first()).toBeVisible();
+
+  await page.goto("/docs/linux/gpu-drivers/");
+  await expect(page.locator("#linux-gpu-drivers")).toBeVisible();
+  await expect(article.getByText("ROCm").first()).toBeVisible();
+  await expect(article.getByText("RADV").first()).toBeVisible();
+  await expect(article.getByText("nvidia-smi").first()).toBeVisible();
+  await expect(article.getByText("Secure Boot").first()).toBeVisible();
 
   await page.goto("/docs/linux/kernel-network-performance/");
   await expect(page.locator("#linux-kernel-network-performance")).toBeVisible();
