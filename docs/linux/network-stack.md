@@ -23,6 +23,8 @@ ip neigh
 ss -tulpen
 nft list ruleset
 cat /proc/net/softnet_stat
+ip link show type bridge
+bridge link
 ```
 
 ## Sockets
@@ -36,6 +38,39 @@ Network namespaces give isolated network stacks: interfaces, routes, firewall ru
 ## Netfilter and conntrack
 
 Netfilter hooks let nftables or iptables inspect and transform packets. Conntrack records flow state for stateful firewalls and NAT. A full conntrack table can make new connections fail while established traffic continues.
+
+## Container Bridge Networking
+
+Most Linux container networking is normal Linux networking assembled by a runtime. A container gets a network namespace with its own interfaces, routes, sockets, and neighbor table. The host gets the other end of a veth pair and attaches it to a Linux bridge such as `docker0` or a user-defined `br-...` device.
+
+The common egress path is:
+
+```text
+container eth0 -> veth peer -> Linux bridge -> host route -> SNAT/MASQUERADE -> host NIC
+```
+
+The common published-port path is:
+
+```text
+host_ip:published_port -> DNAT -> container_ip:container_port -> bridge -> veth -> container
+```
+
+The bridge acts as a software switch and learns MAC addresses. NAT is separate and is handled by netfilter rules plus conntrack state. When debugging, inspect both layers: bridge membership and routes for forwarding, then nftables or iptables rules for DNAT, SNAT, MASQUERADE, and filtering.
+
+Useful checks:
+
+```bash
+docker network inspect bridge
+ip link show type bridge
+bridge link
+nsenter -t <pid> -n -- ip addr
+nsenter -t <pid> -n -- ip route
+nft list ruleset
+iptables -t nat -S
+conntrack -L 2>/dev/null | head
+```
+
+For deeper container runtime context, see [Containerization, OCI, and VMs]({{ "/docs/linux/containerization-oci-vms/" | relative_url }}).
 
 ## qdisc, Softirq, and NIC Queues
 
@@ -56,6 +91,7 @@ Packets may queue before transmission or after receive. Under load, drops can ha
 <div class="study-card-grid">
   {% include study-card.html question="What changes in a network namespace?" answer="Interfaces, routes, sockets, firewall state, and neighbor tables can be isolated from the host namespace." %}
   {% include study-card.html question="Why does conntrack matter for NAT?" answer="It stores flow state needed to translate packets consistently in both directions." %}
+  {% include study-card.html question="What does a Linux bridge do for containers?" answer="It acts like a software switch connecting host-side veth peers, while netfilter separately handles NAT and filtering." %}
   {% include study-card.html question="What can high softirq CPU indicate?" answer="The kernel is spending significant CPU time processing deferred network work." %}
 </div>
 
@@ -64,4 +100,5 @@ Packets may queue before transmission or after receive. Under load, drops can ha
 - [Linux kernel networking documentation](https://docs.kernel.org/networking/index.html)
 - [network_namespaces(7)](https://man7.org/linux/man-pages/man7/network_namespaces.7.html)
 - [socket(7)](https://man7.org/linux/man-pages/man7/socket.7.html)
+- [bridge(8)](https://man7.org/linux/man-pages/man8/bridge.8.html)
 - [nftables documentation](https://wiki.nftables.org/wiki-nftables/index.php/Main_Page)

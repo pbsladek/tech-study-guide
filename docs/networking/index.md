@@ -27,6 +27,17 @@ A request from a browser to a service crosses several boundaries:
 
 Each boundary can fail independently.
 
+## Data Plane and Control Plane
+
+Many systems have a data plane and a control plane:
+
+| Plane | Job | Examples |
+| --- | --- | --- |
+| Data plane | Moves packets, bytes, or requests. | NIC forwarding, kernel routing, Envoy proxying, load-balancer forwarding. |
+| Control plane | Decides or programs how the data plane should behave. | Routing protocols, Kubernetes controllers, Istio control plane, cloud load-balancer APIs. |
+
+This separation matters during incidents. A control plane outage may prevent new changes while existing flows keep working. A data-plane failure may drop traffic even though APIs and dashboards look healthy.
+
 ## Critical Subtopics
 
 | Topic | Why It Matters |

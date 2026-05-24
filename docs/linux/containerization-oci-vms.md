@@ -2,7 +2,7 @@
 title: Containerization, OCI, and VMs
 layout: page
 permalink: /docs/linux/containerization-oci-vms/
-summary: "Container fundamentals, OCI image/runtime/distribution standards, Linux namespaces, cgroups, capabilities, seccomp, macOS and Windows container behavior, KVM, hypervisors, and VM/container tradeoffs."
+summary: "Container fundamentals, OCI image/runtime/distribution standards, Linux namespaces, cgroups, overlay layers, bridge networking, macOS and Windows container behavior, KVM, hypervisors, and VM/container tradeoffs."
 tags:
   - linux
   - containers
@@ -24,7 +24,13 @@ docker image inspect <image>
 docker container inspect <container>
 cat /proc/<pid>/status
 cat /proc/<pid>/cgroup
+readlink /proc/<pid>/ns/*
+cat /proc/<pid>/mountinfo
 lsns -p <pid>
+docker network inspect bridge
+ip link show type bridge
+bridge link
+nft list ruleset
 ```
 
 ## VM vs Container
@@ -71,6 +77,50 @@ A runtime starts a container roughly like this:
 
 The result feels like a small machine because pathnames, process IDs, network interfaces, users, and resource limits look local. It is still one or more host processes enforced by the kernel.
 
+## From Image to Running Process
+
+A container image is stored data. It does not run. The kernel runs a normal process whose root filesystem, namespace membership, credentials, resource controls, and mounts were prepared by container tooling.
+
+The path from registry image to process usually looks like this:
+
+1. A client asks for a tag such as `app:1.2.3`.
+2. The registry returns an OCI image index or manifest. Multi-architecture images use an index to point at per-platform manifests such as `linux/amd64` or `linux/arm64`.
+3. The runtime downloads content-addressed blobs: image config and compressed layer blobs.
+4. Layers are verified by digest, decompressed, and unpacked into runtime storage.
+5. The runtime creates a mounted root filesystem, often through `overlayfs`.
+6. The runtime writes or derives an OCI runtime bundle: a root filesystem plus `config.json`.
+7. An OCI runtime such as `runc` or `crun` creates namespaces, joins cgroups, sets mounts, applies security policy, and `exec`s the configured command.
+
+Useful inspection commands:
+
+```bash
+docker image inspect nginx:latest
+docker image history nginx:latest
+docker container inspect <container> --format '{% raw %}{{.State.Pid}}{% endraw %}'
+findmnt -T /var/lib/docker
+findmnt -o TARGET,SOURCE,FSTYPE,OPTIONS | grep overlay
+readlink /proc/<pid>/root
+cat /proc/<pid>/mountinfo
+```
+
+The important mental model: container images describe a filesystem and process configuration. The kernel only sees mounted filesystems, tasks, credentials, namespaces, cgroups, sockets, and security labels.
+
+## What the Kernel Enforces
+
+The Linux kernel does not know that an OCI image tag exists. Runtime software translates image metadata into kernel operations.
+
+| Runtime Intent | Kernel Mechanism |
+| --- | --- |
+| Isolate process IDs | `clone`, `unshare`, `setns`, and PID namespaces. |
+| Give a private filesystem view | Mount namespaces, bind mounts, overlay mounts, `pivot_root`, and sometimes `chroot`. |
+| Limit memory, CPU, IO, and process count | cgroup controller files under `/sys/fs/cgroup`. |
+| Reduce root privilege | Linux capabilities, user namespaces, UID/GID maps, and `no_new_privs`. |
+| Restrict syscalls | seccomp filters evaluated on syscall entry. |
+| Apply mandatory policy | SELinux, AppArmor, or another Linux Security Module. |
+| Isolate network view | Network namespaces, veth devices, routes, bridge ports, and netfilter state. |
+
+That translation is why container debugging often leaves the container CLI quickly and moves into `/proc`, `/sys/fs/cgroup`, `findmnt`, `lsns`, `ip`, `bridge`, `nft`, and `ss`. Those tools show the kernel state that actually enforces the container boundary.
+
 ## OCI Standards
 
 The Open Container Initiative defines interoperable container standards. The three practical specs are:
@@ -104,6 +154,213 @@ An image is not one tarball in normal operation. It is a set of content-addresse
 Layers are usually read-only and shared across images when their digests match. A running container gets a writable layer on top. Deleting a container can remove that writable layer, which is why persistent data belongs in volumes, bind mounts, databases, object storage, or another external state path.
 
 Registries store and serve image content. Tags are mutable names. Digests are immutable content identifiers. For production deployment, pinning or recording digests gives stronger evidence of exactly what ran.
+
+## Layer Mechanics and overlayfs
+
+Layering is what makes images reusable, cacheable, and cheap to start.
+
+| Term | Meaning |
+| --- | --- |
+| Manifest | Points to the image config and layer descriptors for one platform. |
+| Index | Points to multiple manifests, usually for different CPU architectures or OS platforms. |
+| Config | Stores command, environment, user, working directory, exposed ports, labels, and rootfs diff IDs. |
+| Layer blob | A compressed filesystem diff stored by digest in a registry or local content store. |
+| diffID | Digest of an uncompressed layer diff. |
+| Chain ID | Identifier derived from the ordered sequence of unpacked layer diffs. |
+| Writable layer | Per-container upper layer that records changes made after start. |
+
+On Linux Docker installations, the storage driver is often `overlay2`, which uses kernel `overlayfs`.
+
+```text
+lowerdir = read-only image layers
+upperdir = writable per-container layer
+workdir  = overlayfs working directory
+merged   = mounted view presented to the container
+```
+
+When a process reads a file, overlayfs searches from the top layer down through lower layers. When a process writes to a file that exists in a lower layer, overlayfs performs copy-up: it copies the file into the `upperdir` and modifies that copy. When a process deletes a file from a lower layer, overlayfs records a whiteout in the upper layer so the file disappears from the merged view.
+
+Practical consequences:
+
+- Rewriting a large file from a lower layer can copy the whole file into the writable layer.
+- Deleting a file from an earlier image layer does not remove the bytes from that earlier layer; it hides the file in later layers.
+- Volumes and bind mounts bypass the image writable layer at their mount paths.
+- Image layer count, build cache order, and package manager cleanup affect size and rebuild speed.
+- Overlay semantics can matter for databases and write-heavy workloads; persistent database data should live on a real volume or host filesystem chosen for that workload.
+
+Example checks:
+
+```bash
+docker inspect <container> --format '{% raw %}{{json .GraphDriver.Data}}{% endraw %}'
+findmnt -t overlay
+du -sh /var/lib/docker/overlay2/* 2>/dev/null
+```
+
+## cgroups and Resource Control
+
+cgroups account for and limit resource use. They do not make a process believe it has a private CPU or private memory bus. Namespaces change what a process can see; cgroups control what it can consume.
+
+Most modern distributions use cgroup v2, a unified hierarchy under `/sys/fs/cgroup`. systemd, container runtimes, and Kubernetes all place processes into cgroup paths and write controller files.
+
+| cgroup v2 File | Meaning |
+| --- | --- |
+| `cgroup.controllers` | Controllers available below this point in the hierarchy. |
+| `cgroup.procs` | Processes in this cgroup. |
+| `cpu.max` | CPU quota and period. `max 100000` means no quota with a 100 ms period. |
+| `cpu.stat` | CPU usage and throttling counters. |
+| `memory.max` | Hard memory limit. |
+| `memory.current` | Current charged memory. |
+| `memory.events` | OOM, high, max, and pressure event counters. |
+| `pids.max` | Maximum number of processes or threads. |
+| `io.max` | Per-device I/O throttling limits. |
+
+Useful checks:
+
+```bash
+cat /proc/<pid>/cgroup
+systemd-cgls
+systemd-cgtop
+cat /sys/fs/cgroup/<path>/cpu.max
+cat /sys/fs/cgroup/<path>/cpu.stat
+cat /sys/fs/cgroup/<path>/memory.current
+cat /sys/fs/cgroup/<path>/memory.max
+cat /sys/fs/cgroup/<path>/memory.events
+cat /sys/fs/cgroup/<path>/pids.max
+```
+
+Common cgroup surprises:
+
+- CPU quota throttling can make a process slow even when host CPU looks idle.
+- Memory limits include more than application heap: page cache, tmpfs, some kernel memory, and allocator fragmentation can matter.
+- `pids.max` counts threads too, so highly threaded applications can hit PID limits.
+- cgroup OOM kills are local to the cgroup and may happen while the host still has free memory.
+- systemd services and containers are both cgroup-managed, so host unit limits can stack with container limits.
+
+## Namespaces and PID 1
+
+Namespaces provide isolated views of kernel resources. A process can be in the host mount namespace but a container network namespace, or in a new PID namespace but the host cgroup hierarchy. These features compose independently.
+
+```bash
+readlink /proc/<pid>/ns/pid
+readlink /proc/<pid>/ns/mnt
+readlink /proc/<pid>/ns/net
+readlink /proc/1/ns/net
+lsns -p <pid>
+nsenter -t <pid> -m -p -n -- ps aux
+nsenter -t <pid> -n -- ip addr
+```
+
+Inside a PID namespace, the first process becomes PID 1 for that namespace. PID 1 has special responsibilities:
+
+- reap zombie child processes,
+- handle `SIGTERM` and other shutdown signals correctly,
+- forward signals to child processes when it is a wrapper script or supervisor.
+
+If an application was never designed to be PID 1, use a small init such as `tini`, Docker `--init`, or a container entrypoint that forwards signals and waits correctly.
+
+## Container Networking on Linux
+
+The default Linux container network model uses the same primitives an administrator can create by hand: network namespaces, veth pairs, Linux bridges, routes, netfilter NAT, and conntrack.
+
+| Primitive | Role |
+| --- | --- |
+| Network namespace | Gives the container its own interfaces, addresses, routes, sockets, and firewall view. |
+| veth pair | A virtual Ethernet cable: one end in the container netns, one end on the host. |
+| Linux bridge | Software switch that connects veth peers and often has the host gateway IP. |
+| IPAM | Allocates container IPs from a bridge subnet. |
+| netfilter/nftables/iptables | Applies filtering, DNAT for published ports, and SNAT/MASQUERADE for egress. |
+| conntrack | Remembers translated flows so return traffic is mapped back correctly. |
+
+For Docker's default bridge path, the container sees something like `eth0` and a default route through the bridge gateway. The host sees the peer veth attached to a bridge such as `docker0`.
+
+```text
+container process
+container eth0
+veth pair
+host bridge docker0 or br-...
+host routing table
+netfilter SNAT/MASQUERADE
+physical or virtual NIC
+```
+
+A Linux bridge is a Layer 2 software switch. NAT is separate. The bridge learns MAC addresses and forwards Ethernet frames between ports. netfilter handles address translation and firewall decisions around that path.
+
+## Bridge Networks and Packet Paths
+
+Default bridge network:
+
+- Docker usually creates `docker0`.
+- Containers get addresses from the bridge subnet.
+- The host bridge address is normally the default gateway for containers.
+- Container-to-container communication on the same bridge can stay local to the bridge.
+- Egress to outside networks commonly uses MASQUERADE so external peers see the host address.
+
+User-defined bridge networks:
+
+- get their own bridge device, subnet, and rules,
+- provide better service-name DNS behavior than the legacy default bridge,
+- isolate groups of containers from other bridge networks unless routing or rules allow traffic.
+
+Published port path:
+
+```text
+client -> host_ip:published_port
+netfilter PREROUTING or OUTPUT DNAT
+container_ip:container_port
+bridge
+veth
+container process
+```
+
+Egress path:
+
+```text
+container_ip:ephemeral_port -> remote_ip:remote_port
+veth -> bridge -> host route
+POSTROUTING SNAT/MASQUERADE
+remote sees host_ip:translated_port
+return traffic matched by conntrack
+```
+
+Important bridge and NAT details:
+
+- `docker0` is not present for every runtime or every Docker network; user-defined bridges are often named `br-<id>`.
+- Hairpin NAT may be needed when a container or host reaches a service through the host's published port and the traffic loops back to the same bridge.
+- MTU mismatches are common when bridges, VXLAN, VPNs, or cloud networks add encapsulation overhead.
+- Docker Desktop networking has a Linux VM boundary; the bridge and iptables rules live inside that VM, not directly on macOS.
+- Containers inherit generated DNS configuration. User-defined Docker bridges commonly provide an embedded DNS resolver for container names.
+- Host access is platform-specific. `host.docker.internal` exists on Docker Desktop and can be configured on Linux, but it is not a universal kernel feature.
+
+Networking inspection examples:
+
+```bash
+docker network ls
+docker network inspect bridge
+ip link show type bridge
+bridge link
+ip addr show docker0
+ip route
+nft list ruleset
+iptables -t nat -S
+conntrack -L 2>/dev/null | head
+nsenter -t <pid> -n -- ip addr
+nsenter -t <pid> -n -- ip route
+nsenter -t <pid> -n -- ss -tulpen
+tcpdump -ni any host <container-ip>
+```
+
+## Other Container Network Modes
+
+| Mode | What Changes | Common Use |
+| --- | --- | --- |
+| Bridge | Container has its own netns connected through veth and a Linux bridge. | Default single-host application networking. |
+| Host | Container shares the host network namespace. | Low overhead or software that must bind host interfaces directly. |
+| None | Container gets no external interface beyond loopback. | Batch jobs, manual networking, or high isolation. |
+| macvlan | Container gets a MAC address on the physical L2 network. | Legacy apps that must appear as first-class LAN hosts. |
+| ipvlan | Similar goal to macvlan with different L2/L3 behavior and fewer MAC scaling issues. | Dense networks where switch MAC table pressure matters. |
+| Overlay | Encapsulates container traffic across hosts, commonly with VXLAN. | Multi-host container platforms and some Kubernetes CNIs. |
+
+Kubernetes uses CNI plugins rather than Docker's bridge driver as the main abstraction. Depending on the plugin, Pod traffic may use Linux bridges, veth pairs, routing, VXLAN, Geneve, BGP, eBPF, cloud VPC interfaces, or some combination. The primitives are still Linux networking primitives plus plugin-specific control logic.
 
 ## Linux, macOS, and Windows
 
@@ -179,6 +436,10 @@ Security improves with least privilege, rootless containers, read-only filesyste
   {% include study-card.html question="Why do Linux containers run on macOS?" answer="Tooling such as Docker Desktop runs them inside a Linux virtual machine because macOS does not provide a Linux kernel." %}
   {% include study-card.html question="What do cgroups provide for containers?" answer="Hierarchical accounting and limits for resources such as CPU, memory, I/O, and PIDs." %}
   {% include study-card.html question="What do namespaces provide for containers?" answer="Isolated views of resources such as mounts, PIDs, network interfaces, IPC, hostname, and users." %}
+  {% include study-card.html question="What does overlayfs provide for containers?" answer="A merged filesystem view made from read-only lower image layers plus a writable upper layer." %}
+  {% include study-card.html question="What is copy-up in overlayfs?" answer="When a lower-layer file is changed, overlayfs copies it into the writable upper layer and modifies that copy." %}
+  {% include study-card.html question="What does a Linux bridge do for containers?" answer="It acts like a software switch connecting host-side veth peers for containers on the same bridge network." %}
+  {% include study-card.html question="What usually implements Docker published ports on Linux?" answer="Netfilter DNAT rules translate host ports to container addresses, with conntrack tracking the flow." %}
   {% include study-card.html question="What is KVM?" answer="Linux kernel virtualization support that lets Linux act as a hypervisor for hardware-assisted virtual machines." %}
 </div>
 
@@ -191,6 +452,10 @@ Security improves with least privilege, rootless containers, read-only filesyste
 - [Linux namespaces manual](https://man7.org/linux/man-pages/man7/namespaces.7.html)
 - [Linux cgroups manual](https://man7.org/linux/man-pages/man7/cgroups.7.html)
 - [Linux cgroup v2 documentation](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html)
+- [Linux overlayfs documentation](https://docs.kernel.org/filesystems/overlayfs.html)
+- [Linux bridge documentation](https://docs.kernel.org/networking/bridge.html)
+- [ip-netns(8)](https://man7.org/linux/man-pages/man8/ip-netns.8.html)
+- [Docker bridge network driver](https://docs.docker.com/engine/network/drivers/bridge/)
 - [Linux KVM documentation](https://www.kernel.org/doc/html/latest/virt/kvm/index.html)
 - [Docker Desktop networking](https://docs.docker.com/desktop/features/networking/)
 - [Docker Desktop on Mac virtual machine manager](https://docs.docker.com/desktop/features/vmm/)

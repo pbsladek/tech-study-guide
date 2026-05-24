@@ -45,8 +45,8 @@ The kernel is not only "the thing under user space." It is the shared arbiter fo
 | [Storage Drives, RAID, and Database Performance](storage-drives-raid-database-performance/) | Covers SSD, HDD, NVMe, RAID 0/1/5/6/10, striping, mirroring, parity, disk-failure recovery, rebuild risk, and PostgreSQL and Elasticsearch storage tradeoffs. |
 | [RAID, Multipath, and Device Mapper](raid-multipath-device-mapper/) | Covers md RAID, dm-crypt/LUKS, device mapper, multipath, NVMe multipath, WWIDs, and layered storage troubleshooting. |
 | [Storage Health and Performance](storage-health-performance/) | Covers `iostat`, SMART, NVMe health, kernel I/O errors, discard, queueing, latency, saturation, and failure response. |
-| [Containerization, OCI, and VMs](containerization-oci-vms/) | Explains containers versus VMs, OCI standards, namespaces, cgroups, capabilities, seccomp, macOS/Windows container behavior, KVM, and hypervisors. |
-| [Network Stack](network-stack/) | Shows how sockets, routes, namespaces, netfilter, conntrack, queues, and NICs move packets. |
+| [Containerization, OCI, and VMs](containerization-oci-vms/) | Explains containers versus VMs, OCI standards, image layers, overlayfs, namespaces, cgroups, bridge networking, macOS/Windows behavior, KVM, and hypervisors. |
+| [Network Stack](network-stack/) | Shows how sockets, routes, namespaces, Linux bridges, netfilter, conntrack, queues, and NICs move packets. |
 | [Kernel Network Performance](kernel-network-performance/) | Covers NAPI, softirq, NIC rings, RSS, RPS, RFS, XPS, offloads, qdisc, drops, and packet-processing bottlenecks. |
 | [TCP Kernel Tuning](tcp-kernel-tuning/) | Covers listen queues, `somaxconn`, SYN backlog, socket buffers, ephemeral ports, TIME_WAIT, keepalives, and conntrack limits. |
 | [Sockets and IPC](sockets-ipc/) | Covers TCP, UDP, Unix domain sockets, socket files, listen queues, buffers, file descriptors, pipes, shared memory, and IPC troubleshooting. |
@@ -55,7 +55,8 @@ The kernel is not only "the thing under user space." It is the shared arbiter fo
 | [Users, Permissions, and sudo](users-permissions-sudo/) | Covers UIDs, GIDs, `/etc/passwd`, `/etc/shadow`, mode bits, ACLs, service users, and sudo policy. |
 | [SSH Access](ssh-access/) | Covers OpenSSH server policy, keys, host keys, PAM, account state, firewalls, and login troubleshooting. |
 | [Logs and Observability](logs-observability/) | Covers journald, kernel logs, `/var/log`, log rotation, metrics, PSI, and incident evidence collection. |
-| [Scheduled Automation](scheduled-automation/) | Covers cron, systemd timers, job safety, idempotency, environment pitfalls, locking, and logs. |
+| [Scheduled Automation](scheduled-automation/) | Covers cronjobs, crontab formats, anacron, systemd timers, job safety, idempotency, environment pitfalls, locking, and logs. |
+| [Backup and File Transfer](backup-transfer-rsync-scp-snapshots/) | Covers `rsync`, `scp`, snapshot backups, consistency, restore testing, exclusions, permissions, and automation. |
 | [Time, Hostname, and Identity](time-hostname/) | Covers time sync, timezone, hostname, DNS identity, machine-id, certificates, and incident timelines. |
 | [Linux GPU Drivers](gpu-drivers/) | Covers AMD and NVIDIA GPU stacks, kernel modules, firmware, Mesa, ROCm, CUDA, `nvidia-smi`, Secure Boot, containers, and troubleshooting. |
 | [LVM](lvm/) | Covers the storage mapping layer behind many Linux volumes. |

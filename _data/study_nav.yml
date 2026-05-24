@@ -32,6 +32,12 @@
   children:
     - title: Overview
       url: /docs/troubleshooting/
+- title: Foundational Study Review
+  url: /docs/foundational-study-review/
+  icon: fas fa-map
+- title: Practical Examples
+  url: /docs/practical-examples/
+  icon: fas fa-code
 - title: Linux
   url: /docs/linux/
   icon: fas fa-terminal
@@ -82,6 +88,8 @@
       url: /docs/linux/logs-observability/
     - title: Scheduled Automation
       url: /docs/linux/scheduled-automation/
+    - title: Backup and File Transfer
+      url: /docs/linux/backup-transfer-rsync-scp-snapshots/
     - title: Time, Hostname, and Identity
       url: /docs/linux/time-hostname/
     - title: GPU Drivers

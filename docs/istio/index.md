@@ -35,6 +35,20 @@ kubectl get peerauthentication,authorizationpolicy --all-namespaces
 | Security APIs | PeerAuthentication, RequestAuthentication, AuthorizationPolicy, and certificate/trust configuration. |
 | Telemetry | Metrics, logs, traces, and access logs emitted by proxies and control-plane components. |
 
+## xDS and Envoy Configuration
+
+Istio's control plane computes Envoy configuration and sends it to data-plane proxies through xDS APIs. The application does not normally know this happened; traffic changes because the proxy received new listeners, routes, clusters, endpoints, and secrets.
+
+| xDS Area | What It Represents |
+| --- | --- |
+| Listener | Where Envoy accepts traffic and which filter chain handles it. |
+| Route | HTTP host, path, header, and weighted routing decisions. |
+| Cluster | Upstream service or endpoint group Envoy can send traffic to. |
+| Endpoint | Concrete backend IPs and ports for a cluster. |
+| Secret | TLS certificates and validation material. |
+
+This is why mesh troubleshooting compares Kubernetes objects, Istio config, and proxy config. A VirtualService can look correct while a proxy has not received it, or a proxy can have correct config while the application itself returns errors.
+
 ## Sidecar and Ambient Modes
 
 Sidecar mode injects an Envoy proxy into workload pods. It gives rich L7 features at the pod boundary but adds sidecar resource overhead and injection lifecycle concerns.
@@ -67,6 +81,15 @@ See [Istio Service Mesh](service-mesh/) for deeper coverage of why service meshe
 ## Practice Deck
 
 {% include study-card-deck.html deck="istio" %}
+
+## Study Cards
+
+<div class="study-card-grid">
+  {% include study-card.html question="What is Istio's control plane responsible for?" answer="It watches platform and mesh configuration, computes desired proxy configuration, and distributes it to the data plane." %}
+  {% include study-card.html question="What is the difference between sidecar and ambient mode?" answer="Sidecar mode runs Envoy in each workload pod; ambient mode uses ztunnel plus optional waypoint proxies." %}
+  {% include study-card.html question="Why inspect xDS config during mesh troubleshooting?" answer="The proxy behavior comes from received listeners, routes, clusters, endpoints, and secrets, not just from the YAML you applied." %}
+  {% include study-card.html question="What is the split between Kubernetes Services and Istio routing?" answer="Kubernetes selects endpoints; Istio can add host, path, header, TLS, retry, timeout, and traffic-split behavior." %}
+</div>
 
 ## References
 

@@ -51,6 +51,29 @@ IdP responsibilities commonly include:
 
 An IdP does not automatically grant application permissions. Applications still need their own authorization model, because the IdP may only prove identity and release attributes.
 
+## Sessions, Cookies, and Tokens
+
+Browser SSO usually has more than one credential at the same time:
+
+| Artifact | Holder | Purpose |
+| --- | --- | --- |
+| IdP session cookie | Browser and IdP domain. | Lets the IdP remember the authenticated user across apps. |
+| Application session cookie | Browser and application domain. | Lets the app remember its local login state. |
+| ID token | OIDC client. | Proves an authentication event to the client. |
+| Access token | API client and resource server. | Authorizes API calls for a specific audience and scope. |
+| Refresh token | Client or secure token store. | Obtains new access tokens without another full login. |
+
+Logging out of one layer may not log out of the others. An application can clear its session cookie while the IdP session still silently authenticates the next login request. Conversely, an API access token may remain valid until expiry even after the browser session ends unless revocation or introspection is enforced.
+
+Session and token design choices:
+
+- keep access tokens short lived,
+- rotate refresh tokens when the platform supports it,
+- store browser tokens where JavaScript exposure is minimized,
+- mark cookies `Secure`, `HttpOnly`, and `SameSite` where possible,
+- define what "logout" means for app session, IdP session, and API tokens,
+- avoid putting bearer tokens in URLs, logs, traces, or support screenshots.
+
 ## SAML
 
 SAML 2.0 is XML-based federation. The main browser SSO roles are:
@@ -146,6 +169,21 @@ JWT validation checklist:
 
 Decoding a JWT is not validation. Anyone can base64url-decode the header and payload.
 
+## Key Rotation and JWKS
+
+OIDC and JWT systems often publish verification keys through JWKS. Rotation is normal and should not be an incident.
+
+Safe validation behavior:
+
+- trust keys only from configured issuers,
+- cache JWKS for a bounded time,
+- use `kid` to select a candidate key but still verify issuer and algorithm policy,
+- handle overlapping old and new keys during rotation,
+- fail closed if the issuer metadata cannot be trusted,
+- alert on unknown `kid` spikes because they may indicate rotation, config drift, or forged tokens.
+
+SAML has the same operational problem with signing certificates in metadata. Certificate rollover should be planned with overlap so Service Providers can trust old and new signing material during the transition.
+
 ## Which One Do I Use?
 
 | Need | Common Choice |
@@ -186,6 +224,8 @@ Decoding a JWT is not validation. Anyone can base64url-decode the header and pay
   {% include study-card.html question="What does OpenID Connect add to OAuth?" answer="An identity layer, including ID tokens and standard user identity claims." %}
   {% include study-card.html question="Is JWT a protocol like OAuth?" answer="No. JWT is a compact token format that protocols such as OIDC and OAuth deployments may use." %}
   {% include study-card.html question="Why is decoding a JWT not enough?" answer="Decoded claims are untrusted until the signature, issuer, audience, expiry, algorithm, and local policy are validated." %}
+  {% include study-card.html question="What is the difference between an ID token and an access token?" answer="An ID token proves authentication to the client; an access token is presented to a resource server for API authorization." %}
+  {% include study-card.html question="Why does JWKS rotation matter?" answer="Token verifiers must handle signing-key changes without accepting untrusted issuers or failing every valid login." %}
 </div>
 
 ## References

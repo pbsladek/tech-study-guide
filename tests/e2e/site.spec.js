@@ -79,6 +79,26 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(page.locator("#istio")).toBeVisible();
   await expect(article.getByText("ambient mode").first()).toBeVisible();
   await expect(article.getByText("ztunnel").first()).toBeVisible();
+  await expect(article.getByText("xDS").first()).toBeVisible();
+
+  await page.goto("/docs/foundational-study-review/");
+  await expect(page.locator("#foundational-study-review")).toBeVisible();
+  await expect(article.getByText("Topic Coverage Matrix").first()).toBeVisible();
+  await expect(article.getByText("Big 101 Gaps").first()).toBeVisible();
+  await expect(article.getByText("data plane").first()).toBeVisible();
+  await expect(article.getByText("control plane").first()).toBeVisible();
+
+  await page.goto("/docs/practical-examples/");
+  await expect(page.locator("#practical-examples")).toBeVisible();
+  await expect(article.getByText("Linux Service Example").first()).toBeVisible();
+  await expect(article.getByText("Kubernetes Deployment Example").first()).toBeVisible();
+  await expect(article.getByText("NetworkPolicy").first()).toBeVisible();
+  await expect(article.getByText("OAuth authorization-code token exchange").first()).toBeVisible();
+  await expect(article.getByText("CREATE INDEX CONCURRENTLY").first()).toBeVisible();
+  await expect(article.getByText("ceph osd pool create").first()).toBeVisible();
+  await expect(article.getByText("VirtualService").first()).toBeVisible();
+  await expect(article.locator(".language-yaml").first()).toBeVisible();
+  await expect(article.locator(".language-sql").first()).toBeVisible();
 
   await page.goto("/docs/linux/users-permissions-sudo/");
   await expect(page.locator("#users-permissions-and-sudo")).toBeVisible();
@@ -123,6 +143,20 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("CrashLoopBackOff").first()).toBeVisible();
   await expect(article.getByText("SQLSTATE").first()).toBeVisible();
   await expect(article.getByText("dead-letter queue").first()).toBeVisible();
+  await expect(article.getByText("Universal Method").first()).toBeVisible();
+
+  await page.goto("/docs/kubernetes/core-concepts/");
+  await expect(page.locator("#kubernetes-core-concepts")).toBeVisible();
+  await expect(article.getByText("API Machinery").first()).toBeVisible();
+  await expect(article.getByText("CustomResourceDefinitions").first()).toBeVisible();
+  await expect(article.getByText("QoS").first()).toBeVisible();
+
+  await page.goto("/docs/kubernetes/troubleshooting/");
+  await expect(page.locator("#kubernetes-troubleshooting")).toBeVisible();
+  await expect(article.getByText("Pod Failure Workflow").first()).toBeVisible();
+  await expect(article.getByText("Service and DNS Workflow").first()).toBeVisible();
+  await expect(article.getByText("Evidence Capture").first()).toBeVisible();
+  await expect(article.getByText("PVC pending").first()).toBeVisible();
 
   await page.goto("/docs/kubernetes/dns-coredns/");
   await expect(page.locator("#kubernetes-dns-and-coredns")).toBeVisible();
@@ -158,7 +192,16 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("OAuth 2.0").first()).toBeVisible();
   await expect(article.getByText("OpenID Connect").first()).toBeVisible();
   await expect(article.getByText("JWT").first()).toBeVisible();
+  await expect(article.getByText("IdP session cookie").first()).toBeVisible();
+  await expect(article.getByText("Key Rotation and JWKS").first()).toBeVisible();
   await expect(article.getByText("PKCE").first()).toBeVisible();
+
+  await page.goto("/docs/databases/");
+  await expect(page.locator("#databases")).toBeVisible();
+  await expect(article.getByText("ACID").first()).toBeVisible();
+  await expect(article.getByText("B-trees").first()).toBeVisible();
+  await expect(article.getByText("Learning Path").first()).toBeVisible();
+  await expect(article.getByText("Choosing the Right Tool Shape").first()).toBeVisible();
 
   await page.goto("/docs/databases/postgres/operations-ha/");
   await expect(page.locator("#postgresql-operations-ha-replication-and-recovery")).toBeVisible();
@@ -206,6 +249,19 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("PostgreSQL Storage Mapping").first()).toBeVisible();
   await expect(article.getByText("Elasticsearch Storage Mapping").first()).toBeVisible();
 
+  await page.goto("/docs/linux/scheduled-automation/");
+  await expect(page.locator("#scheduled-automation")).toBeVisible();
+  await expect(article.getByText("Cronjobs").first()).toBeVisible();
+  await expect(article.getByText("flock").first()).toBeVisible();
+  await expect(article.getByText("anacron").first()).toBeVisible();
+
+  await page.goto("/docs/linux/backup-transfer-rsync-scp-snapshots/");
+  await expect(page.locator("#linux-backup-and-file-transfer")).toBeVisible();
+  await expect(article.getByText("rsync").first()).toBeVisible();
+  await expect(article.getByText("Snapshot Backups").first()).toBeVisible();
+  await expect(article.getByText("scp").first()).toBeVisible();
+  await expect(article.getByText("Restore Runbook").first()).toBeVisible();
+
   await page.goto("/docs/linux/boot-userspace/");
   await expect(page.locator("#linux-boot-and-userspace")).toBeVisible();
   await expect(article.getByText("EFI System Partition").first()).toBeVisible();
@@ -229,10 +285,40 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("SMART").first()).toBeVisible();
   await expect(article.getByText("iostat").first()).toBeVisible();
 
+  await page.goto("/docs/dns/resolution-caching/");
+  await expect(page.locator("#dns-resolution-and-caching")).toBeVisible();
+  await expect(article.getByText("Stub, Recursive, and Authoritative").first()).toBeVisible();
+  await expect(article.getByText("bailiwick").first()).toBeVisible();
+
+  await page.goto("/docs/networking/certificates-https/");
+  await expect(page.locator("#certificates-and-https")).toBeVisible();
+  await expect(article.getByText("Chain Validation Checklist").first()).toBeVisible();
+  await expect(article.getByText("Certificate Management Examples").first()).toBeVisible();
+  await expect(article.getByText("openssl genpkey").first()).toBeVisible();
+  await expect(article.getByText("certbot renew --dry-run").first()).toBeVisible();
+  await expect(article.getByText("kind: ClusterIssuer").first()).toBeVisible();
+  await expect(article.getByText("server-csr.cnf").first()).toBeVisible();
+  await expect(article.getByText("mTLS").first()).toBeVisible();
+
+  await page.goto("/docs/ceph/");
+  await expect(page.locator("#ceph-storage-and-management")).toBeVisible();
+  await expect(article.getByText("Client IO Path").first()).toBeVisible();
+  await expect(article.getByText("erasure-coded pool").first()).toBeVisible();
+
   await page.goto("/docs/linux/containerization-oci-vms/");
   await expect(page.locator("#containerization-oci-and-vms")).toBeVisible();
   await expect(article.getByText("OCI").first()).toBeVisible();
   await expect(article.getByText("cgroups").first()).toBeVisible();
+  await expect(article.getByText("overlayfs").first()).toBeVisible();
+  await expect(article.getByText("copy-up").first()).toBeVisible();
+  await expect(article.getByText("cgroup v2").first()).toBeVisible();
+  await expect(article.getByText("cpu.max").first()).toBeVisible();
+  await expect(article.getByText("Linux bridge").first()).toBeVisible();
+  await expect(article.getByText("docker0").first()).toBeVisible();
+  await expect(article.getByText("veth pair").first()).toBeVisible();
+  await expect(article.getByText("MASQUERADE").first()).toBeVisible();
+  await expect(article.getByText("DNAT").first()).toBeVisible();
+  await expect(article.getByText("VXLAN").first()).toBeVisible();
   await expect(article.getByText("KVM").first()).toBeVisible();
   await expect(article.getByText("Hyper-V isolation").first()).toBeVisible();
 

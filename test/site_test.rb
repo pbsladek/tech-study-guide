@@ -154,7 +154,13 @@ class SiteTest < Minitest::Test
       "docker container inspect <container>",
       "cat /proc/<pid>/status",
       "cat /proc/<pid>/cgroup",
-      "lsns -p <pid>"
+      "readlink /proc/<pid>/ns/*",
+      "cat /proc/<pid>/mountinfo",
+      "lsns -p <pid>",
+      "docker network inspect bridge",
+      "ip link show type bridge",
+      "bridge link",
+      "nft list ruleset"
     ],
     "docs/linux/network-stack/index.html" => [
       "ip addr",
@@ -163,7 +169,9 @@ class SiteTest < Minitest::Test
       "ip neigh",
       "ss -tulpen",
       "nft list ruleset",
-      "cat /proc/net/softnet_stat"
+      "cat /proc/net/softnet_stat",
+      "ip link show type bridge",
+      "bridge link"
     ],
     "docs/linux/kernel-network-performance/index.html" => [
       "sar -n DEV,TCP,ETCP 1",
@@ -235,6 +243,13 @@ class SiteTest < Minitest::Test
       "systemctl status cron",
       "journalctl -u cron -b"
     ],
+    "docs/linux/backup-transfer-rsync-scp-snapshots/index.html" => [
+      "rsync --version",
+      "rsync -aHAXn --delete /srv/app/ backup:/backups/app/",
+      "scp -v file.txt user@host:/tmp/",
+      "ssh user@host 'hostname; df -h; umask'",
+      "findmnt -no SOURCE,TARGET,FSTYPE,OPTIONS /srv/app"
+    ],
     "docs/linux/time-hostname/index.html" => [
       "timedatectl",
       "systemctl status systemd-timesyncd",
@@ -263,8 +278,11 @@ class SiteTest < Minitest::Test
     ],
     "docs/kubernetes/troubleshooting/index.html" => [
       "kubectl get nodes",
-      "kubectl get pods --all-namespaces",
-      "kubectl get events --sort-by=.lastTimestamp"
+      "kubectl get pods --all-namespaces -o wide",
+      "kubectl get events --sort-by=.lastTimestamp",
+      "kubectl get deployment,statefulset,daemonset,job,cronjob --all-namespaces",
+      "kubectl get svc,endpointslice,ingress,networkpolicy --all-namespaces",
+      "kubectl get pv,pvc,storageclass --all-namespaces"
     ],
     "docs/identity/auth-protocols/index.html" => [
       "curl -sS https://<idp-domain>/.well-known/openid-configuration",
@@ -643,17 +661,39 @@ class SiteTest < Minitest::Test
 
   def test_github_pages_workflow_builds_project_pages_site
     config = YAML.load_file(File.join(ROOT, "_config.yml"))
-    workflow = YAML.load_file(File.join(ROOT, ".github/workflows/pages.yml"))
+    workflow_path = File.join(ROOT, ".github/workflows/pages.yml")
+    workflow_text = File.read(workflow_path)
+    workflow = YAML.load_file(workflow_path)
     build_steps = workflow.fetch("jobs").fetch("build").fetch("steps")
     deploy_steps = workflow.fetch("jobs").fetch("deploy").fetch("steps")
     build_command = build_steps.find { |step| step["name"] == "Build with Jekyll" }.fetch("run")
+    action_refs = (build_steps + deploy_steps).filter_map { |step| step["uses"] }
 
     assert_equal "https://pbsladek.github.io", config.fetch("url")
     assert_equal "", config.fetch("baseurl")
-    assert_includes build_steps.map { |step| step["uses"] }.compact, "actions/configure-pages@v5"
-    assert_includes build_steps.map { |step| step["uses"] }.compact, "actions/upload-pages-artifact@v3"
-    assert_includes deploy_steps.map { |step| step["uses"] }.compact, "actions/deploy-pages@v4"
+    assert_includes action_refs, "actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5"
+    assert_includes action_refs, "ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f"
+    assert_includes action_refs, "actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b"
+    assert_includes action_refs, "actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa"
+    assert_includes action_refs, "actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e"
+    action_refs.each do |action_ref|
+      assert_match %r{\A[^@\s]+@[0-9a-f]{40}\z}, action_ref
+    end
     assert_includes build_command, '--baseurl "${{ steps.pages.outputs.base_path }}"'
+    refute_includes workflow_text, "secrets.GITHUB_TOKEN"
+  end
+
+  def test_local_secret_files_are_ignored
+    gitignore = File.read(File.join(ROOT, ".gitignore"))
+    dockerignore = File.read(File.join(ROOT, ".dockerignore"))
+
+    [gitignore, dockerignore].each do |ignore_file|
+      assert_includes ignore_file, ".env"
+      assert_includes ignore_file, ".env.*"
+      assert_includes ignore_file, "*.pem"
+      assert_includes ignore_file, "*.key"
+      assert_includes ignore_file, "id_rsa"
+    end
   end
 
   def test_sidebar_navigation_theme_toggle_and_reader_controls_render
@@ -675,11 +715,14 @@ class SiteTest < Minitest::Test
 
   def test_search_index_contains_pages_tags_and_content
     index = JSON.parse(read_site("assets/js/search-index.json"))
+    databases = index.find { |item| item["title"] == "Databases" }
     postgres = index.find { |item| item["title"] == "PostgreSQL" }
     postgres_ops = index.find { |item| item["title"] == "PostgreSQL Operations, HA, Replication, and Recovery" }
     pgbouncer = index.find { |item| item["title"] == "PgBouncer" }
     opensearch = index.find { |item| item["title"] == "OpenSearch Operations, Replication, Sharding, and HA" }
     troubleshooting = index.find { |item| item["title"] == "Troubleshooting and Error Handling" }
+    foundational_review = index.find { |item| item["title"] == "Foundational Study Review" }
+    practical_examples = index.find { |item| item["title"] == "Practical Examples" }
     ceph = index.find { |item| item["title"] == "Ceph" }
     lvm = index.find { |item| item["title"] == "Linux LVM" }
     systemd = index.find { |item| item["title"] == "systemd" }
@@ -705,6 +748,7 @@ class SiteTest < Minitest::Test
     ssh_access = index.find { |item| item["title"] == "SSH Access" }
     logs = index.find { |item| item["title"] == "Logs and Observability" }
     scheduled = index.find { |item| item["title"] == "Scheduled Automation" }
+    backup_transfer = index.find { |item| item["title"] == "Linux Backup and File Transfer" }
     time_hostname = index.find { |item| item["title"] == "Time, Hostname, and Identity" }
     gpu_drivers = index.find { |item| item["title"] == "Linux GPU Drivers" }
     systemd_networking = index.find { |item| item["title"] == "systemd Networking" }
@@ -728,6 +772,8 @@ class SiteTest < Minitest::Test
     load_balancers = index.find { |item| item["title"] == "Load Balancers and Proxies" }
     forward_reverse_proxies = index.find { |item| item["title"] == "Forward and Reverse Proxies" }
     tcp_tls = index.find { |item| item["title"] == "TCP, TLS, and HTTP" }
+    k8s_core = index.find { |item| item["title"] == "Core Concepts" }
+    k8s_troubleshooting = index.find { |item| item["title"] == "Troubleshooting" && item["url"] == "/docs/kubernetes/troubleshooting/" }
     k8s_dns = index.find { |item| item["title"] == "Kubernetes DNS and CoreDNS" }
     k8s_nats_dns = index.find { |item| item["title"] == "NATS, DNS, and Kubernetes Networking" }
     k8s_external_dns = index.find { |item| item["title"] == "Kubernetes ExternalDNS" }
@@ -742,11 +788,14 @@ class SiteTest < Minitest::Test
     istio = index.find { |item| item["title"] == "Istio" }
     service_mesh = index.find { |item| item["title"] == "Istio Service Mesh" }
 
+    refute_nil databases
     refute_nil postgres
     refute_nil postgres_ops
     refute_nil pgbouncer
     refute_nil opensearch
     refute_nil troubleshooting
+    refute_nil foundational_review
+    refute_nil practical_examples
     refute_nil ceph
     refute_nil lvm
     refute_nil systemd
@@ -772,6 +821,7 @@ class SiteTest < Minitest::Test
     refute_nil ssh_access
     refute_nil logs
     refute_nil scheduled
+    refute_nil backup_transfer
     refute_nil time_hostname
     refute_nil gpu_drivers
     refute_nil systemd_networking
@@ -795,6 +845,8 @@ class SiteTest < Minitest::Test
     refute_nil load_balancers
     refute_nil forward_reverse_proxies
     refute_nil tcp_tls
+    refute_nil k8s_core
+    refute_nil k8s_troubleshooting
     refute_nil k8s_dns
     refute_nil k8s_nats_dns
     refute_nil k8s_external_dns
@@ -844,8 +896,40 @@ class SiteTest < Minitest::Test
     assert_includes opensearch["content"], "Snapshots and Recovery"
     assert_includes troubleshooting["content"], "CrashLoopBackOff"
     assert_includes troubleshooting["content"], "SQLSTATE"
+    assert_includes troubleshooting["content"], "Universal Method"
+    assert_includes troubleshooting["content"], "data plane"
+    assert_includes troubleshooting["content"], "control plane"
+    assert_includes foundational_review["content"], "Topic Coverage Matrix"
+    assert_includes foundational_review["content"], "Big 101 Gaps"
+    assert_includes foundational_review["content"], "data plane"
+    assert_includes foundational_review["content"], "control plane"
+    assert_includes foundational_review["content"], "stub resolvers"
+    assert_includes foundational_review["content"], "JWT decoding"
+    assert_includes foundational_review["content"], "RAID, replication, snapshots, and backups"
+    assert_includes foundational_review["content"], "Practical Examples"
+    assert_includes practical_examples["content"], "systemd service"
+    assert_includes practical_examples["content"], "nftables"
+    assert_includes practical_examples["content"], "DNS Zone Example"
+    assert_includes practical_examples["content"], "mTLS"
+    assert_includes practical_examples["content"], "NetworkPolicy"
+    assert_includes practical_examples["content"], "StatefulSet"
+    assert_includes practical_examples["content"], "OAuth authorization-code token exchange"
+    assert_includes practical_examples["content"], "CREATE INDEX CONCURRENTLY"
+    assert_includes practical_examples["content"], "PgBouncer"
+    assert_includes practical_examples["content"], "OpenSearch"
+    assert_includes practical_examples["content"], "ceph osd pool create"
+    assert_includes practical_examples["content"], "VirtualService"
+    assert_includes practical_examples["content"], "AuthorizationPolicy"
+    assert_includes practical_examples["content"], "Troubleshooting Capture Example"
     assert_includes postgres["content"], "EXPLAIN"
+    assert_includes databases["content"], "ACID"
+    assert_includes databases["content"], "B-trees"
+    assert_includes databases["content"], "Learning Path"
+    assert_includes databases["content"], "Choosing the Right Tool Shape"
+    assert_includes databases["content"], "replication not the same as backup"
     assert_includes ceph["content"], "RADOS"
+    assert_includes ceph["content"], "Client IO Path"
+    assert_includes ceph["content"], "Erasure-coded pool"
     assert_includes lvm["content"], "pvmove"
     assert_includes systemd["content"], "journalctl"
     assert_includes resolv["content"], "ndots"
@@ -890,10 +974,32 @@ class SiteTest < Minitest::Test
     assert_includes containerization_oci_vms["content"], "OCI"
     assert_includes containerization_oci_vms["content"], "cgroups"
     assert_includes containerization_oci_vms["content"], "namespaces"
+    assert_includes containerization_oci_vms["content"], "cgroup v2"
+    assert_includes containerization_oci_vms["content"], "cpu.max"
+    assert_includes containerization_oci_vms["content"], "memory.max"
+    assert_includes containerization_oci_vms["content"], "pids.max"
+    assert_includes containerization_oci_vms["content"], "overlayfs"
+    assert_includes containerization_oci_vms["content"], "lowerdir"
+    assert_includes containerization_oci_vms["content"], "upperdir"
+    assert_includes containerization_oci_vms["content"], "copy-up"
+    assert_includes containerization_oci_vms["content"], "whiteout"
+    assert_includes containerization_oci_vms["content"], "network namespace"
+    assert_includes containerization_oci_vms["content"], "veth pair"
+    assert_includes containerization_oci_vms["content"], "Linux bridge"
+    assert_includes containerization_oci_vms["content"], "docker0"
+    assert_includes containerization_oci_vms["content"], "MASQUERADE"
+    assert_includes containerization_oci_vms["content"], "DNAT"
+    assert_includes containerization_oci_vms["content"], "conntrack"
+    assert_includes containerization_oci_vms["content"], "macvlan"
+    assert_includes containerization_oci_vms["content"], "ipvlan"
+    assert_includes containerization_oci_vms["content"], "VXLAN"
     assert_includes containerization_oci_vms["content"], "KVM"
     assert_includes containerization_oci_vms["content"], "Hyper-V isolation"
     assert_includes containerization_oci_vms["content"], "Virtual Machine"
     assert_includes linux_network["content"], "conntrack"
+    assert_includes linux_network["content"], "Linux bridge"
+    assert_includes linux_network["content"], "MASQUERADE"
+    assert_includes linux_network["content"], "DNAT"
     assert_includes kernel_network_performance["content"], "NAPI"
     assert_includes kernel_network_performance["content"], "RPS"
     assert_includes tcp_kernel_tuning["content"], "tcp_max_syn_backlog"
@@ -903,6 +1009,14 @@ class SiteTest < Minitest::Test
     assert_includes ssh_access["content"], "host keys"
     assert_includes logs["content"], "logrotate"
     assert_includes scheduled["content"], "systemd timers"
+    assert_includes scheduled["content"], "Cronjobs"
+    assert_includes scheduled["content"], "flock"
+    assert_includes scheduled["content"], "anacron"
+    assert_includes backup_transfer["content"], "rsync"
+    assert_includes backup_transfer["content"], "--link-dest"
+    assert_includes backup_transfer["content"], "Snapshot Backups"
+    assert_includes backup_transfer["content"], "scp"
+    assert_includes backup_transfer["content"], "Restore Runbook"
     assert_includes time_hostname["content"], "machine-id"
     assert_includes gpu_drivers["content"], "ROCm"
     assert_includes gpu_drivers["content"], "RADV"
@@ -911,6 +1025,9 @@ class SiteTest < Minitest::Test
     assert_includes systemd_networking["content"], "network-online.target"
     assert_includes systemd_socket_network["content"], "ListenStream"
     assert_includes dns_cache["content"], "negative answer"
+    assert_includes dns_cache["content"], "Stub, Recursive, and Authoritative"
+    assert_includes dns_cache["content"], "Bailiwick"
+    assert_includes dns_cache["content"], "glue"
     assert_includes zones["content"], "SOA serial"
     assert_includes dnssec["content"], "DNSKEY"
     assert_includes dns_records["content"], "NODATA"
@@ -937,12 +1054,34 @@ class SiteTest < Minitest::Test
     assert_includes ip_addressing["content"], "CIDR"
     assert_includes icmp_mtu["content"], "Path MTU Discovery"
     assert_includes certificates["content"], "update-ca-certificates"
+    assert_includes certificates["content"], "Chain Validation Checklist"
+    assert_includes certificates["content"], "Certificate Management Examples"
+    assert_includes certificates["content"], "openssl genpkey"
+    assert_includes certificates["content"], "server-csr.cnf"
+    assert_includes certificates["content"], "openssl verify"
+    assert_includes certificates["content"], "certbot renew --dry-run"
+    assert_includes certificates["content"], "ClusterIssuer"
+    assert_includes certificates["content"], "cert-manager"
+    assert_includes certificates["content"], "mTLS"
+    assert_includes certificates["content"], "client certificate"
     assert_includes tcp_sockets["content"], "TIME_WAIT"
     assert_includes udp_quic["content"], "HTTP/3"
     assert_includes load_balancers["content"], "X-Forwarded-For"
     assert_includes forward_reverse_proxies["content"], "CONNECT"
     assert_includes forward_reverse_proxies["content"], "NO_PROXY"
     assert_includes tcp_tls["content"], "SNI"
+    assert_includes tcp_tls["content"], "Failure Ladder Example"
+    assert_includes tcp_tls["content"], "Timeout Budget"
+    assert_includes tcp_tls["content"], "Subject Alternative Name"
+    assert_includes k8s_core["content"], "API Machinery"
+    assert_includes k8s_core["content"], "admission"
+    assert_includes k8s_core["content"], "CustomResourceDefinitions"
+    assert_includes k8s_core["content"], "QoS"
+    assert_includes k8s_troubleshooting["content"], "Pod Failure Workflow"
+    assert_includes k8s_troubleshooting["content"], "Service and DNS Workflow"
+    assert_includes k8s_troubleshooting["content"], "Evidence Capture"
+    assert_includes k8s_troubleshooting["content"], "EndpointSlice"
+    assert_includes k8s_troubleshooting["content"], "PVC pending"
     assert_includes k8s_dns["content"], "ndots"
     assert_includes k8s_dns["content"], "NATS"
     assert_includes k8s_nats_dns["content"], "headless Service"
@@ -971,12 +1110,17 @@ class SiteTest < Minitest::Test
     assert_includes auth_protocols["content"], "JWT"
     assert_includes auth_protocols["content"], "Authorization server"
     assert_includes auth_protocols["content"], "JWKS"
+    assert_includes auth_protocols["content"], "IdP session cookie"
+    assert_includes auth_protocols["content"], "Refresh token"
+    assert_includes auth_protocols["content"], "Key Rotation and JWKS"
     assert_includes auth_protocols["content"], "PKCE"
     assert_includes domain_controllers["content"], "_msdcs"
     assert_includes domain_controllers["content"], "Kerberos"
     assert_includes domain_controllers["content"], "Global Catalog"
     assert_includes debian["content"], "Ubuntu Server"
     assert_includes istio["content"], "ambient mode"
+    assert_includes istio["content"], "xDS"
+    assert_includes istio["content"], "Listener"
     assert_includes service_mesh["content"], "ztunnel"
     assert_operator index.length, :>=, 70
   end
@@ -992,6 +1136,8 @@ class SiteTest < Minitest::Test
     assert_includes graph, 'class="tag-cloud"'
     assert_includes graph, "Kubernetes"
     assert_includes graph, "Troubleshooting"
+    assert_includes graph, "Foundational Study Review"
+    assert_includes graph, "Practical Examples"
     assert_includes graph, "DNS and CoreDNS"
     assert_includes graph, "NATS, DNS, and Kubernetes"
     assert_includes graph, "ExternalDNS"
@@ -1026,6 +1172,7 @@ class SiteTest < Minitest::Test
     assert_includes graph, "RAID, Multipath, and Device Mapper"
     assert_includes graph, "Storage Health and Performance"
     assert_includes graph, "Containerization, OCI, and VMs"
+    assert_includes graph, "Backup and File Transfer"
     assert_includes graph, "Kernel Network Performance"
     assert_includes graph, "TCP Kernel Tuning"
     assert_includes graph, "Sockets and IPC"
@@ -1092,13 +1239,17 @@ class SiteTest < Minitest::Test
       "docs/linux/ssh-access/index.html",
       "docs/linux/logs-observability/index.html",
       "docs/linux/scheduled-automation/index.html",
+      "docs/linux/backup-transfer-rsync-scp-snapshots/index.html",
       "docs/linux/time-hostname/index.html",
       "docs/linux/gpu-drivers/index.html",
       "docs/linux/systemd-networking/index.html",
       "docs/linux/systemd-socket-network-services/index.html",
+      "docs/foundational-study-review/index.html",
+      "docs/practical-examples/index.html",
       "docs/troubleshooting/index.html",
       "docs/kubernetes/index.html",
       "docs/kubernetes/core-concepts/index.html",
+      "docs/kubernetes/troubleshooting/index.html",
       "docs/kubernetes/networking/index.html",
       "docs/kubernetes/dns-coredns/index.html",
       "docs/kubernetes/nats-dns-kubernetes/index.html",
@@ -1132,8 +1283,11 @@ class SiteTest < Minitest::Test
       "docs/networking/load-balancers-proxies/index.html",
       "docs/networking/proxies-forward-reverse/index.html",
       "docs/networking/tcp-tls-http/index.html",
+      "docs/istio/index.html",
       "docs/istio/service-mesh/index.html",
+      "docs/ceph/index.html",
       "docs/ceph/rook-ceph/index.html",
+      "docs/databases/index.html",
       "docs/databases/postgres/index.html",
       "docs/databases/postgres/operations-ha/index.html",
       "docs/databases/postgres/pgbouncer/index.html",
@@ -1145,6 +1299,131 @@ class SiteTest < Minitest::Test
       assert_includes html, 'class="study-card-grid"', "Expected study cards in #{relative_path}"
       assert_operator html.scan('class="study-card"').length, :>=, 3, "Expected multiple cards in #{relative_path}"
     end
+  end
+
+  def test_all_content_docs_render_study_cards
+    markdown_paths = Dir[File.join(ROOT, "docs/**/*.md")].reject do |path|
+      path.end_with?("/docs/template.md")
+    end
+
+    markdown_paths.each do |path|
+      relative_markdown = path.delete_prefix("#{ROOT}/")
+      relative_html =
+        if File.basename(relative_markdown) == "index.md"
+          relative_markdown.sub(%r{index\.md\z}, "index.html")
+        else
+          relative_markdown.sub(/\.md\z/, "/index.html")
+        end
+      html = read_site(relative_html)
+
+      assert_includes html, 'class="study-card-grid"', "Expected study-card grid in #{relative_html}"
+      assert_operator html.scan('class="study-card"').length, :>=, 3, "Expected at least three rendered study cards in #{relative_html}"
+    end
+  end
+
+  def test_study_deck_cards_are_well_formed_unique_and_substantial
+    decks = YAML.load_file(File.join(ROOT, "_data/study_decks.yml"))
+    total_cards = 0
+
+    decks.each do |deck_name, deck|
+      cards = deck.fetch("cards")
+      questions = cards.map { |card| card.fetch("q") }
+      total_cards += cards.length
+
+      assert_operator cards.length, :>=, 25, "Expected #{deck_name} deck to be substantial"
+      assert_equal questions.uniq.length, questions.length, "Expected unique questions inside #{deck_name} deck"
+
+      cards.each do |card|
+        question = card.fetch("q")
+        answer = card.fetch("a")
+
+        assert_match(/\?\z/, question, "Expected question to end with ? in #{deck_name}: #{question}")
+        assert_operator question.length, :<, 140, "Question is too long in #{deck_name}: #{question}"
+        assert_operator answer.length, :<, 260, "Answer is too long in #{deck_name}: #{answer}"
+        refute_empty answer.strip, "Expected non-empty answer in #{deck_name}: #{question}"
+      end
+    end
+
+    assert_operator total_cards, :>=, 500
+  end
+
+  def test_inline_study_cards_are_well_formed_and_unique_per_page
+    total_cards = 0
+
+    Dir[File.join(ROOT, "docs/**/*.md")].each do |path|
+      text = File.read(path)
+      cards = text.scan(/study-card\.html question="([^"]+)" answer="([^"]+)"/)
+      questions = cards.map(&:first)
+      total_cards += cards.length
+
+      assert_equal questions.uniq.length, questions.length, "Expected unique inline study-card questions in #{path}"
+
+      cards.each do |question, answer|
+        assert_match(/\?\z/, question, "Expected inline card question to end with ?: #{path}: #{question}")
+        assert_operator question.length, :<, 160, "Inline question is too long in #{path}: #{question}"
+        assert_operator answer.length, :<, 280, "Inline answer is too long in #{path}: #{answer}"
+        refute_empty answer.strip, "Expected non-empty inline answer in #{path}: #{question}"
+      end
+    end
+
+    assert_operator total_cards, :>=, 300
+  end
+
+  def test_certificate_management_examples_render
+    html = read_site("docs/networking/certificates-https/index.html")
+    text = text_content(html)
+
+    [
+      "Certificate Management Examples",
+      "server-csr.cnf",
+      "subjectAltName",
+      "openssl genpkey",
+      "openssl verify -CAfile lab-root-ca.crt",
+      "openssl x509 -in served-chain.pem -checkend 1209600 -noout",
+      "sudo update-ca-certificates --fresh",
+      "sudo certbot renew --dry-run",
+      "ssl_certificate /etc/letsencrypt/live/app.example.com/fullchain.pem",
+      "kind: ClusterIssuer",
+      "kind: Certificate",
+      "kubectl -n apps describe certificate app-example-com"
+    ].each do |term|
+      assert_includes text, term
+    end
+
+    assert_operator html.scan('class="language-bash').length, :>=, 8
+    assert_includes html, 'class="language-yaml highlighter-rouge"'
+  end
+
+  def test_practical_examples_cover_each_major_area_with_code
+    html = read_site("docs/practical-examples/index.html")
+    text = text_content(html)
+
+    [
+      "Linux Service Example",
+      "Linux Backup Script Example",
+      "nftables Firewall Example",
+      "DNS Zone Example",
+      "TLS and mTLS Examples",
+      "Kubernetes Deployment Example",
+      "Kubernetes NetworkPolicy Example",
+      "Kubernetes Storage Example",
+      "Identity OAuth and JWT Examples",
+      "PostgreSQL Examples",
+      "PgBouncer Example",
+      "OpenSearch Examples",
+      "Ceph Examples",
+      "Istio Examples",
+      "Troubleshooting Capture Example"
+    ].each do |section|
+      assert_includes text, section
+    end
+
+    assert_operator html.scan('class="language-').length, :>=, 20
+    assert_includes text, "CREATE INDEX CONCURRENTLY"
+    assert_includes text, "ceph osd pool create"
+    assert_includes text, "kind: NetworkPolicy"
+    assert_includes text, "kind: VirtualService"
+    assert_includes text, "AuthorizationPolicy"
   end
 
   def test_overarching_topics_use_launcher_instead_of_rendering_50_cards_inline
@@ -1258,6 +1537,7 @@ class SiteTest < Minitest::Test
       "docs/linux/ssh-access/index.html",
       "docs/linux/logs-observability/index.html",
       "docs/linux/scheduled-automation/index.html",
+      "docs/linux/backup-transfer-rsync-scp-snapshots/index.html",
       "docs/linux/time-hostname/index.html",
       "docs/linux/gpu-drivers/index.html",
       "docs/linux/systemd-networking/index.html",
@@ -1439,6 +1719,7 @@ class SiteTest < Minitest::Test
       "SIGKILL",
       "top -H",
       "network namespace",
+      "veth pair",
       "OCI",
       "Open Container Initiative",
       "Runtime Specification",
@@ -1450,6 +1731,20 @@ class SiteTest < Minitest::Test
       "capabilities",
       "user namespace",
       "cgroups",
+      "cgroup v2",
+      "cpu.max",
+      "memory.max",
+      "pids.max",
+      "overlayfs",
+      "lowerdir",
+      "upperdir",
+      "copy-up",
+      "whiteout",
+      "Linux bridge",
+      "docker0",
+      "macvlan",
+      "ipvlan",
+      "VXLAN",
       "KVM",
       "hypervisor",
       "Hyper-V isolation",
@@ -1463,6 +1758,7 @@ class SiteTest < Minitest::Test
       "DNAT",
       "PAT",
       "NAPT",
+      "MASQUERADE",
       "masquerade",
       "static NAT",
       "hairpin NAT",
@@ -1520,7 +1816,20 @@ class SiteTest < Minitest::Test
       "dmesg",
       "systemd timers",
       "cron",
+      "Cronjobs",
+      "crontab",
+      "anacron",
+      "flock",
       "idempotent",
+      "rsync",
+      "--dry-run",
+      "--link-dest",
+      "--numeric-ids",
+      "scp",
+      "Snapshot Backups",
+      "crash-consistent",
+      "application-consistent",
+      "Restore Runbook",
       "timedatectl",
       "systemd-timesyncd",
       "hostnamectl",

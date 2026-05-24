@@ -25,6 +25,19 @@ dig @1.1.1.1 example.com
 
 A typical Linux application calls `getaddrinfo()`. That request may pass through `/etc/hosts`, NSS modules, systemd-resolved, a local caching daemon, a corporate resolver, or a Kubernetes DNS service before any recursive lookup happens.
 
+## Stub, Recursive, and Authoritative Roles
+
+DNS debugging gets easier when each actor has one job:
+
+| Actor | Job | Common Evidence |
+| --- | --- | --- |
+| Application resolver code | Calls libc, runtime DNS cache, or its own resolver. | App logs, runtime settings, connection pools. |
+| Stub resolver | Reads local resolver config and sends queries to a configured resolver. | `/etc/resolv.conf`, NSS config, systemd-resolved state. |
+| Recursive resolver | Walks or answers from cache on behalf of clients. | Cache behavior, DNSSEC validation, split-horizon policy. |
+| Authoritative server | Serves zone data for names it is responsible for. | SOA, NS, authoritative answer bit, provider zone records. |
+
+`dig @resolver name type` tests one recursive resolver. `dig @authoritative name type +norecurse` tests zone truth. `dig +trace` shows delegation, but it does not exactly reproduce every enterprise resolver policy, DNSSEC validation choice, or split-horizon view.
+
 ## Cache Layers
 
 | Layer | What It May Cache |
@@ -35,6 +48,35 @@ A typical Linux application calls `getaddrinfo()`. That request may pass through
 | Authoritative infrastructure | Zone data, provider-side generated records, load-balancer answers. |
 
 When debugging, ask the same resolver the application uses before comparing public resolvers.
+
+## Resolver Selection on Linux
+
+Name lookup may not be DNS-only. `/etc/nsswitch.conf` controls the order for `hosts`, commonly including `files`, `dns`, `resolve`, or `myhostname`. That means `/etc/hosts`, systemd-resolved, mDNS, LDAP, or another NSS module can answer before normal DNS.
+
+Useful checks:
+
+```bash
+getent hosts example.com
+cat /etc/nsswitch.conf
+readlink -f /etc/resolv.conf
+resolvectl status
+resolvectl query example.com
+```
+
+`dig` bypasses part of the libc/NSS path and is excellent for DNS protocol testing. `getent hosts` is better for testing what many Linux applications see through libc.
+
+## Delegation and Bailiwick
+
+Recursive resolvers follow delegation from the root toward the target zone. Parent zones publish NS records for delegated child zones, and may publish glue address records when the child's nameserver name is inside the delegated child.
+
+Bailiwick rules limit which additional records a resolver should trust from a response. This matters because DNS responses can include extra data. A resolver should not blindly trust unrelated additional records just because they arrived with an answer.
+
+Operational implications:
+
+- stale parent NS records can send resolvers to old authoritative servers,
+- missing glue can break nameserver reachability,
+- changing authoritative providers requires updating registrar/delegation data, not only zone records,
+- split-horizon DNS can make the same name resolve differently depending on resolver view.
 
 ## TTL and Negative Answers
 
@@ -68,6 +110,8 @@ Client search behavior can multiply lookups. A Pod looking up `api.example.com` 
   {% include study-card.html question="Why can DNS answers differ between two machines?" answer="They may use different resolver paths, caches, search lists, split-horizon views, or validation policies." %}
   {% include study-card.html question="What does a TTL actually control?" answer="How long a resolver may reuse a cached answer before it should refresh it." %}
   {% include study-card.html question="Why can creating a record after a failed lookup still appear broken?" answer="A recursive resolver may have cached the previous negative answer." %}
+  {% include study-card.html question="Why use getent hosts when debugging Linux DNS?" answer="It follows the libc/NSS lookup path many applications use, including files and resolver modules." %}
+  {% include study-card.html question="What is glue in DNS?" answer="Address records provided by a parent zone so resolvers can reach delegated child nameservers." %}
 </div>
 
 ## References

@@ -43,6 +43,22 @@ Start by writing a short failure statement before changing anything:
 
 Good troubleshooting reduces possibilities. Bad troubleshooting creates new state faster than evidence can explain it.
 
+## Universal Method
+
+Use the same loop across Linux, networking, DNS, Kubernetes, databases, storage, and identity:
+
+1. State the exact symptom and scope.
+2. Preserve evidence before restarting, deleting, failing over, or repairing.
+3. Identify the data plane and control plane involved.
+4. Find the owner of the next state transition.
+5. Test one layer at a time with the same path the application uses.
+6. Compare known-good and known-bad paths.
+7. Make the smallest reversible change that tests a hypothesis.
+8. Verify recovery from user-visible behavior and lower-level evidence.
+9. Record what changed, why it worked, and what guardrail prevents recurrence.
+
+Avoid shotgun debugging: multiple simultaneous changes make it hard to know which change helped and can create a second incident.
+
 ## Evidence Preservation
 
 Before restarting services or deleting pods, capture the evidence that will disappear. Treat evidence preservation as an operational requirement, not a post-incident luxury:
@@ -71,6 +87,20 @@ Classify the failure before choosing the fix:
 | Network | No route, firewall drop, MTU black hole, asymmetric return path, conntrack pressure. | Testing only ping when the app uses TCP, TLS, or HTTP. |
 | Data integrity | Corruption, bad migration, inconsistent replica, failed scrub, WAL gap. | Running repair before backups and blast radius are understood. |
 | Time and identity | Clock skew, duplicate machine-id, expired certificate, wrong hostname. | Debugging TLS or auth while NTP or identity is wrong. |
+
+## Data Plane vs Control Plane Failures
+
+Separating planes prevents misleading conclusions:
+
+| System | Control Plane | Data Plane |
+| --- | --- | --- |
+| Kubernetes | API server, scheduler, controllers, webhooks. | Pods, kubelet-managed containers, CNI datapath, Services. |
+| DNS | Zone management, delegation changes, recursive cache policy. | Query and response packets between clients, resolvers, and authorities. |
+| Istio | istiod, xDS config generation, cert issuance. | Envoy, ztunnel, waypoint, application traffic. |
+| Ceph | MON quorum, maps, managers, orchestration. | OSD reads/writes, recovery, client IO. |
+| Databases | Failover manager, operator, replication slot management. | Query execution, WAL writes, locks, storage IO. |
+
+A control plane can be down while current data-plane traffic keeps flowing. A data plane can be broken while APIs show the desired configuration. Check both before deciding the blast radius.
 
 ## Linux Host Runbook
 
@@ -255,6 +285,7 @@ Do not retry everything. Retry only when the operation is safe, bounded, observa
   {% include study-card.html question="Why preserve evidence before restarting?" answer="Restarts can erase process state, previous logs, exit codes, events, queues, and timing clues needed for root cause." %}
   {% include study-card.html question="What does CrashLoopBackOff usually require first?" answer="Previous container logs, exit code, events, probe state, command, environment, and config checks." %}
   {% include study-card.html question="Why is SQLSTATE useful?" answer="It is a stable PostgreSQL error code for programmatic handling, unlike free-form message text." %}
+  {% include study-card.html question="Why separate data plane from control plane while troubleshooting?" answer="They fail independently; configuration APIs may be healthy while traffic fails, or traffic may continue while new changes cannot be made." %}
   {% include study-card.html question="Why use backoff with jitter?" answer="It prevents many clients from retrying in synchronized waves that amplify an outage." %}
   {% include study-card.html question="What is a dead-letter queue for?" answer="Preserving messages that fail bounded retries so they can be inspected or replayed safely." %}
 </div>

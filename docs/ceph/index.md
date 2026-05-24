@@ -32,6 +32,32 @@ Objects are stored in pools. Pools define placement-group count, replication or 
 
 CRUSH maps PGs to OSDs based on a topology-aware rule. This lets Ceph place data across hosts, racks, zones, device classes, or other failure domains without a single lookup service for every object.
 
+## Client IO Path
+
+Ceph clients do not send every read and write through a central controller. A client gets cluster maps from monitors, uses CRUSH to calculate where data should live, and talks to the relevant OSDs.
+
+Simplified RADOS write path:
+
+1. Client identifies the pool and object.
+2. CRUSH maps the object to a placement group.
+3. The placement group maps to an acting OSD set.
+4. The client sends the operation to the primary OSD for that PG.
+5. The primary coordinates replica or erasure-coded writes with peer OSDs.
+6. Acknowledgement depends on pool durability settings and OSD state.
+
+This is why MON quorum can be required for cluster map changes while normal client IO is primarily OSD-facing once maps are known.
+
+## Replication and Erasure Coding
+
+Pools choose a durability strategy:
+
+| Strategy | How It Works | Tradeoff |
+| --- | --- | --- |
+| Replicated pool | Stores full copies on multiple OSDs. | Simple recovery and good small-write behavior at higher raw-capacity cost. |
+| Erasure-coded pool | Splits data into data and parity chunks. | Better raw-capacity efficiency, but more CPU/network work and more complex small writes. |
+
+Failure-domain choice matters as much as copy count. Three replicas on three OSDs in one host do not protect against host loss. CRUSH rules should match the real risk boundary: host, rack, zone, device class, or another topology level.
+
 ## Health and State
 
 ```bash
@@ -97,6 +123,15 @@ Rook runs Ceph inside Kubernetes with an operator. See [Rook-Ceph](rook-ceph/) f
 ## Practice Deck
 
 {% include study-card-deck.html deck="ceph" %}
+
+## Study Cards
+
+<div class="study-card-grid">
+  {% include study-card.html question="Why do Ceph clients need cluster maps?" answer="Clients use maps plus CRUSH to calculate where objects live and then talk to the relevant OSDs." %}
+  {% include study-card.html question="Why is MON quorum different from normal client IO?" answer="Monitors maintain authoritative cluster state, while normal mapped IO is primarily between clients and OSDs." %}
+  {% include study-card.html question="Why does the CRUSH failure domain matter?" answer="Replicas or erasure-coded chunks must land across real failure boundaries such as hosts, racks, or zones." %}
+  {% include study-card.html question="Why can a Ceph cluster need free space during recovery?" answer="Backfill and rebalance need room to move data; a nearly full cluster can get stuck or reject writes." %}
+</div>
 
 ## References
 
