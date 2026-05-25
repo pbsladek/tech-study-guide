@@ -96,6 +96,34 @@ Important SAML objects:
 
 SAML failures are often metadata failures. If the SP entity ID, ACS URL, signing certificate, clock, or NameID format does not match what the IdP expects, login can fail before the application sees a user.
 
+### SAML Browser SSO Flow
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant SP as Service Provider
+  participant IdP as Identity Provider
+
+  Browser->>SP: Request protected page
+  SP-->>Browser: Redirect with AuthnRequest
+  Browser->>IdP: Send AuthnRequest
+  IdP->>Browser: Authenticate user and create SAML Response
+  Browser->>SP: POST Response to ACS URL
+  SP->>SP: Validate signature, issuer, audience, conditions, destination, NameID
+  SP-->>Browser: Create app session cookie
+```
+
+SAML validation evidence:
+
+| Check | Failure Signal |
+| --- | --- |
+| ACS URL and destination match | IdP posts to wrong endpoint or SP rejects destination. |
+| Entity ID / audience match | Assertion was issued for another SP. |
+| Signing certificate trusted | Certificate rollover or metadata drift breaks validation. |
+| `NotBefore` / `NotOnOrAfter` valid | Clock skew causes intermittent failures. |
+| NameID and attributes present | Login works but account mapping or authorization fails. |
+| InResponseTo checked for SP-initiated flow | Replay or IdP-initiated assumptions can weaken correlation. |
+
 ## OAuth 2.0
 
 OAuth 2.0 defines roles:
@@ -108,6 +136,29 @@ OAuth 2.0 defines roles:
 | Resource server | API that accepts and validates access tokens. |
 
 The authorization code flow with PKCE is the common default for browser-based and native applications. The client sends the user to the authorization server, receives an authorization code on the redirect URI, exchanges that code for tokens, and then presents an access token to the API.
+
+### OAuth/OIDC Authorization Code with PKCE
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant Client as Client App
+  participant AS as Authorization Server / OP
+  participant API as Resource Server
+
+  Client->>Client: Generate code_verifier and code_challenge
+  Browser->>AS: Authorize request with client_id, redirect_uri, scope, state, nonce, code_challenge
+  AS->>Browser: Authenticate and consent
+  AS-->>Browser: Redirect with code and state
+  Browser->>Client: Callback to registered redirect URI
+  Client->>AS: Token request with code and code_verifier
+  AS-->>Client: ID token, access token, optional refresh token
+  Client->>Client: Validate ID token for login
+  Client->>API: Present access token for API call
+  API->>API: Validate access token issuer, audience, signature, expiry, scopes
+```
+
+PKCE binds the authorization code to the client that started the flow. `state` protects request correlation and CSRF. `nonce` binds the OIDC ID token to the authentication request. These fields solve different problems and should not be treated as interchangeable.
 
 Operational details:
 
@@ -169,6 +220,35 @@ JWT validation checklist:
 
 Decoding a JWT is not validation. Anyone can base64url-decode the header and payload.
 
+### JWT Validation Decision Tree
+
+```mermaid
+flowchart TB
+  Token[Received JWT] --> Parse[Parse header and claims without trusting them]
+  Parse --> Issuer{Issuer is configured and trusted?}
+  Issuer -->|No| Reject1[Reject]
+  Issuer -->|Yes| Metadata[Load trusted metadata / JWKS]
+  Metadata --> Alg{Algorithm allowed for this issuer?}
+  Alg -->|No| Reject2[Reject]
+  Alg -->|Yes| Key[Select key by kid, issuer, and algorithm]
+  Key --> Sig{Signature verifies?}
+  Sig -->|No| Reject3[Reject]
+  Sig -->|Yes| Claims{iss, aud, exp, nbf, tenant, nonce as required?}
+  Claims -->|No| Reject4[Reject]
+  Claims -->|Yes| Policy[Apply scopes, roles, groups, and local authorization]
+  Policy --> Decision[Allow or deny action]
+```
+
+Common token confusion:
+
+| Mistake | Why It Is Risky |
+| --- | --- |
+| API accepts an ID token | ID token audience is usually the client, not the API. |
+| Client treats access token as login proof | Access token may be opaque or intended only for the resource server. |
+| Verifier trusts `kid` before issuer | Attackers can point at a key ID from an untrusted issuer or tenant. |
+| Verifier allows `alg` from token policy | Algorithm confusion can bypass intended verification rules. |
+| Groups are trusted without mapping | IdP claim names and formats may not match application authorization policy. |
+
 ## Key Rotation and JWKS
 
 OIDC and JWT systems often publish verification keys through JWKS. Rotation is normal and should not be an incident.
@@ -183,6 +263,37 @@ Safe validation behavior:
 - alert on unknown `kid` spikes because they may indicate rotation, config drift, or forged tokens.
 
 SAML has the same operational problem with signing certificates in metadata. Certificate rollover should be planned with overlap so Service Providers can trust old and new signing material during the transition.
+
+### Session and Token Lifetime Timeline
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant Browser
+  participant IdP
+  participant App
+  participant API
+
+  User->>IdP: Authenticate
+  IdP-->>Browser: IdP session cookie
+  IdP-->>App: ID token / assertion
+  App-->>Browser: Application session cookie
+  App->>API: Access token until expiry
+  App->>IdP: Refresh token rotation for new access token
+  User->>App: Logout
+  App-->>Browser: Clears app session
+  Note over Browser,IdP: IdP session and API tokens may still exist unless revoked or expired
+```
+
+Logout and incident-response questions:
+
+| Question | Why It Matters |
+| --- | --- |
+| Does app logout clear only the app cookie? | Users may silently reauthenticate through the IdP session. |
+| Are refresh tokens rotated and reuse-detected? | Stolen refresh tokens can mint access after password changes. |
+| Can high-risk tokens be revoked or introspected? | Short expiry may not be enough during account compromise. |
+| Are API tokens proof-bound or bearer? | Bearer tokens are usable by whoever possesses them. |
+| Do logs redact tokens and assertions? | Support bundles and traces often leak credentials. |
 
 ## Which One Do I Use?
 

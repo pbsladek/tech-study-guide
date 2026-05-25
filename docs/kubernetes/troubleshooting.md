@@ -104,6 +104,44 @@ kubectl get pods --all-namespaces --field-selector spec.nodeName=<node> -o wide
 
 Node conditions such as `MemoryPressure`, `DiskPressure`, `PIDPressure`, and `Ready=False` explain scheduling and eviction behavior. On the node, kubelet, container runtime, CNI plugin, disk, and certificate state are the usual next checks.
 
+Node pressure decision tree:
+
+```mermaid
+flowchart TD
+  Symptom[Pods evicted or node NotReady] --> Conditions[kubectl describe node conditions]
+  Conditions --> Memory[MemoryPressure]
+  Conditions --> Disk[DiskPressure]
+  Conditions --> PID[PIDPressure]
+  Conditions --> Ready[Ready=False]
+  Memory --> MemChecks[PSI, OOM events, top RSS, cgroup memory]
+  Disk --> DiskChecks[imagefs/nodefs usage, logs, emptyDir, inode pressure]
+  PID --> PIDChecks[pid limits, fork storms, process counts]
+  Ready --> NodeChecks[kubelet, runtime, CNI, certificates, network]
+```
+
+Treat node pressure as a scheduling and eviction problem first. Deleting Pods without fixing the pressure source usually recreates the same failure on the same or another node.
+
+## Image Pull Failure Workflow
+
+Image pulls cross registry naming, credentials, DNS, TLS, network policy, runtime, and node disk state.
+
+```bash
+kubectl -n <namespace> describe pod <pod>
+kubectl -n <namespace> get secret <pull-secret> -o yaml
+kubectl get node <node> -o wide
+kubectl debug node/<node> -it --image=nicolaka/netshoot
+nslookup <registry-host>
+curl -vk https://<registry-host>/v2/
+```
+
+| Event or Symptom | Likely Cause |
+| --- | --- |
+| `manifest unknown` | Wrong image name or tag. |
+| `unauthorized` | Missing or wrong imagePullSecret, registry scope, or token expiry. |
+| TLS x509 error | Registry certificate chain, MITM proxy, or node trust store. |
+| DNS timeout | Node resolver, firewall, proxy, or private registry DNS. |
+| Pull starts then stalls | Registry throttling, NAT/proxy, node disk pressure, or MTU. |
+
 ## Evidence Capture
 
 For incidents, capture state before deleting Pods or restarting components:

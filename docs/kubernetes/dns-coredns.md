@@ -63,6 +63,69 @@ Operational risks:
 - upstream resolver timeouts,
 - cache hiding recently changed answers.
 
+CoreDNS plugin chain example:
+
+```mermaid
+flowchart LR
+  Query[Pod DNS query] --> Errors[errors]
+  Errors --> Health[health / ready]
+  Health --> Kubernetes[kubernetes plugin for cluster.local]
+  Kubernetes --> Cache[cache]
+  Cache --> Forward[forward external names upstream]
+  Forward --> Loop[loop detection]
+  Loop --> Metrics[prometheus metrics]
+```
+
+Plugin order matters. The `kubernetes` plugin should answer cluster names before external forwarding. The `cache` plugin reduces API and upstream load, but it can also make recent changes appear delayed. The `loop` plugin protects against forwarding loops, such as forwarding to a node stub that points back at CoreDNS.
+
+## CoreDNS Performance and Capacity
+
+CoreDNS is a shared dependency. DNS query spikes can come from `ndots`, chatty clients, short TTLs, JVM or Go resolver behavior, broken retry loops, or external upstream slowness.
+
+| Signal | Meaning | Action |
+| --- | --- | --- |
+| High CoreDNS CPU | Query volume, expensive plugins, logging, or upstream retries. | Check `coredns_dns_request_count_total`, top query names, and `ndots`. |
+| Rising SERVFAIL | API watch/RBAC failure, upstream failure, DNSSEC issue, or loop. | Split cluster names from external names and inspect logs. |
+| Long forward latency | Upstream resolver or network path is slow. | Compare multiple upstreams and check NAT/firewall paths. |
+| Uneven node symptoms | NodeLocal DNSCache, CNI, or node-local firewall issue. | Test from Pods on multiple nodes. |
+
+Scale CoreDNS replicas with topology in mind, keep requests/limits realistic, and avoid verbose query logging during normal operation. If NodeLocal DNSCache is enabled, capacity exists both at node-local caches and at the central CoreDNS layer.
+
+## DNS Resolution Diagram
+
+```mermaid
+flowchart LR
+  Pod[Pod getaddrinfo] --> Resolv[/Pod resolv.conf/]
+  Resolv --> DNSIP[cluster DNS Service IP]
+  DNSIP --> CoreDNS[CoreDNS Pod]
+  CoreDNS --> KubeAPI[Kubernetes API watch]
+  CoreDNS --> Upstream[forward upstream resolver]
+  KubeAPI --> Svc[Service and EndpointSlice answers]
+  Upstream --> External[external A/AAAA/CNAME answer]
+```
+
+## CoreDNS Failure Labs
+
+| Lab | Test | Expected Evidence |
+| --- | --- | --- |
+| Forwarding loop | Point CoreDNS forward target at a node stub resolver that points back to cluster DNS in a lab. | CoreDNS loop plugin logs, SERVFAIL, rising error count. |
+| Stub resolver issue | Compare node `/etc/resolv.conf`, CoreDNS forward target, and Pod resolver. | Node-local `127.0.0.53` should not be blindly used as a cluster-wide upstream. |
+| NodeLocal DNSCache | Query from a Pod on two nodes and capture DNS at node-local and CoreDNS points. | Packets may terminate at the node cache rather than CoreDNS first. |
+| `ndots` expansion | Resolve `api.example.com` with and without trailing dot. | Multiple cluster-suffix queries before the absolute external name. |
+| SERVFAIL | Query cluster name and external name separately. | Cluster-only SERVFAIL points at Kubernetes plugin/API/RBAC; external-only SERVFAIL points at forwarder/upstream. |
+| TCP fallback | Query a large response with `dig +bufsize=4096` and `dig +tcp`. | UDP truncation or loss should be separated from TCP fallback behavior. |
+| EndpointSlice RBAC | Remove EndpointSlice watch permission in a lab cluster only. | Service answers become stale, empty, or SERVFAIL depending on plugin behavior and cache. |
+
+Practical commands:
+
+```bash
+kubectl -n kube-system get configmap coredns -o yaml
+kubectl -n kube-system logs deployment/coredns --since=10m
+kubectl auth can-i list endpointslices.discovery.k8s.io --as=system:serviceaccount:kube-system:coredns -n default
+kubectl exec <pod> -- sh -c 'nslookup api.example.com; nslookup api.example.com.'
+kubectl exec <pod> -- sh -c 'dig +tcp kubernetes.default.svc.cluster.local'
+```
+
 ## DNS, NAT, and Egress
 
 DNS decides which network path a Pod will try. For cluster names, CoreDNS usually returns ClusterIP or endpoint records that stay inside the cluster datapath. For external names, CoreDNS forwards upstream, and the resulting address may send Pod traffic through node SNAT, a cloud NAT gateway, an egress gateway, a proxy, or a private service endpoint.
@@ -103,6 +166,7 @@ For the full walkthrough, see [NATS, DNS, and Kubernetes Networking](../nats-dns
   {% include study-card.html question="Why can ndots:5 increase DNS load?" answer="External-looking names may be expanded through several cluster search suffixes before the absolute query is tried." %}
   {% include study-card.html question="Why test DNS from inside the affected Pod?" answer="The Pod's resolver config, namespace search path, NetworkPolicy, and node path can differ from a node shell." %}
   {% include study-card.html question="How can DNS affect NAT gateway use?" answer="The DNS answer can choose a public address that leaves through NAT or a private endpoint that stays on private routing." %}
+  {% include study-card.html question="What can EndpointSlice RBAC break in CoreDNS?" answer="CoreDNS may be unable to watch Service backends correctly, causing stale, empty, or failing Service DNS answers." %}
 </div>
 
 ## References

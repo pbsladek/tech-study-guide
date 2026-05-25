@@ -14,6 +14,20 @@ tags:
 
 Socket activation lets systemd own a listening socket and start the service when traffic arrives. This changes debugging: the process may not be running yet, but the port can still be listening because the `.socket` unit is active.
 
+```mermaid
+sequenceDiagram
+  participant Client
+  participant Systemd
+  participant Socket as app.socket
+  participant Service as app.service
+
+  Systemd->>Socket: Bind and listen during boot
+  Client->>Socket: Connect to port
+  Socket->>Systemd: Activation event
+  Systemd->>Service: Start service with inherited FD
+  Service-->>Client: Accept and handle connection
+```
+
 ## First Checks
 
 ```bash

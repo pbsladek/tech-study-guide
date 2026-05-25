@@ -37,9 +37,63 @@ The Service defines:
 
 Selector drift is a common outage. A Service can exist, have a ClusterIP, and still have no usable backends if labels do not match ready Pods.
 
+Selector mismatch example:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx
+          ports:
+            - name: http
+              containerPort: 80
+```
+
+This Service selects `app=frontend`, but the Pods are labeled `app=web`, so EndpointSlices remain empty. Fix either the Service selector or the Pod labels, then verify:
+
+```bash
+kubectl get svc web -o jsonpath='{.spec.selector}{"\n"}'
+kubectl get pods -l app=frontend
+kubectl get pods -l app=web
+kubectl get endpointslice -l kubernetes.io/service-name=web -o wide
+```
+
 ## EndpointSlices
 
 EndpointSlices are the scalable backend source of truth for Services. They group endpoints by address family, protocol, port, and Service. Endpoint conditions include readiness and terminating state, which affects whether Service traffic should be sent to a Pod.
+
+```mermaid
+flowchart LR
+  SVC[Service selector app=web] --> EPS[EndpointSlice controller]
+  POD1[Pod web-1 Ready] --> EPS
+  POD2[Pod web-2 NotReady] --> EPS
+  EPS --> Ready[ready endpoint used for traffic]
+  EPS --> NotReady[not-ready / terminating condition excluded or deprioritized]
+  Ready --> DataPath[kube-proxy, IPVS, nftables, or eBPF datapath]
+```
 
 Operational details:
 
@@ -56,6 +110,19 @@ For non-ExternalName Services, kube-proxy implements virtual IP behavior by watc
 
 Debugging implication: the API object can be correct while the node datapath is stale, missing rules, or blocked by host firewall policy.
 
+Practical node checks depend on mode:
+
+```bash
+kubectl -n kube-system get configmap kube-proxy -o yaml
+kubectl -n kube-system logs -l k8s-app=kube-proxy --since=10m
+iptables-save | grep KUBE-SVC | head
+ipvsadm -Ln 2>/dev/null | head
+nft list ruleset | grep -i kube | head
+conntrack -S
+```
+
+For eBPF service replacement, use the CNI's own status and map-inspection commands. Do not assume iptables or IPVS will show the active Service path.
+
 ## LoadBalancer and NodePort Details
 
 `NodePort` opens a port on nodes. `LoadBalancer` asks infrastructure integration to publish an external address and point it at the Service. On bare metal this requires something like MetalLB or another controller.
@@ -71,6 +138,7 @@ Debugging implication: the API object can be correct while the node datapath is 
 5. Test direct Pod IP only to isolate Service datapath from workload behavior.
 6. Check kube-proxy or CNI datapath logs on affected nodes.
 7. For LoadBalancer, check external address assignment, health checks, node ports, and source IP policy.
+8. Test from two different nodes to catch node-local stale rules, BPF map drift, or conntrack pressure.
 
 ## Study Cards
 
@@ -78,6 +146,7 @@ Debugging implication: the API object can be correct while the node datapath is 
   {% include study-card.html question="What do EndpointSlices represent?" answer="The current backend network endpoints for a Service, grouped by address family, protocol, port, and Service." %}
   {% include study-card.html question="Why can a Service have no usable backends?" answer="Its selector may not match Pods, the Pods may not be Ready, or endpoint conditions may exclude them." %}
   {% include study-card.html question="What is a risk of externalTrafficPolicy: Local?" answer="Traffic only goes to nodes with local ready endpoints, so health checks and endpoint placement matter." %}
+  {% include study-card.html question="Why can Service debugging be node-specific?" answer="Each node programs its own Service datapath, so stale rules, BPF maps, conntrack, or host firewall state can differ by node." %}
 </div>
 
 ## References

@@ -14,6 +14,8 @@ tags:
 
 Istio is a Kubernetes-centered service mesh that adds traffic management, service identity, mutual TLS, policy, telemetry, and gateway capabilities without requiring every application to implement those features itself.
 
+For concrete VirtualService, DestinationRule, and AuthorizationPolicy manifests, see [Istio Service Mesh Examples](/docs/istio/practical-examples/).
+
 ## Core Checks
 
 ```bash
@@ -34,6 +36,17 @@ kubectl get peerauthentication,authorizationpolicy --all-namespaces
 | Traffic APIs | Gateway, VirtualService, DestinationRule, ServiceEntry, Sidecar, and related resources. |
 | Security APIs | PeerAuthentication, RequestAuthentication, AuthorizationPolicy, and certificate/trust configuration. |
 | Telemetry | Metrics, logs, traces, and access logs emitted by proxies and control-plane components. |
+
+## Study Path
+
+| Topic | Focus |
+| --- | --- |
+| [Service Mesh](service-mesh/) | Mesh request paths, sidecar mode, ambient mode, ztunnel, waypoints, mTLS, and policy placement. |
+| [Traffic Management](traffic-management/) | VirtualService, DestinationRule, subsets, retries, timeouts, traffic splits, ServiceEntry, and route debugging. |
+| [Security, mTLS, and Policy](security-mtls-policy/) | Workload identity, PeerAuthentication, AuthorizationPolicy, RequestAuthentication, JWT, and trust boundaries. |
+| [Gateways, Ingress, and Egress](gateways-ingress-egress/) | Ingress gateways, egress gateways, Gateway API, TLS modes, SNI, and external traffic troubleshooting. |
+| [Zero Downtime Upgrades on Kubernetes](zero-downtime-upgrades/) | Canary control planes, revisions, revision tags, workload restarts, gateway upgrades, ambient ztunnel, rollback, and validation gates. |
+| [Observability and Troubleshooting](observability-troubleshooting/) | Metrics, access logs, traces, proxy sync, xDS inspection, response flags, and debugging flows. |
 
 ## xDS and Envoy Configuration
 

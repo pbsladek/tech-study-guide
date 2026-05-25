@@ -14,7 +14,7 @@ tags:
 
 This page is the gap-review map for the study guide. It does not replace the topic pages; it checks whether the guide teaches the mental models a person needs before they debug production systems.
 
-For concrete manifests, configs, SQL, scripts, and command patterns across the same topic areas, use [Practical Examples](/docs/practical-examples/).
+For concrete manifests, configs, SQL, scripts, and command patterns, use the practical examples embedded in each topic. For example, packet-capture labs belong with [Packet Path](/docs/networking/packet-path/), DNS resolver checks belong with [DNS Resolution and Caching](/docs/dns/resolution-caching/), Kubernetes Service checks belong with [Services and EndpointSlices](/docs/kubernetes/services-endpointslices/), and host resource examples belong with [Containerization, OCI, and VMs](/docs/linux/containerization-oci-vms/).
 
 ## Review Criteria
 
@@ -79,3 +79,10 @@ Use this as a periodic checklist when adding new pages:
   {% include study-card.html question="What is the danger of relying only on commands?" answer="Commands show evidence, but without a model of ownership and state transitions it is easy to misread symptoms." %}
   {% include study-card.html question="Why are backups, snapshots, RAID, and replication different?" answer="They protect against different failures and only backups plus tested restores prove recoverability from deletion or corruption." %}
 </div>
+
+## References
+
+- [Packet Path](/docs/networking/packet-path/)
+- [Cross-Layer Incident Runbooks](/docs/networking/cross-layer-incident-runbooks/)
+- [Kubernetes Services and EndpointSlices](/docs/kubernetes/services-endpointslices/)
+- [Troubleshooting and Error Handling](/docs/troubleshooting/)

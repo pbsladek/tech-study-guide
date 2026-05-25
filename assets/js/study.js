@@ -3,25 +3,50 @@
   const shell = document.querySelector(".app-shell");
   const storage = window.localStorage;
   const baseUrl = document.body.dataset.baseurl || "";
+  const pageProgressKey = "pageProgress";
+  const studyStatsKey = "studyStats";
   const studyModal = document.querySelector("#study-modal");
   const studyTopicList = document.querySelector("#study-topic-list");
   const studyAllTopics = document.querySelector("#study-all-topics");
   const studyModeSelect = document.querySelector("#study-mode-select");
   const studySizeSelect = document.querySelector("#study-size-select");
+  const studyWeakOnly = document.querySelector("#study-weak-only");
+  const studyMissedOnly = document.querySelector("#study-missed-only");
   const studyStatus = document.querySelector("#study-status");
   const studyProgressText = document.querySelector("#study-progress-text");
   const studyProgressFill = document.querySelector("#study-progress-fill");
   const studyScoreText = document.querySelector("#study-score-text");
   const studyCardLabel = document.querySelector("#study-card-label");
   const studyCardText = document.querySelector("#study-card-text");
+  const studyCardHint = document.querySelector("#study-card-hint");
   const studyStageCard = document.querySelector("#study-stage-card");
   const studyTestControls = document.querySelector("#study-test-controls");
   const studyReport = document.querySelector("#study-report");
+  const searchInput = document.querySelector("#site-search");
+  const searchResults = document.querySelector("#search-results");
+  const searchFilters = document.querySelector("#search-filters");
+  const graphFilter = document.querySelector("#graph-filter");
   let studyDecks = null;
   let studyCards = [];
   let studyIndex = 0;
   let studyRevealed = false;
   let studyResults = [];
+  let activeSearchTag = "";
+  let activeSearchIndex = -1;
+  let searchItems = [];
+  let searchMatches = [];
+
+  function readJson(key, fallback) {
+    try {
+      return JSON.parse(storage.getItem(key)) || fallback;
+    } catch (error) {
+      return fallback;
+    }
+  }
+
+  function writeJson(key, value) {
+    storage.setItem(key, JSON.stringify(value));
+  }
 
   function applyPreference(name, value, fallback) {
     const selected = value || storage.getItem(name) || fallback;
@@ -53,6 +78,23 @@
       .join(" ");
   }
 
+  function slugify(value) {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  function normalizePath(value) {
+    const link = document.createElement("a");
+    link.href = value || window.location.pathname;
+    let path = link.pathname;
+    if (baseUrl && path.startsWith(baseUrl)) {
+      path = path.slice(baseUrl.length) || "/";
+    }
+    return path.endsWith("/") ? path : `${path}/`;
+  }
+
   function shuffle(items) {
     const shuffled = items.slice();
     for (let index = shuffled.length - 1; index > 0; index -= 1) {
@@ -60,6 +102,169 @@
       [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
     }
     return shuffled;
+  }
+
+  function copyText(value) {
+    if (navigator.clipboard?.writeText) {
+      return navigator.clipboard.writeText(value);
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+    return Promise.resolve();
+  }
+
+  function pageProgress() {
+    return readJson(pageProgressKey, {});
+  }
+
+  function isPageComplete(url) {
+    return pageProgress()[normalizePath(url)] === true;
+  }
+
+  function updateCompleteButtons() {
+    document.querySelectorAll("[data-action='mark-complete']").forEach((button) => {
+      const complete = isPageComplete(button.dataset.pageUrl);
+      button.classList.toggle("page-complete", complete);
+      button.textContent = complete ? "Complete" : "Mark complete";
+      button.setAttribute("aria-pressed", complete ? "true" : "false");
+    });
+  }
+
+  function togglePageComplete(url) {
+    const progress = pageProgress();
+    const path = normalizePath(url);
+    progress[path] = !progress[path];
+    writeJson(pageProgressKey, progress);
+    updateCompleteButtons();
+    renderPathProgress();
+  }
+
+  function renderPathProgress() {
+    const progress = pageProgress();
+    document.querySelectorAll("[data-path-card]").forEach((card) => {
+      const steps = Array.from(card.querySelectorAll("[data-path-step-url]"));
+      const completeCount = steps.filter((step) => progress[normalizePath(step.dataset.pathStepUrl)]).length;
+      const percent = steps.length > 0 ? Math.round((completeCount / steps.length) * 100) : 0;
+
+      steps.forEach((step) => {
+        const complete = progress[normalizePath(step.dataset.pathStepUrl)] === true;
+        step.classList.toggle("is-complete", complete);
+        const state = step.querySelector("[data-path-step-state]");
+        if (state) state.textContent = complete ? "Complete" : "Not started";
+      });
+
+      const fill = card.querySelector("[data-path-progress-fill]");
+      const text = card.querySelector("[data-path-progress-text]");
+      if (fill) fill.style.width = `${percent}%`;
+      if (text) text.textContent = `${completeCount} of ${steps.length} complete`;
+    });
+  }
+
+  function renderPageToc() {
+    const tocSection = document.querySelector("#page-toc-section");
+    const toc = document.querySelector("#page-toc");
+    const article = document.querySelector("article.content-card");
+    if (!tocSection || !toc || !article) return;
+
+    const headings = Array.from(article.querySelectorAll("h2, h3")).filter((heading) => heading.textContent.trim());
+    if (headings.length < 2) return;
+
+    toc.innerHTML = "";
+    headings.forEach((heading) => {
+      if (!heading.id) {
+        heading.id = slugify(heading.textContent.trim());
+      }
+      const link = document.createElement("a");
+      link.href = `#${heading.id}`;
+      link.textContent = heading.textContent.trim();
+      link.className = heading.tagName === "H3" ? "toc-depth-3" : "toc-depth-2";
+      toc.appendChild(link);
+    });
+    tocSection.hidden = false;
+  }
+
+  function addCopyButtons() {
+    document.querySelectorAll(".content-card pre").forEach((pre) => {
+      const wrapper = pre.closest(".highlight, div[class^='language-']") || pre;
+      if (wrapper.querySelector(":scope > .copy-code-button")) return;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "copy-code-button";
+      button.textContent = "Copy";
+      button.addEventListener("click", () => {
+        copyText(pre.innerText).then(() => {
+          button.textContent = "Copied";
+          window.setTimeout(() => {
+            button.textContent = "Copy";
+          }, 1200);
+        });
+      });
+      wrapper.prepend(button);
+    });
+  }
+
+  function cardId(card) {
+    return `${card.deck}:${card.q}`;
+  }
+
+  function studyStats() {
+    const stats = readJson(studyStatsKey, {});
+    stats.cards ||= {};
+    stats.decks ||= {};
+    return stats;
+  }
+
+  function cardStats(card) {
+    return studyStats().cards[cardId(card)] || { seen: 0, right: 0, wrong: 0, state: "new" };
+  }
+
+  function isWeakCard(card) {
+    const stats = cardStats(card);
+    return stats.state === "weak" || stats.wrong > stats.right;
+  }
+
+  function isMissedCard(card) {
+    return cardStats(card).wrong > 0;
+  }
+
+  function updateStudyStats(card, isRight) {
+    const stats = studyStats();
+    const id = cardId(card);
+    const current = stats.cards[id] || { seen: 0, right: 0, wrong: 0, state: "new" };
+    const deck = stats.decks[card.deck] || { seen: 0, right: 0, wrong: 0 };
+
+    current.seen += 1;
+    current.right += isRight ? 1 : 0;
+    current.wrong += isRight ? 0 : 1;
+    current.lastSeen = new Date().toISOString();
+    current.state = current.wrong > current.right ? "weak" : current.right - current.wrong >= 3 ? "mastered" : "learning";
+
+    deck.seen += 1;
+    deck.right += isRight ? 1 : 0;
+    deck.wrong += isRight ? 0 : 1;
+
+    stats.cards[id] = current;
+    stats.decks[card.deck] = deck;
+    writeJson(studyStatsKey, stats);
+  }
+
+  function deckAccuracySummary(decks) {
+    const stats = studyStats();
+    return decks.map((deckName) => {
+      const deck = stats.decks[deckName] || { seen: 0, right: 0, wrong: 0 };
+      const answered = deck.right + deck.wrong;
+      const percent = answered > 0 ? Math.round((deck.right / answered) * 100) : 0;
+      return `${titleize(deckName)}: ${percent}% over ${answered} cards`;
+    });
   }
 
   function loadStudyDecks() {
@@ -134,15 +339,25 @@
     document.body.classList.remove("study-open");
   }
 
+  function renderStudyStartCard() {
+    if (studyStageCard) {
+      studyStageCard.dataset.revealed = "false";
+      studyStageCard.setAttribute("aria-pressed", "false");
+    }
+    if (studyCardLabel) studyCardLabel.textContent = "Start quiz";
+    if (studyCardText) studyCardText.textContent = "Start selected cards";
+    if (studyCardHint) {
+      studyCardHint.hidden = false;
+      studyCardHint.textContent = "Click this card to begin.";
+    }
+  }
+
   function resetStudy() {
     studyCards = [];
     studyIndex = 0;
     studyRevealed = false;
     studyResults = [];
-    if (studyStageCard) studyStageCard.dataset.revealed = "false";
-    if (studyStageCard) studyStageCard.setAttribute("aria-pressed", "false");
-    if (studyCardLabel) studyCardLabel.textContent = "Question";
-    if (studyCardText) studyCardText.textContent = "Start a study session.";
+    renderStudyStartCard();
     if (studyProgressText) studyProgressText.textContent = "0 / 0";
     if (studyProgressFill) studyProgressFill.style.width = "0%";
     if (studyScoreText) studyScoreText.textContent = "Score: 0 right, 0 wrong";
@@ -178,8 +393,13 @@
     }
 
     const card = studyCards[studyIndex];
-    studyCardLabel.textContent = studyRevealed ? "Answer" : `Question - ${titleize(card.deck)}`;
+    const stats = cardStats(card);
+    studyCardLabel.textContent = studyRevealed ? "Answer" : `Question - ${titleize(card.deck)} - ${titleize(stats.state)}`;
     studyCardText.textContent = studyRevealed ? card.a : card.q;
+    if (studyCardHint) {
+      studyCardHint.hidden = true;
+      studyCardHint.textContent = "";
+    }
     studyStageCard.dataset.revealed = studyRevealed ? "true" : "false";
     studyStageCard.setAttribute("aria-pressed", studyRevealed ? "true" : "false");
     updateStudyProgress();
@@ -189,11 +409,20 @@
     if (!studyDecks) return;
 
     const decks = selectedStudyDecks();
-    const allCards = decks.flatMap((deckName) => {
+    let allCards = decks.flatMap((deckName) => {
       return studyDecks[deckName].cards.map((card) => ({ ...card, deck: deckName }));
     });
+
+    if (studyWeakOnly?.checked) {
+      allCards = allCards.filter(isWeakCard);
+    }
+
+    if (studyMissedOnly?.checked) {
+      allCards = allCards.filter(isMissedCard);
+    }
+
     const size = studySizeSelect?.value || "all";
-    const shouldShuffle = size !== "all" || studyModeSelect?.value === "test";
+    const shouldShuffle = size !== "all" || studyModeSelect?.value === "test" || studyWeakOnly?.checked || studyMissedOnly?.checked;
 
     studyCards = shouldShuffle ? shuffle(allCards) : allCards;
     if (size !== "all") {
@@ -212,7 +441,14 @@
       studyReport.textContent = "";
     }
     if (studyStatus) {
-      studyStatus.textContent = `${studyCards.length} cards from ${decks.length} topic${decks.length === 1 ? "" : "s"}.`;
+      const filteredText = studyMissedOnly?.checked ? " missed cards" : studyWeakOnly?.checked ? " weak cards" : " cards";
+      studyStatus.textContent = `${studyCards.length}${filteredText} from ${decks.length} topic${decks.length === 1 ? "" : "s"}.`;
+    }
+
+    if (studyCards.length === 0) {
+      renderStudyStartCard();
+      if (studyStatus) studyStatus.textContent = studyMissedOnly?.checked ? "No missed cards found for the selected decks." : "No weak cards found for the selected decks.";
+      return;
     }
 
     renderStudyCard();
@@ -231,22 +467,113 @@
     renderStudyCard();
   }
 
+  function startOrRevealStudyCard() {
+    if (studyCards.length === 0) {
+      startStudy();
+      return;
+    }
+
+    revealStudyCard();
+  }
+
   function markStudyCard(isRight) {
     if (studyCards.length === 0) return;
 
+    const card = studyCards[studyIndex];
     studyResults[studyIndex] = isRight;
+    updateStudyStats(card, isRight);
     updateStudyProgress();
 
     const answered = studyResults.filter((result) => result !== null).length;
     if (answered === studyCards.length && studyReport) {
       const right = studyResults.filter((result) => result === true).length;
       const percent = Math.round((right / studyCards.length) * 100);
+      const decks = [...new Set(studyCards.map((item) => item.deck))];
       studyReport.hidden = false;
-      studyReport.textContent = `Complete: ${right} of ${studyCards.length} correct (${percent}%).`;
+      studyReport.innerHTML = `<strong>Complete:</strong> ${right} of ${studyCards.length} correct (${percent}%).<br>${deckAccuracySummary(decks).join("<br>")}`;
       return;
     }
 
     moveStudyCard(1);
+  }
+
+  function renderSearchFilters() {
+    if (!searchFilters || searchItems.length === 0) return;
+    const tagCounts = new Map();
+    searchItems.forEach((item) => {
+      item.tags.forEach((tag) => tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1));
+    });
+
+    const topTags = Array.from(tagCounts.entries())
+      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+      .slice(0, 12);
+
+    searchFilters.innerHTML = "";
+    topTags.forEach(([tag, count]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "search-filter-chip";
+      button.textContent = `${tag} ${count}`;
+      button.dataset.searchTag = tag;
+      button.setAttribute("aria-pressed", "false");
+      searchFilters.appendChild(button);
+    });
+    searchFilters.hidden = false;
+  }
+
+  function renderSearch() {
+    if (!searchInput || !searchResults) return;
+    const query = searchInput.value.trim().toLowerCase();
+    searchResults.innerHTML = "";
+    activeSearchIndex = -1;
+
+    if (query.length < 2 && !activeSearchTag) return;
+
+    searchMatches = searchItems
+      .filter((item) => {
+        const matchesQuery =
+          query.length < 2 ||
+          [item.title, item.summary, item.content, item.tags.join(" ")]
+            .join(" ")
+            .toLowerCase()
+            .includes(query);
+        const matchesTag = !activeSearchTag || item.tags.includes(activeSearchTag);
+        return matchesQuery && matchesTag;
+      })
+      .slice(0, 8);
+
+    searchMatches.forEach((item) => {
+      const link = document.createElement("a");
+      link.href = item.url;
+      link.innerHTML = `<strong>${item.title}</strong><span>${item.summary || item.tags.join(", ")}</span>`;
+      searchResults.appendChild(link);
+    });
+  }
+
+  function moveSearchFocus(direction) {
+    const links = Array.from(searchResults?.querySelectorAll("a") || []);
+    if (links.length === 0) return;
+    activeSearchIndex = (activeSearchIndex + direction + links.length) % links.length;
+    links.forEach((link, index) => link.classList.toggle("is-active", index === activeSearchIndex));
+    links[activeSearchIndex].focus();
+  }
+
+  function renderGraphFilters() {
+    const query = graphFilter?.value.trim().toLowerCase() || "";
+    const activeCluster = document.querySelector(".graph-clusters [data-graph-cluster][aria-pressed='true']")?.dataset.graphCluster || "";
+
+    document.querySelectorAll("[data-graph-node]").forEach((node) => {
+      const clusterMatches = !activeCluster || node.dataset.graphCluster === activeCluster;
+      const textMatches = !query || node.textContent.toLowerCase().includes(query);
+      node.hidden = !(clusterMatches && textMatches);
+    });
+  }
+
+  function highlightCurrentGraphLinks() {
+    const currentPath = normalizePath(window.location.pathname);
+    document.querySelectorAll("[data-graph-edge], .graph-title").forEach((link) => {
+      link.classList.toggle("is-current-page", normalizePath(link.href) === currentPath);
+    });
   }
 
   applyPreference("theme", null, window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -267,6 +594,26 @@
 
   document.addEventListener("click", (event) => {
     const action = event.target.closest("[data-action]")?.dataset.action;
+    const searchTag = event.target.closest("[data-search-tag]")?.dataset.searchTag;
+
+    if (searchTag) {
+      activeSearchTag = activeSearchTag === searchTag ? "" : searchTag;
+      document.querySelectorAll("[data-search-tag]").forEach((button) => {
+        button.setAttribute("aria-pressed", button.dataset.searchTag === activeSearchTag ? "true" : "false");
+      });
+      renderSearch();
+      return;
+    }
+
+    const graphCluster = event.target.closest(".graph-clusters [data-graph-cluster]")?.dataset.graphCluster;
+    if (graphCluster !== undefined) {
+      document.querySelectorAll(".graph-clusters [data-graph-cluster]").forEach((button) => {
+        button.setAttribute("aria-pressed", button.dataset.graphCluster === graphCluster ? "true" : "false");
+      });
+      renderGraphFilters();
+      return;
+    }
+
     if (!action) return;
 
     if (action === "toggle-theme") {
@@ -276,6 +623,19 @@
     if (action === "toggle-reader") {
       document.body.classList.toggle("reader-mode");
       storage.setItem("readerMode", document.body.classList.contains("reader-mode") ? "on" : "off");
+    }
+
+    if (action === "toggle-runbook") {
+      document.body.classList.toggle("runbook-mode");
+      storage.setItem("runbookMode", document.body.classList.contains("runbook-mode") ? "on" : "off");
+    }
+
+    if (action === "mark-complete") {
+      togglePageComplete(event.target.closest("[data-page-url]")?.dataset.pageUrl || window.location.pathname);
+    }
+
+    if (action === "copy-page-link") {
+      copyText(window.location.href);
     }
 
     if (action === "open-study") {
@@ -327,6 +687,10 @@
     document.body.classList.add("reader-mode");
   }
 
+  if (storage.getItem("runbookMode") === "on") {
+    document.body.classList.add("runbook-mode");
+  }
+
   if (studyAllTopics && studyTopicList) {
     studyAllTopics.addEventListener("change", () => {
       studyTopicList.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
@@ -338,9 +702,24 @@
   }
 
   if (studyStageCard) {
-    studyStageCard.addEventListener("click", () => revealStudyCard());
+    studyStageCard.addEventListener("click", () => startOrRevealStudyCard());
     studyStageCard.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        startOrRevealStudyCard();
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        moveStudyCard(-1);
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        moveStudyCard(1);
+      }
+
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
         event.preventDefault();
         revealStudyCard();
       }
@@ -359,37 +738,53 @@
         event.preventDefault();
         flip();
       }
+
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        event.preventDefault();
+        flip();
+      }
+
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        const cards = Array.from(document.querySelectorAll(".study-card"));
+        const offset = event.key === "ArrowLeft" ? -1 : 1;
+        const nextIndex = (cards.indexOf(card) + offset + cards.length) % cards.length;
+
+        event.preventDefault();
+        cards[nextIndex]?.focus();
+      }
     });
   });
-
-  const searchInput = document.querySelector("#site-search");
-  const searchResults = document.querySelector("#search-results");
 
   if (searchInput && searchResults) {
     fetch(`${baseUrl}/assets/js/search-index.json`)
       .then((response) => response.json())
       .then((items) => {
-        searchInput.addEventListener("input", () => {
-          const query = searchInput.value.trim().toLowerCase();
-          searchResults.innerHTML = "";
+        searchItems = items;
+        renderSearchFilters();
+        searchInput.addEventListener("input", renderSearch);
+        searchInput.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            moveSearchFocus(1);
+          }
 
-          if (query.length < 2) return;
+          if (event.key === "Escape") {
+            searchInput.value = "";
+            activeSearchTag = "";
+            document.querySelectorAll("[data-search-tag]").forEach((button) => button.setAttribute("aria-pressed", "false"));
+            renderSearch();
+          }
+        });
+        searchResults.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            moveSearchFocus(1);
+          }
 
-          const matches = items
-            .filter((item) => {
-              return [item.title, item.summary, item.content, item.tags.join(" ")]
-                .join(" ")
-                .toLowerCase()
-                .includes(query);
-            })
-            .slice(0, 8);
-
-          matches.forEach((item) => {
-            const link = document.createElement("a");
-            link.href = item.url;
-            link.innerHTML = `<strong>${item.title}</strong><span>${item.summary || item.tags.join(", ")}</span>`;
-            searchResults.appendChild(link);
-          });
+          if (event.key === "ArrowUp") {
+            event.preventDefault();
+            moveSearchFocus(-1);
+          }
         });
         searchResults.dataset.ready = "true";
       })
@@ -397,4 +792,15 @@
         searchResults.innerHTML = "";
       });
   }
+
+  if (graphFilter) {
+    graphFilter.addEventListener("input", renderGraphFilters);
+    highlightCurrentGraphLinks();
+    renderGraphFilters();
+  }
+
+  updateCompleteButtons();
+  renderPathProgress();
+  renderPageToc();
+  addCopyButtons();
 })();

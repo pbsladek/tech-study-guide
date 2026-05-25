@@ -107,6 +107,69 @@ Fixes are design choices, not one magic sysctl:
 - tune conntrack only after sizing memory and state lifetime,
 - use private endpoints, private service endpoints, or service endpoints to avoid NAT for internal/cloud services.
 
+## NAT Exhaustion Runbook
+
+When new outbound connections fail but established connections continue, treat NAT exhaustion as a first-class suspect.
+
+| Evidence | Linux / Kubernetes | Cloud Provider |
+| --- | --- | --- |
+| Conntrack pressure | `conntrack -S`, `nf_conntrack_count`, insert failures. | Flow logs showing drops or failed connection attempts. |
+| Ephemeral port pressure | `ss -tan state time-wait`, source tuple fan-out. | NAT port allocation errors, SNAT port usage, connection error metrics. |
+| DNS amplification | CoreDNS query rate, `ndots` search expansion, retry spikes. | Resolver rate limiting, many UDP 53 flows from one NAT IP. |
+| Kubernetes egress concentration | many Pods per node, egress gateway bottleneck, node SNAT. | one subnet or zone routed through one gateway. |
+| Connection churn | short-lived HTTP clients, no pooling, synchronized jobs. | high new connections per second to one destination. |
+
+Practical workflow:
+
+```bash
+date -Is
+cat /proc/sys/net/netfilter/nf_conntrack_count
+sysctl net.netfilter.nf_conntrack_max
+conntrack -S
+ss -tan state time-wait | wc -l
+ss -tan dst 203.0.113.50:443 | wc -l
+kubectl -n kube-system logs deployment/coredns --since=10m | tail
+```
+
+Fixes to prefer before raw timeout tuning:
+
+- enable HTTP keepalive and database/client pooling,
+- reduce synchronized scraping, health checks, and test fan-out,
+- add NAT source IPs or per-zone gateways,
+- route provider APIs through private endpoints,
+- lower DNS search amplification by using fully qualified names where appropriate,
+- move bulk jobs to dedicated egress paths.
+
+### NAT Port Budget Estimator
+
+For one NAT source IP talking to one destination IP and port, the practical ceiling is bounded by available source ports and provider reservation rules. The rough model is:
+
+```text
+usable_ports_per_nat_ip_to_one_destination ~= ephemeral_port_count - reserved_ports
+required_ports ~= concurrent_connections + TIME_WAIT_connections + retry_burst
+```
+
+Example:
+
+```text
+ephemeral range: 32768-60999 = 28232 ports
+one destination: api.vendor.example:443
+steady connections: 12000
+TIME_WAIT and reconnect burst: 18000
+required: 30000+
+result: one source IP is too small even before provider-specific reservations
+```
+
+Capacity clues:
+
+| Pattern | Design Response |
+| --- | --- |
+| Many short-lived connections to one destination | Pool/reuse connections before adding ports. |
+| Many Pods behind one node SNAT | Spread Pods across nodes or use more egress IPs. |
+| One vendor API dominates port use | Dedicated NAT IP, proxy pool, or private connectivity. |
+| TIME_WAIT dominates | Reduce churn; do not blindly shorten TCP timeouts without understanding peer behavior. |
+| DNS points clients to one endpoint | Load balancing or private endpoints may reduce per-destination concentration. |
+
 ## Cloud NAT Gateway Design
 
 Cloud NAT gateways differ by provider, but the same design questions apply.

@@ -28,6 +28,17 @@ findmnt /
 
 ## Boot Chain
 
+```mermaid
+flowchart LR
+  Firmware[BIOS / UEFI firmware] --> Bootloader[GRUB / systemd-boot / UKI]
+  Bootloader --> Kernel[Linux kernel + command line]
+  Kernel --> Initramfs[initramfs early userspace]
+  Initramfs --> RootFS[real root filesystem]
+  RootFS --> PID1[systemd PID 1]
+  PID1 --> Targets[targets and units]
+  Targets --> Services[login, ssh, application services]
+```
+
 1. Firmware initializes hardware and chooses a boot device.
 2. Bootloader loads the kernel and passes the kernel command line.
 3. Kernel initializes CPU, memory, drivers, interrupts, and core subsystems.
@@ -92,6 +103,23 @@ After root handoff, PID 1 owns service orchestration. On systemd systems, target
 - filesystem check or mount failure,
 - PID 1 emergency mode,
 - service dependency waits delaying boot.
+
+Emergency mode recovery transcript:
+
+```text
+Give root password for maintenance
+(or press Control-D to continue):
+# mount -o remount,rw /
+# journalctl -xb -p warning..alert
+# systemctl --failed
+# findmnt /
+# vi /etc/fstab
+# systemctl daemon-reload
+# mount -a
+# systemctl default
+```
+
+Use emergency mode to repair the smallest broken dependency. If `mount -a` fails, fix `/etc/fstab`, device names, network mounts, or filesystem health before continuing to the normal boot target.
 
 ## Study Cards
 

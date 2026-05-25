@@ -107,6 +107,32 @@ iptables -t nat -L -n -v
 
 Counters are only useful when you know which path the packet should take. Generate one test flow, then check whether the expected rule counter changed.
 
+## Host Firewall Example
+
+This nftables host policy allows established traffic, loopback, SSH from a management subnet, HTTPS from anywhere, and ICMP for diagnostics. It logs denied input at a limited rate before rejecting.
+
+```nft
+table inet host_filter {
+  chain input {
+    type filter hook input priority 0; policy drop;
+
+    iif lo accept
+    ct state established,related accept
+    ct state invalid drop
+
+    ip saddr 192.0.2.0/24 tcp dport 22 accept
+    tcp dport 443 accept
+    ip protocol icmp accept
+    ip6 nexthdr ipv6-icmp accept
+
+    limit rate 5/second log prefix "nft-drop-input: "
+    reject
+  }
+}
+```
+
+Test firewall changes from an existing session and with out-of-band access available. A syntactically valid rule can still lock out SSH if the source range, interface, or default policy is wrong.
+
 ## NAT and Firewalls Together
 
 DNAT and SNAT change what later checks see. A packet may arrive for a public address, be DNATed to a private backend, then hit a filter rule using the translated destination. Return packets may be SNATed or masqueraded after routing.
@@ -136,6 +162,7 @@ Operational implications:
   {% include study-card.html question="Why does rule order matter?" answer="Rules are evaluated in order, so an earlier broad match can prevent later specific rules from ever applying." %}
   {% include study-card.html question="What does conntrack enable?" answer="Stateful firewall policy and NAT by associating packets with tracked flows." %}
   {% include study-card.html question="Why can mixing firewall frontends be risky?" answer="UFW, firewalld, Docker, Kubernetes, and manual rules can all write policy, making ownership and ordering unclear." %}
+  {% include study-card.html question="Why keep ICMP in a firewall policy?" answer="ICMP carries diagnostics and path information such as unreachable and Packet Too Big messages that help MTU and routing work." %}
 </div>
 
 ## References

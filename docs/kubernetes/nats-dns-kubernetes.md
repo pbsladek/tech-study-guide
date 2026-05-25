@@ -126,6 +126,26 @@ Kubernetes DNS and NATS reconnect behavior interact in a few operational ways:
 - Client libraries may cache DNS or keep server-provided URLs longer than CoreDNS caches the answer.
 - A Service can resolve while having no ready endpoints; always inspect EndpointSlices alongside DNS.
 
+Reconnect timeline:
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant DNS as CoreDNS / resolver
+  participant N1 as NATS seed Service
+  participant N2 as Gossiped server URL
+
+  Client->>DNS: Resolve nats.namespace.svc.cluster.local
+  DNS-->>Client: Service address
+  Client->>N1: Connect and authenticate
+  N1-->>Client: INFO with connect_urls / advertise data
+  N1--xClient: Connection drops
+  Client->>N2: Reconnect using learned URL
+  N2-->>Client: Success or timeout/TLS failure
+```
+
+When reconnects are slow, inspect both configured seed URLs and learned URLs. A seed Service can be healthy while an advertised Pod IP, stale DNS name, or external URL is unreachable from the client network.
+
 For external clients, publish a deliberate load balancer or ingress-compatible endpoint and use ExternalDNS only for that client-facing name. Do not use public DNS names as internal cluster route names unless the traffic path, TLS SANs, and NetworkPolicy are intentionally designed that way.
 
 ## Failure Patterns

@@ -58,6 +58,31 @@ TCP send and receive buffers absorb differences between application speed and ne
 
 TCP keepalive is not the same as application health. It only checks whether a TCP connection still appears alive after configured idle periods. Proxies and load balancers often have lower idle timeouts than OS keepalive defaults.
 
+## Practical Failure Examples
+
+Separate refused, reset, timeout, and stalled connections before tuning buffers.
+
+| Error | Packet Evidence | Common Cause |
+| --- | --- | --- |
+| Connection refused | SYN followed by RST. | Nothing listening, wrong port, active firewall reject, stale Service endpoint. |
+| Connection timed out | SYN retransmits without SYN-ACK. | Drop, route, NAT, listener, security group, or return-path failure. |
+| Connection reset | RST after connection exists. | App abort, proxy idle timeout, protocol violation, firewall, or load balancer. |
+| Write stalls | Send queue grows in `ss`. | Receiver not reading, congestion, flow-control window, or proxy buffering. |
+
+```bash
+tcpdump -nn -i any 'host 203.0.113.10 and tcp[tcpflags] & (tcp-syn|tcp-ack|tcp-rst|tcp-fin) != 0'
+ss -tanpi dst 203.0.113.10
+ss -ltnp '( sport = :8080 )'
+```
+
+For client-heavy services, check ephemeral ports and TIME_WAIT before raising random TCP tunables:
+
+```bash
+sysctl net.ipv4.ip_local_port_range
+ss -tan state time-wait | wc -l
+cat /proc/net/sockstat
+```
+
 ## Ubuntu Notes
 
 On Ubuntu and Debian, package the tools you need explicitly:
@@ -75,6 +100,7 @@ journalctl -k -g 'TCP|conntrack|martian|SYN'
   {% include study-card.html question="What is a listening socket?" answer="A server-side socket bound to an address and port waiting for incoming connection attempts." %}
   {% include study-card.html question="Why can a service listen but clients still time out?" answer="Queues, firewall policy, accept-loop stalls, SYN backlog, or return-path problems can fail connections after the process binds." %}
   {% include study-card.html question="Why is TIME_WAIT normal?" answer="It keeps connection identity around so delayed packets from an old connection do not corrupt a future one." %}
+  {% include study-card.html question="What distinguishes refused from timed-out TCP connects?" answer="Refused returns a reset; timed-out connects show retransmitted SYNs without a usable response." %}
 </div>
 
 ## References

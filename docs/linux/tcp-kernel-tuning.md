@@ -47,6 +47,51 @@ ss -ltn
 ss -tan state syn-recv
 ```
 
+### Backlog Saturation Lab
+
+Use a lab host or disposable VM. The goal is to see the difference between half-open SYN pressure and established connections waiting for `accept()`.
+
+Terminal 1: run a deliberately slow listener with a tiny backlog:
+
+```text
+python3 - <<'PY'
+import socket, time
+s = socket.socket()
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(("0.0.0.0", 8080))
+s.listen(1)
+print("listening on 8080 with backlog=1")
+while True:
+    time.sleep(30)
+PY
+```
+
+Terminal 2: create connection pressure:
+
+```text
+for i in $(seq 1 200); do nc -vz 127.0.0.1 8080 >/dev/null 2>&1 & done
+wait
+```
+
+Terminal 3: watch queue evidence:
+
+```text
+ss -ltn sport = :8080
+ss -tan state syn-recv sport = :8080
+netstat -s | grep -Ei 'listen|overflow|drop|syn'
+sysctl net.core.somaxconn net.ipv4.tcp_max_syn_backlog
+```
+
+Interpretation:
+
+| Evidence | Meaning |
+| --- | --- |
+| `Recv-Q` on listening socket near `Send-Q` | Established accept queue is full or near full. |
+| `ListenOverflows` / `ListenDrops` rising | Application is not accepting fast enough or backlog is too small. |
+| Many `SYN-RECV` sockets | Handshakes are stuck before accept queue completion. |
+| SYN retransmits from clients | The server or path is dropping or delaying handshake progress. |
+| Larger `somaxconn` but unchanged behavior | Application backlog or worker accept loop is still the limiter. |
+
 SYN cookies can help a host survive SYN floods, but they are not a substitute for understanding why legitimate handshakes or accepts are backing up.
 
 ## Socket Buffers and Autotuning

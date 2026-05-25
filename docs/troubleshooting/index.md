@@ -14,6 +14,8 @@ tags:
 
 Troubleshooting is evidence management under time pressure. Error handling is designing systems so failures are bounded, observable, retryable when safe, and recoverable when not. The same discipline applies across Linux hosts, networks, DNS, Kubernetes, Istio, Ceph, PostgreSQL, and application services.
 
+For a repeatable incident evidence capture script, see [Troubleshooting Examples](/docs/troubleshooting/practical-examples/).
+
 ## First Checks
 
 ```bash

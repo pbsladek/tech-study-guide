@@ -14,6 +14,18 @@ tags:
 
 Kubernetes networking starts from a simple model: every Pod gets a cluster-wide IP, containers in the same Pod share a network namespace, and Pods should be able to communicate without manual port mapping. The hard part is that Kubernetes defines the model while plugins implement much of the datapath.
 
+## First Checks
+
+Start with inventory before packet captures. Most Kubernetes network incidents are faster to narrow when you know whether the failing hop is DNS, Service selection, kube-proxy replacement, CNI routing, policy enforcement, or an external load balancer.
+
+```bash
+kubectl get nodes -o wide
+kubectl get pods -A -o wide
+kubectl get svc,endpointslice,ingress,gateway -A -o wide
+kubectl -n kube-system get pods -o wide
+kubectl exec -it <pod> -- cat /etc/resolv.conf
+```
+
 ## Critical Subtopics
 
 | Topic | Why It Matters |
@@ -59,6 +71,100 @@ Quirky Service details:
 - `externalTrafficPolicy: Local` preserves client source IP for many load balancer setups but only sends traffic to nodes with local ready endpoints.
 - Headless Services (`clusterIP: None`) skip the virtual IP and publish endpoint records directly, often for StatefulSets.
 
+## Service Datapath Modes
+
+Kubernetes defines Services, but each node implements the virtual IP datapath. Common implementations include iptables, IPVS, nftables, eBPF, or a CNI-integrated replacement. The API object can be correct while one node has stale rules, missing BPF state, a broken conntrack table, or a host firewall conflict.
+
+| Mode | Debug Shape |
+| --- | --- |
+| iptables | Inspect service chains, DNAT rules, conntrack, and kube-proxy logs. |
+| IPVS | Inspect virtual servers with `ipvsadm`, real servers, scheduler choice, and conntrack. |
+| nftables | Inspect nft rulesets and counters written by the proxy implementation. |
+| eBPF replacement | Inspect CNI agent status, BPF maps, node health, and CNI-specific service state. |
+
+| Question | kube-proxy iptables/IPVS/nftables | CNI-Owned eBPF Service Path |
+| --- | --- | --- |
+| Who programs Service load balancing? | kube-proxy watches Services and EndpointSlices. | CNI agent watches APIs and writes BPF maps/programs. |
+| Where do counters live? | iptables/nft counters, IPVS stats, conntrack. | CNI flow logs, BPF map counters, drop monitors. |
+| What commonly goes stale? | Node-local proxy rules or conntrack entries. | BPF service/backend maps or agent state. |
+| Best first isolation test | Compare ClusterIP with direct Pod IP and kube-proxy logs. | Compare ClusterIP with direct Pod IP and CNI service-map status. |
+
+Practical Service checks:
+
+```bash
+kubectl get svc api -o wide
+kubectl get endpointslice -l kubernetes.io/service-name=api -o wide
+kubectl exec deploy/client -- curl -v http://api.default.svc.cluster.local:8080
+kubectl exec deploy/client -- curl -v http://<pod-ip>:8080
+kubectl -n kube-system logs -l k8s-app=kube-proxy --since=10m
+```
+
+## Service Datapath Diagrams
+
+iptables mode:
+
+```mermaid
+flowchart LR
+  Pod[client Pod] --> VIP[Service ClusterIP]
+  VIP --> IPT[kube-proxy iptables chains]
+  IPT --> CT[conntrack DNAT state]
+  CT --> EP[ready Pod endpoint]
+```
+
+IPVS mode:
+
+```mermaid
+flowchart LR
+  Pod[client Pod] --> VIP[Service ClusterIP]
+  VIP --> IPVS[IPVS virtual server]
+  IPVS --> RS[real server endpoint]
+  RS --> EP[ready Pod endpoint]
+```
+
+nftables mode:
+
+```mermaid
+flowchart LR
+  Pod[client Pod] --> VIP[Service ClusterIP]
+  VIP --> NFT[nftables rules and counters]
+  NFT --> CT[conntrack]
+  CT --> EP[ready Pod endpoint]
+```
+
+eBPF replacement mode:
+
+```mermaid
+flowchart LR
+  Pod[client Pod] --> BPF[eBPF service lookup]
+  BPF --> MAP[BPF service and backend maps]
+  MAP --> EP[ready Pod endpoint]
+  BPF --> OBS[CNI flow logs and drop reasons]
+```
+
+The debugging rule is simple: inspect the datapath that is actually active. iptables output is weak evidence when an eBPF CNI replaced kube-proxy, and CNI map state is weak evidence for a cluster still using kube-proxy iptables mode.
+
+## Service Works From One Node Only
+
+Node-local Service failures happen because each node owns part of the datapath. A Service object and EndpointSlice can be correct while one node has stale proxy rules, bad BPF maps, conntrack pressure, host firewall drops, or CNI route drift.
+
+```bash
+kubectl get endpointslice -l kubernetes.io/service-name=api -o wide
+kubectl get pods -l app=api -o wide
+kubectl debug node/<bad-node> -it --image=nicolaka/netshoot
+curl -v http://<cluster-ip>:<port>
+curl -v http://<endpoint-pod-ip>:<port>
+conntrack -S
+```
+
+Interpretation:
+
+| Observation | Likely Layer |
+| --- | --- |
+| Direct Pod IP works, ClusterIP fails only on one node | Service datapath on that node. |
+| Both direct Pod IP and ClusterIP fail only cross-node | CNI routing, overlay, MTU, cloud route, or policy. |
+| New connections fail but old ones work | conntrack exhaustion, stale NAT state, or proxy map drift. |
+| Only external LoadBalancer path fails on one node | health check, NodePort, `externalTrafficPolicy`, or host firewall. |
+
 ## DNS: CoreDNS and kube-dns
 
 Modern clusters commonly run CoreDNS as the cluster DNS server. Older clusters used kube-dns. The job is similar: watch Kubernetes Services and endpoints, then answer DNS queries from Pods.
@@ -81,6 +187,8 @@ Common Kubernetes DNS failures:
 - Alpine or old musl-based images mishandle large DNS responses without TCP fallback.
 - NetworkPolicy blocks UDP/TCP 53 to CoreDNS.
 - `ndots:5` amplifies external lookups into several internal search attempts.
+- NodeLocal DNSCache changes where DNS packets terminate and which source address CoreDNS sees.
+- CoreDNS forwarder failures can break only external names while Service names still resolve.
 
 ## Ingress and Gateway API
 
@@ -122,6 +230,30 @@ Important behaviors:
 - Egress isolation is separate from ingress isolation.
 - DNS must be allowed explicitly when egress is locked down.
 
+Enforcement details differ by CNI. Some plugins enforce policy with iptables, some with eBPF, and some support only parts of the API or add their own policy types. A policy object existing in the API is not proof that packets are being filtered.
+
+For default-deny egress, allow DNS deliberately:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+spec:
+  podSelector: {}
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+```
+
 ## Packet Walkthrough: Client to Pod via Ingress
 
 1. Client resolves the external DNS name to a load balancer address.
@@ -134,6 +266,16 @@ Important behaviors:
 
 Break the path at each boundary when debugging.
 
+## Pod-to-External Egress
+
+Pod egress often crosses more translations than operators expect:
+
+```text
+Pod IP -> node CNI path -> node SNAT or egress gateway -> cloud NAT or firewall -> internet or private endpoint
+```
+
+Check source IP expectations. A destination allowlist may see a node IP, NAT gateway IP, egress gateway IP, or preserved Pod IP depending on the CNI and cloud design. Hairpin traffic can happen when a Pod resolves an internal service to a public load balancer address instead of a private Service, private endpoint, or split-horizon DNS answer.
+
 ## Commands
 
 ```bash
@@ -142,6 +284,8 @@ kubectl -n kube-system logs deployment/coredns
 kubectl get svc,endpointslice,ingress,gateway --all-namespaces
 kubectl exec -it <pod> -- nslookup kubernetes.default.svc.cluster.local
 kubectl exec -it <pod> -- cat /etc/resolv.conf
+kubectl exec -it <pod> -- curl -v http://<service>.<namespace>.svc.cluster.local:<port>
+kubectl exec -it <pod> -- curl -v http://<pod-ip>:<port>
 ```
 
 ## Study Cards
@@ -151,6 +295,7 @@ kubectl exec -it <pod> -- cat /etc/resolv.conf
   {% include study-card.html question="Does creating an Ingress object expose traffic by itself?" answer="No. An Ingress controller must watch the object and configure a load balancer or proxy." %}
   {% include study-card.html question="Why can NetworkPolicy objects have no effect?" answer="The selected CNI plugin must implement NetworkPolicy enforcement; Kubernetes only defines the API." %}
   {% include study-card.html question="What does a headless Service do?" answer="It sets clusterIP: None and publishes endpoint records directly instead of routing through a virtual Service IP." %}
+  {% include study-card.html question="Why compare Service IP with direct Pod IP?" answer="It separates Service datapath problems from workload listener or application problems." %}
 </div>
 
 ## References

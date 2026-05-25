@@ -1,0 +1,22 @@
+<div class="path-grid">
+  {% for path in site.data.study_paths %}
+    <section class="path-card" data-path-card data-path-id="{{ path.id }}">
+      <div class="path-card-header">
+        <h2>{{ path.title }}</h2>
+        <p>{{ path.summary }}</p>
+      </div>
+      <div class="path-progress" aria-label="{{ path.title }} progress">
+        <span class="path-progress-track"><span data-path-progress-fill></span></span>
+        <span data-path-progress-text>0 of {{ path.steps.size }} complete</span>
+      </div>
+      <ol class="path-step-list">
+        {% for step in path.steps %}
+          <li data-path-step-url="{{ step.url }}">
+            <a href="{{ step.url | relative_url }}">{{ step.title }}</a>
+            <span data-path-step-state>Not started</span>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% endfor %}
+</div>

@@ -72,6 +72,41 @@ systemctl cat srv-data.mount
 journalctl -u srv-data.mount -b
 ```
 
+### systemd Mount Dependency Examples
+
+For a local disk that may appear slowly, bound boot delay explicitly:
+
+```text
+UUID=1111-2222 /srv/data xfs defaults,nofail,x-systemd.device-timeout=10s 0 2
+```
+
+For network storage, tell systemd it is network-dependent and consider automounting so boot does not block on first contact:
+
+```text
+server:/exports/reports /mnt/reports nfs4 rw,_netdev,nofail,x-systemd.automount,x-systemd.idle-timeout=5min 0 0
+```
+
+For an application that must start only after a mount is available, express the dependency on the service as well as in fstab:
+
+```text
+# /etc/systemd/system/myapp.service.d/mounts.conf
+[Unit]
+RequiresMountsFor=/srv/data
+After=network-online.target
+Wants=network-online.target
+```
+
+Useful dependency checks:
+
+```text
+systemd-analyze critical-chain srv-data.mount
+systemctl show srv-data.mount -p After -p Requires -p Wants -p BindsTo
+systemctl show myapp.service -p RequiresMountsFor -p After -p Wants
+systemctl list-dependencies myapp.service
+```
+
+`After=` orders startup but does not require the other unit to exist or succeed. `Requires=` creates a hard requirement but does not order by itself. `RequiresMountsFor=` is the usual application-level way to say "this service needs these paths mounted before it starts."
+
 ## Bind Mounts and Namespaces
 
 Bind mounts expose an existing path somewhere else. Containers commonly use bind mounts and separate mount namespaces, so a path can be mounted on the host but not inside a container, or visible in a container but backed by a different host path than expected.

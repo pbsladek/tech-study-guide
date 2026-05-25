@@ -63,6 +63,35 @@ Linux has several mechanisms for spreading network work:
 
 These tools are not automatically better in every environment. On a host with one hardware queue and many CPUs, RPS may help. On a host where RSS already maps queues cleanly to CPUs, extra RPS can add overhead. For latency-sensitive work, NUMA locality and cache locality matter as much as raw parallelism.
 
+Queue and CPU steering map:
+
+```mermaid
+flowchart LR
+  Wire[Packets on wire] --> NIC[NIC]
+  NIC --> RX0[RX queue 0]
+  NIC --> RX1[RX queue 1]
+  RX0 --> IRQ0[IRQ CPU 0]
+  RX1 --> IRQ1[IRQ CPU 1]
+  IRQ0 --> NAPI0[NAPI poll / softirq]
+  IRQ1 --> NAPI1[NAPI poll / softirq]
+  NAPI0 --> RPS[RPS/RFS optional CPU steering]
+  NAPI1 --> RPS
+  RPS --> TCP[TCP/IP stack and socket queues]
+  App[Application threads] --> XPS[XPS selects TX queue]
+  XPS --> TX0[TX queue]
+  TX0 --> NIC
+```
+
+Interpretation:
+
+| Symptom | Likely Steering Issue |
+| --- | --- |
+| One CPU has most network softirq time | RSS queues, IRQ affinity, or one dominant flow concentrates work. |
+| Many RX queues but only one interrupt moves | NIC indirection table or driver queue setup is not distributing flows. |
+| RPS enabled on every CPU with worse latency | Cache locality or NUMA locality is being lost. |
+| Transmit queue imbalance | XPS or application CPU placement does not line up with TX queues. |
+| Drops in `/proc/net/softnet_stat` | Per-CPU backlog cannot drain fast enough. |
+
 Useful places to inspect:
 
 ```bash
@@ -130,6 +159,34 @@ Tune the kernel and the application together. An application backlog of `128` ca
 6. Inspect qdisc statistics if latency or drops happen before transmit.
 7. Make one change at a time, capture before/after counters, and keep a rollback.
 
+## Syscall-to-NIC Diagnostic Path
+
+When a network service is slow, tie application behavior to kernel and NIC evidence in one path instead of collecting disconnected commands.
+
+| Boundary | Command | What It Shows |
+| --- | --- | --- |
+| Application syscall | `strace -ttT -p <pid> -e trace=network,poll,epoll_wait` | Blocking connect, accept, read, write, send, recv, or event loop waits. |
+| CPU profile | `perf top -p <pid>` or `perf top -a` | User code, kernel TCP work, copy cost, crypto, or softirq hot paths. |
+| Socket state | `ss -tanpi` | Queues, retransmits, RTT, congestion window, timers. |
+| Kernel counters | `cat /proc/net/snmp /proc/net/netstat` | TCP retransmits, listen overflows, resets, IP errors. |
+| Interface | `ip -s link`, `ethtool -S <if>` | Drops, errors, ring pressure, driver counters. |
+| Scheduling | `mpstat -P ALL 1`, `/proc/softirqs` | Softirq imbalance, CPU saturation, IRQ placement. |
+| Queueing | `tc -s qdisc show dev <if>` | qdisc backlog, shaping, drops before transmit. |
+| Tracing | `bpftrace`, BCC, or CNI tools | Kernel tracepoints, kprobes, XDP/tc programs, drops with context. |
+
+Example flow for a slow HTTP service:
+
+```bash
+strace -ttT -p <pid> -e trace=network,poll,epoll_wait
+ss -tanpi '( sport = :8080 )'
+perf top -p <pid>
+cat /proc/net/netstat | grep -E 'Listen|Retrans|Timeout|Backlog'
+ethtool -S <interface> | grep -E 'drop|err|miss|timeout|rx|tx'
+tc -s qdisc show dev <interface>
+```
+
+If `strace` shows the app blocked in `epoll_wait` while receive queues grow, the app may not be waking or accepting fast enough. If `perf` shows kernel and softirq cost with NIC drops, tune receive distribution, rings, offloads, or flow placement before changing application code.
+
 ## Study Cards
 
 <div class="study-card-grid">
@@ -137,6 +194,7 @@ Tune the kernel and the application together. An application backlog of `128` ca
   {% include study-card.html question="What is RPS?" answer="Receive Packet Steering, a kernel mechanism that spreads receive packet processing across configured CPUs." %}
   {% include study-card.html question="Why can offloads confuse packet captures?" answer="Captures may observe packets before checksum completion or before large buffers are segmented into wire-sized packets." %}
   {% include study-card.html question="What does /proc/net/softnet_stat help reveal?" answer="Per-CPU network backlog pressure, including drops when the kernel cannot drain receive work fast enough." %}
+  {% include study-card.html question="Why combine strace, ss, perf, and ethtool?" answer="Together they connect application syscalls, socket queues, CPU cost, kernel packet processing, and NIC counters." %}
 </div>
 
 ## References

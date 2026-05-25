@@ -13,6 +13,8 @@ tags:
 
 Networking is a stack of encapsulation, addressing, forwarding, control messages, name resolution, encryption, proxy behavior, and state. The key is to know what each layer is responsible for and where to observe it when something breaks.
 
+The practical command patterns are embedded in the topic pages where the failures happen. Start with [Cross-Layer Incident Runbooks](cross-layer-incident-runbooks/) when the symptom crosses application, Linux, Kubernetes, DNS, proxy, and network boundaries.
+
 ## Mental Model
 
 A request from a browser to a service crosses several boundaries:
@@ -42,8 +44,16 @@ This separation matters during incidents. A control plane outage may prevent new
 
 | Topic | Why It Matters |
 | --- | --- |
+| [Request Path](request-path/) | Traces one request through DNS, client behavior, TCP, TLS, proxies, Kubernetes Service routing, CNI, Pod, app, database, and response path. |
+| [Cross-Layer Incident Runbooks](cross-layer-incident-runbooks/) | Moves from symptoms such as HTTP 504, connection refused, TLS timeout, DNS intermittent, large requests hanging, and Pod-only failures through the relevant layers. |
 | [Packet Path](packet-path/) | Tracks packets through sockets, routing, neighbor lookup, firewall hooks, qdisc, NIC queues, and return paths. |
+| [Packet Capture and Analysis](packet-capture-analysis/) | Covers `tcpdump`, Wireshark, capture filters, retransmits, resets, DNS, TLS SNI, VLAN tags, MTU, and ring-buffer captures. |
 | [Routing, NAT, and Firewalls](routing-nat-firewalls/) | Covers route selection, policy routing, NAT state, conntrack, asymmetric routing, and load-balancer edge cases. |
+| [BGP and Dynamic Routing](bgp-dynamic-routing/) | Covers ASNs, peering, route advertisement, route selection, communities, ECMP, anycast, and route-leak failure modes. |
+| [Datacenter L2/L3 Operations](datacenter-l2-l3-operations/) | Covers LACP, MLAG/vPC, STP/RSTP, ARP/NDP instability, EVPN/VXLAN, ECMP, anycast, and fabric incident evidence. |
+| [Cloud Networking](cloud-networking/) | Covers VPCs/VNets, subnets, route tables, security groups, private endpoints, peering, transit gateways, NAT, and load balancers. |
+| [Network Namespaces and Virtual Networking](network-namespaces-virtual-networking/) | Covers `ip netns`, veth pairs, Linux bridges, macvlan, ipvlan, tun/tap, VXLAN, overlays, and CNI-style packet paths. |
+| [IPv6 Operations](ipv6-operations/) | Covers SLAAC, DHCPv6, Router Advertisements, NDP, link-local addresses, privacy addresses, dual-stack, NAT64, DNS AAAA, and firewalling. |
 | [NAT Gateways and NAT](nat-gateways/) | Covers SNAT, DNAT, PAT, masquerade, cloud NAT gateways, port exhaustion, hairpin NAT, Kubernetes egress, and NAT troubleshooting. |
 | [Firewalls, iptables, and Netfilter](firewalls-iptables-netfilter/) | Covers netfilter hooks, nftables, iptables, chains, tables, conntrack, NAT, counters, logging, and policy troubleshooting. |
 | [VPNs and IPsec Tunnels](vpn-ipsec-tunnels/) | Covers VPN types, IPsec tunnel mode, IKEv2, ESP, NAT-T, selectors, route-based tunnels, split tunneling, and MTU. |
@@ -54,8 +64,11 @@ This separation matters during incidents. A control plane outage may prevent new
 | [TCP and Sockets](tcp-sockets/) | Explains listen queues, socket buffers, TIME_WAIT, ephemeral ports, keepalive, and kernel TCP state. |
 | [UDP, QUIC, and Connectionless Traffic](udp-quic-connectionless/) | Covers UDP datagrams, DNS/DHCP/NTP, QUIC, HTTP/3, conntrack timers, UDP 443, and packet capture. |
 | [Load Balancers and Proxies](load-balancers-proxies/) | Covers L4/L7 balancing, reverse proxies, health checks, TLS termination, source IP preservation, forwarding headers, and timeouts. |
+| [Resilience, Timeouts, and Draining](resilience-timeouts-draining/) | Covers timeout budgets, retries, backoff, connection pools, keepalive, load-balancer draining, DNS TTLs, and zero-downtime deploy behavior. |
 | [Forward and Reverse Proxies](proxies-forward-reverse/) | Covers explicit forward proxies, reverse proxies, transparent interception, CONNECT tunnels, proxy env vars, headers, and TLS interception. |
+| [HTTP and Proxy Debugging](http-proxy-debugging/) | Covers `curl -v`, headers, redirects, keepalive, chunking, HTTP/2, gRPC, WebSockets, proxy variables, and timeout alignment. |
 | [Certificates and HTTPS](certificates-https/) | Covers certificate chains, SANs, SNI, CA stores, trust failures, and Ubuntu certificate operations. |
+| [Zero-Trust Networking](zero-trust-networking/) | Covers host firewall policy, nftables, mTLS, certificate rotation, SNI, ALPN, service identity, SSH hardening, auditd, SELinux, and AppArmor. |
 | [TCP, TLS, and HTTP](tcp-tls-http/) | Separates transport, encryption, and application-layer failures in the request path. |
 
 ## OSI Layers for Troubleshooting

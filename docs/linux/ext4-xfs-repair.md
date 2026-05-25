@@ -66,6 +66,18 @@ Repair is a data-risk operation:
 
 Run filesystem repair after the block layer is stable. If the disk is failing, repair may accelerate data loss.
 
+### What Not To Do During Repair
+
+| Anti-Pattern | Why It Is Dangerous | Better Move |
+| --- | --- | --- |
+| Run `fsck` or `xfs_repair` on a mounted writable filesystem | Repair tools can race live writes and make damage worse. | Stop writers, unmount, or boot rescue media. |
+| Repair the filesystem before checking storage health | A failing disk, path, RAID set, or controller can corrupt repaired metadata again. | Capture SMART/NVMe health, kernel logs, RAID/multipath state first. |
+| Run repair on `/dev/sdb` without checking holders | The device may be a PV, RAID member, encrypted backing device, or wrong disk. | Use `lsblk`, `findmnt`, `dmsetup`, `mdadm`, and `/dev/disk/by-id`. |
+| Use `xfs_repair -L` as a first step | Log zeroing can discard metadata updates and lose recent operations. | Mount normally or replay log if possible; use `-L` only with explicit risk acceptance. |
+| Clone a corrupt disk by copying files | File-level copy can skip unreadable metadata and hide damage. | Image the block device with recovery-aware tooling when data recovery matters. |
+| Reboot repeatedly to "see if it comes back" | Repeated journal replay attempts and writes can reduce recovery options. | Preserve evidence, stop writes, and decide recovery path once. |
+| Repair without a restore plan | Repair success does not prove application consistency. | Verify backups and application-level checks after filesystem recovery. |
+
 ## TRIM and Discard
 
 SSDs and thin-provisioned storage may benefit from discard/TRIM. Operators commonly use scheduled `fstrim` instead of continuous `discard` mount options to avoid unexpected latency. Confirm whether the underlying storage supports discard with `lsblk -D`.

@@ -15,6 +15,8 @@ tags:
 
 OpenSearch is a distributed search engine. It stores data in indexes, splits indexes into primary shards, copies those shards to replica shards, and coordinates cluster state through elected cluster-manager nodes. High availability comes from shard allocation, node placement, cluster-manager quorum, snapshots, and tested operational procedures. It does not come from replicas alone.
 
+For concrete cluster health, shard, allocation, and index-template examples, see [Database and Search Examples](/docs/databases/practical-examples/).
+
 ## First Checks
 
 ```bash

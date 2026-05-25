@@ -15,6 +15,12 @@ Kubernetes is an API-driven reconciliation system. You submit desired state as o
 
 The current upstream minor release line is Kubernetes v1.36, first released on April 22, 2026. At this review on May 19, 2026, the official releases page lists v1.36.1 as the latest patch release, released on May 13, 2026, and also tracks supported patch releases for earlier minor lines. Treat this guide as version-aware: always check release notes before upgrades, because feature gates, removals, and skew rules are operationally important.
 
+<aside class="version-callout">
+  <strong>Version-sensitive:</strong> Kubernetes release lines, skew policy, API removals, and add-on compatibility change over time. Re-check upstream release notes before applying upgrade guidance.
+</aside>
+
+Concrete manifests and commands are embedded in the topic pages where they are used: [Services and EndpointSlices](services-endpointslices/) includes Service datapath checks, [Pod Networking and CNI](pod-networking-cni/) includes Pod packet-path tests, [NetworkPolicy](network-policy/) covers default-deny and DNS egress, and [Storage and Upgrades](storage-upgrades/) covers StatefulSet and disruption-safe upgrade patterns.
+
 ## The Control Plane
 
 The control plane is the cluster brain:
@@ -94,7 +100,7 @@ The most useful troubleshooting question is: "Which controller owns the next ste
 - [Kubernetes Pod Networking and CNI](pod-networking-cni/) for Pod IPs, Pod CIDRs, overlays, eBPF, MTU, hostNetwork, and node datapath checks.
 - [Kubernetes NetworkPolicy](network-policy/) for ingress and egress isolation, selectors, default deny, DNS egress, and CNI enforcement.
 - [Kubernetes Ingress, Gateway, and Load Balancers](ingress-gateway-load-balancers/) for external traffic, Ingress controllers, Gateway API, TLS, SNI, health checks, and source IP behavior.
-- [Storage and Upgrades](storage-upgrades/) for PV/PVC, CSI, StatefulSets, and kubeadm-style upgrade flow.
+- [Storage and Upgrades](storage-upgrades/) for PV/PVC, CSI, StatefulSets, kubeadm-style upgrade flow, version skew, node drains, add-ons, and post-upgrade validation.
 - [Troubleshooting](troubleshooting/) for incident entry points and practical commands.
 
 ## Commands

@@ -42,6 +42,22 @@ The common initial DHCPv4 exchange is DORA:
 
 After a lease is active, renewal usually becomes unicast between client and server. If renewal fails, the client later rebroadcasts during rebinding. This difference matters: a new client may fail because broadcast or relay is broken, while an already-leased client keeps working until renewal or rebinding.
 
+```mermaid
+sequenceDiagram
+  participant Client
+  participant Relay as Relay / Gateway
+  participant Server
+
+  Client->>Relay: Discover broadcast on client VLAN
+  Relay->>Server: Unicast Discover with giaddr / Option 82
+  Server-->>Relay: Offer for matching scope
+  Relay-->>Client: Offer on client VLAN
+  Client->>Relay: Request chosen server and address
+  Relay->>Server: Unicast Request
+  Server-->>Relay: ACK with lease and options
+  Relay-->>Client: ACK on client VLAN
+```
+
 ## Options That Shape the Host
 
 DHCP is not just IP assignment. Options tell the host how to behave after it gets the address.

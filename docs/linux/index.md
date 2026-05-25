@@ -14,6 +14,8 @@ tags:
 
 Linux is the layer that turns hardware into process isolation, files, sockets, memory mappings, timers, signals, device drivers, and resource accounting. Developers need it because code eventually becomes processes, syscalls, pages, sockets, and file descriptors. Operators need it because incidents show up as CPU pressure, memory pressure, IO waits, scheduler latency, kernel logs, device-driver behavior, access failures, broken scheduled jobs, SSH lockouts, and host identity drift.
 
+Concrete commands, configs, and failure patterns are embedded in the topic pages where the operating-system behavior appears: systemd examples live with systemd pages, firewall examples live with netfilter pages, cgroup examples live with containerization and memory pages, and packet-performance examples live with the kernel networking pages.
+
 ## Mental Model
 
 A Linux system is a set of cooperating boundaries:
@@ -49,6 +51,12 @@ The kernel is not only "the thing under user space." It is the shared arbiter fo
 | [Network Stack](network-stack/) | Shows how sockets, routes, namespaces, Linux bridges, netfilter, conntrack, queues, and NICs move packets. |
 | [Kernel Network Performance](kernel-network-performance/) | Covers NAPI, softirq, NIC rings, RSS, RPS, RFS, XPS, offloads, qdisc, drops, and packet-processing bottlenecks. |
 | [TCP Kernel Tuning](tcp-kernel-tuning/) | Covers listen queues, `somaxconn`, SYN backlog, socket buffers, ephemeral ports, TIME_WAIT, keepalives, and conntrack limits. |
+| [eBPF and Tracing](ebpf-tracing/) | Covers eBPF programs, maps, tracepoints, kprobes, uprobes, bpftrace, BCC, `tc`, XDP, and production-safe tracing. |
+| [Memory Pressure and OOM](memory-pressure-oom/) | Covers RSS, VSZ, page cache, slab, THP, NUMA, swap, cgroup memory, PSI, and OOM killer behavior. |
+| [System Call Debugging](syscall-debugging/) | Covers `strace`, `errno`, blocking syscalls, file and socket syscalls, `poll`, `epoll`, and syscall-layer failure evidence. |
+| [Security Controls](security-controls/) | Covers capabilities, seccomp, AppArmor, SELinux, PAM, auditd, sudoers, file capabilities, setuid, and container boundaries. |
+| [Package and Boot Recovery](package-boot-recovery/) | Covers broken packages, bad kernels, initramfs failures, GRUB rescue, emergency mode, chroot repair, and rollback. |
+| [Performance Triage Runbooks](performance-triage-runbooks/) | Covers high CPU, high load, memory pressure, disk latency, softirq saturation, file descriptor exhaustion, and cgroup throttling. |
 | [Sockets and IPC](sockets-ipc/) | Covers TCP, UDP, Unix domain sockets, socket files, listen queues, buffers, file descriptors, pipes, shared memory, and IPC troubleshooting. |
 | [Processes and Threads](processes-threads/) | Covers tasks, PIDs, TIDs, thread groups, fork/exec/wait, zombies, signals, PID namespaces, scheduling, and thread debugging. |
 | [Debian and Ubuntu Operations](debian-ubuntu/) | Uses Ubuntu Server as the default distro lens for packages, services, Netplan, UFW, logs, and certificates. |

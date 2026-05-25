@@ -28,6 +28,7 @@
         <div class="sidebar-search">
           <label for="site-search">Search</label>
           <input id="site-search" type="search" autocomplete="off" placeholder="Find notes, commands, tags">
+          <div id="search-filters" class="search-filter-bar" hidden></div>
           <div id="search-results" class="search-results" aria-live="polite"></div>
         </div>
 
@@ -42,16 +43,31 @@
               {% assign item_open = true %}
             {% endif %}
             {% if item.children %}
-              <details class="nav-group" {% if item_open %}open{% endif %}>
+              <details class="nav-group nav-level-1" {% if item_open %}open{% endif %}>
                 <summary>{{ item.title }}</summary>
                 <div class="nav-children">
                   {% for child in item.children %}
-                    <a class="{% if page.url == child.url %}active{% endif %}" href="{{ child.url | relative_url }}">{{ child.title }}</a>
+                    {% assign child_open = false %}
+                    {% if page.url contains child.url %}
+                      {% assign child_open = true %}
+                    {% endif %}
+                    {% if child.children %}
+                      <details class="nav-group nav-level-2" {% if child_open %}open{% endif %}>
+                        <summary>{{ child.title }}</summary>
+                        <div class="nav-children">
+                          {% for grandchild in child.children %}
+                            <a class="nav-leaf nav-level-3{% if page.url == grandchild.url %} active{% endif %}" href="{{ grandchild.url | relative_url }}">{{ grandchild.title }}</a>
+                          {% endfor %}
+                        </div>
+                      </details>
+                    {% else %}
+                      <a class="nav-leaf nav-level-2{% if page.url == child.url %} active{% endif %}" href="{{ child.url | relative_url }}">{{ child.title }}</a>
+                    {% endif %}
                   {% endfor %}
                 </div>
               </details>
             {% else %}
-              <a class="nav-leaf{% if page.url == item.url %} active{% endif %}" href="{{ item.url | relative_url }}">{{ item.title }}</a>
+              <a class="nav-leaf nav-level-1{% if page.url == item.url %} active{% endif %}" href="{{ item.url | relative_url }}">{{ item.title }}</a>
             {% endif %}
           {% endfor %}
         </nav>
@@ -88,13 +104,29 @@
         <main class="content-grid" id="content">
           <article class="content-card">
             {{ content }}
+
+            {% assign page_labs = site.data.scenario_labs | where: "url", page.url %}
+            {% if page_labs.size > 0 %}
+              <section class="embedded-labs" aria-labelledby="embedded-labs-title">
+                <h2 id="embedded-labs-title">Scenario Lab</h2>
+                {% include scenario-labs.html url=page.url %}
+              </section>
+            {% endif %}
           </article>
 
           <aside class="right-rail" aria-label="Study context">
             <section>
               <h2>Page Tools</h2>
+              <button type="button" data-action="mark-complete" data-page-url="{{ page.url }}">Mark complete</button>
+              <button type="button" data-action="toggle-runbook">Runbook mode</button>
+              <button type="button" data-action="copy-page-link">Copy page link</button>
               <a href="{{ '/knowledge-graph/' | relative_url }}">Open graph</a>
               <a href="{{ '/tags/' | relative_url }}">Browse tags</a>
+            </section>
+
+            <section class="page-toc" id="page-toc-section" hidden>
+              <h2>On This Page</h2>
+              <nav id="page-toc" aria-label="Table of contents"></nav>
             </section>
 
             {% if page.tags %}
@@ -107,6 +139,72 @@
                 </div>
               </section>
             {% endif %}
+
+            {% if page.tags %}
+              <section class="related-pages">
+                <h2>Related Pages</h2>
+                {% assign related_count = 0 %}
+                {% for item in site.pages %}
+                  {% if item.url != page.url and item.tags and related_count < 5 %}
+                    {% assign related_match = false %}
+                    {% for tag in page.tags %}
+                      {% if item.tags contains tag %}
+                        {% assign related_match = true %}
+                      {% endif %}
+                    {% endfor %}
+                    {% if related_match %}
+                      {% assign related_count = related_count | plus: 1 %}
+                      <a href="{{ item.url | relative_url }}">{{ item.title | default: item.url }}</a>
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+                {% if related_count == 0 %}
+                  <p>No related pages yet.</p>
+                {% endif %}
+              </section>
+            {% endif %}
+
+            <section class="nav-neighbors">
+              <h2>Nearby in Nav</h2>
+              {% assign neighbor_count = 0 %}
+              {% for item in site.data.study_nav %}
+                {% if item.url == page.url and item.children %}
+                  {% for neighbor in item.children %}
+                    {% if neighbor_count < 5 %}
+                      {% assign neighbor_count = neighbor_count | plus: 1 %}
+                      <a href="{{ neighbor.url | relative_url }}">{{ neighbor.title }}</a>
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+                {% if item.children %}
+                  {% for child in item.children %}
+                    {% if child.url == page.url %}
+                      {% for neighbor in item.children %}
+                        {% if neighbor.url != page.url and neighbor_count < 5 %}
+                          {% assign neighbor_count = neighbor_count | plus: 1 %}
+                          <a href="{{ neighbor.url | relative_url }}">{{ neighbor.title }}</a>
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
+                    {% if child.children %}
+                      {% for grandchild in child.children %}
+                        {% if grandchild.url == page.url %}
+                          {% for neighbor in child.children %}
+                            {% if neighbor.url != page.url and neighbor_count < 5 %}
+                              {% assign neighbor_count = neighbor_count | plus: 1 %}
+                              <a href="{{ neighbor.url | relative_url }}">{{ neighbor.title }}</a>
+                            {% endif %}
+                          {% endfor %}
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+              {% if neighbor_count == 0 %}
+                <p>No nearby pages yet.</p>
+              {% endif %}
+            </section>
 
             <section>
               <h2>Study Mode</h2>
@@ -160,6 +258,16 @@
                 </select>
               </label>
 
+              <label class="study-toggle-option">
+                <input type="checkbox" id="study-weak-only">
+                Weak cards only
+              </label>
+
+              <label class="study-toggle-option">
+                <input type="checkbox" id="study-missed-only">
+                Missed cards only
+              </label>
+
               <div class="study-actions">
                 <button type="button" data-action="start-study">Start</button>
                 <button type="button" data-action="reset-study">Reset</button>
@@ -178,9 +286,10 @@
               </div>
             </div>
 
-            <article class="study-stage-card" id="study-stage-card" role="button" tabindex="0" aria-pressed="false">
-              <span id="study-card-label">Question</span>
-              <p id="study-card-text">Start a study session.</p>
+            <article class="study-stage-card" id="study-stage-card" role="button" tabindex="0" aria-pressed="false" aria-keyshortcuts="Enter Space ArrowLeft ArrowRight ArrowUp ArrowDown">
+              <span id="study-card-label">Start quiz</span>
+              <p id="study-card-text">Start selected cards</p>
+              <small id="study-card-hint">Click this card to begin.</small>
             </article>
 
             <div class="study-card-controls">

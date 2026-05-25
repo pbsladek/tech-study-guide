@@ -14,6 +14,8 @@ tags:
 
 Ceph is a distributed storage system that provides object, block, and file interfaces on top of RADOS, the Reliable Autonomic Distributed Object Store. The core idea is that clients and daemons cooperate through cluster maps instead of relying on one central storage controller for every IO.
 
+For concrete `ceph` and `rbd` command patterns, see [Ceph Storage Examples](/docs/ceph/practical-examples/).
+
 ## Architecture
 
 | Component | Role |
@@ -25,6 +27,16 @@ Ceph is a distributed storage system that provides object, block, and file inter
 | RGW | Provides S3-compatible and Swift-compatible object gateways. |
 | RBD | Provides block devices backed by RADOS objects. |
 | CephFS | Provides a POSIX-like shared filesystem backed by RADOS and MDS. |
+
+## Study Path
+
+| Topic | Focus |
+| --- | --- |
+| [RADOS, CRUSH, and Placement](rados-crush-placement/) | Objects, pools, placement groups, CRUSH rules, acting sets, PG autoscaling, and stuck placement troubleshooting. |
+| [Block, File, and Object Interfaces](block-file-object/) | RBD, CephFS, RGW, snapshots, mirroring, MDS behavior, object gateways, and Kubernetes storage mapping. |
+| [Operations and Recovery](operations-recovery/) | Health triage, OSD failure response, recovery and backfill, scrub repair, full ratios, and maintenance flags. |
+| [Performance and Capacity](performance-capacity/) | Capacity planning, BlueStore, OSD latency, network limits, benchmarks, and saturation debugging. |
+| [Rook-Ceph](rook-ceph/) | Kubernetes operator model, CRDs, CSI integration, toolbox workflows, upgrades, and troubleshooting. |
 
 ## RADOS, Pools, and Placement Groups
 

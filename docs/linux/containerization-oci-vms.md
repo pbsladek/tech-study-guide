@@ -91,6 +91,20 @@ The path from registry image to process usually looks like this:
 6. The runtime writes or derives an OCI runtime bundle: a root filesystem plus `config.json`.
 7. An OCI runtime such as `runc` or `crun` creates namespaces, joins cgroups, sets mounts, applies security policy, and `exec`s the configured command.
 
+```mermaid
+flowchart TB
+  Ref[Image reference: app:1.2.3] --> Resolve[Resolve tag to digest]
+  Resolve --> Manifest[Fetch OCI index or manifest]
+  Manifest --> Blobs[Download config and layer blobs]
+  Blobs --> Verify[Verify content digests]
+  Verify --> Unpack[Unpack layers into snapshotter storage]
+  Unpack --> Rootfs[Create overlayfs root filesystem]
+  Rootfs --> Bundle[Build OCI runtime bundle and config.json]
+  Bundle --> Runtime[runc / crun]
+  Runtime --> Kernel[clone / unshare / setns / cgroups / mounts / seccomp]
+  Kernel --> Exec[exec container process]
+```
+
 Useful inspection commands:
 
 ```bash
@@ -118,6 +132,23 @@ The Linux kernel does not know that an OCI image tag exists. Runtime software tr
 | Restrict syscalls | seccomp filters evaluated on syscall entry. |
 | Apply mandatory policy | SELinux, AppArmor, or another Linux Security Module. |
 | Isolate network view | Network namespaces, veth devices, routes, bridge ports, and netfilter state. |
+
+Security boundary layering:
+
+```mermaid
+flowchart TB
+  Process[Container process]
+  Process --> Creds[UID/GID, user namespace, no_new_privs]
+  Creds --> Caps[Capabilities: narrow privileged operations]
+  Caps --> Seccomp[seccomp: syscall allow/deny]
+  Seccomp --> LSM[AppArmor / SELinux labels and policy]
+  LSM --> Mounts[Mount namespace and readonly/bind mounts]
+  Mounts --> Cgroup[cgroup CPU, memory, IO, pids, devices]
+  Cgroup --> Net[Network namespace, veth, bridge, netfilter]
+  Net --> Kernel[Shared Linux kernel]
+```
+
+This layering is defense in depth, not a single wall. A process can be UID 0 inside a container but still lack `CAP_SYS_ADMIN`, be blocked by seccomp from a syscall, be denied by AppArmor or SELinux, see only a readonly mount tree, and be capped by cgroup controllers.
 
 That translation is why container debugging often leaves the container CLI quickly and moves into `/proc`, `/sys/fs/cgroup`, `findmnt`, `lsns`, `ip`, `bridge`, `nft`, and `ss`. Those tools show the kernel state that actually enforces the container boundary.
 
@@ -202,6 +233,18 @@ cgroups account for and limit resource use. They do not make a process believe i
 
 Most modern distributions use cgroup v2, a unified hierarchy under `/sys/fs/cgroup`. systemd, container runtimes, and Kubernetes all place processes into cgroup paths and write controller files.
 
+```mermaid
+flowchart TB
+  Root[/sys/fs/cgroup]
+  Root --> System[system.slice]
+  Root --> User[user.slice]
+  Root --> Kube[kubepods.slice]
+  Kube --> QoS[Guaranteed / Burstable / BestEffort]
+  QoS --> Pod[Pod cgroup]
+  Pod --> Container[container process cgroup]
+  Container --> Files[cpu.max, cpu.stat, memory.max, memory.high, memory.events]
+```
+
 | cgroup v2 File | Meaning |
 | --- | --- |
 | `cgroup.controllers` | Controllers available below this point in the hierarchy. |
@@ -213,6 +256,8 @@ Most modern distributions use cgroup v2, a unified hierarchy under `/sys/fs/cgro
 | `memory.events` | OOM, high, max, and pressure event counters. |
 | `pids.max` | Maximum number of processes or threads. |
 | `io.max` | Per-device I/O throttling limits. |
+| `memory.high` | Throttle/reclaim threshold before the hard limit; useful for pressure management. |
+| `memory.oom.group` | Controls whether the cgroup should be killed as a group on OOM. |
 
 Useful checks:
 
@@ -223,6 +268,7 @@ systemd-cgtop
 cat /sys/fs/cgroup/<path>/cpu.max
 cat /sys/fs/cgroup/<path>/cpu.stat
 cat /sys/fs/cgroup/<path>/memory.current
+cat /sys/fs/cgroup/<path>/memory.high
 cat /sys/fs/cgroup/<path>/memory.max
 cat /sys/fs/cgroup/<path>/memory.events
 cat /sys/fs/cgroup/<path>/pids.max
@@ -235,6 +281,80 @@ Common cgroup surprises:
 - `pids.max` counts threads too, so highly threaded applications can hit PID limits.
 - cgroup OOM kills are local to the cgroup and may happen while the host still has free memory.
 - systemd services and containers are both cgroup-managed, so host unit limits can stack with container limits.
+
+## Kubernetes Resource Mapping
+
+Kubernetes requests are scheduling signals. Limits become runtime enforcement through cgroups. That distinction is the source of many "node has free CPU/RAM but my Pod is slow or killed" incidents.
+
+| Kubernetes Setting | Linux Behavior |
+| --- | --- |
+| CPU request | Scheduler placement and relative CPU weight; not a hard guarantee under all contention. |
+| CPU limit | CFS quota in `cpu.max`, visible as throttling in `cpu.stat`. |
+| Memory request | Scheduler placement and QoS classification input. |
+| Memory limit | Hard cgroup memory limit, usually `memory.max`; hitting it can trigger cgroup OOM. |
+| Ephemeral storage limit | Kubelet accounting and eviction behavior, not the same as a cgroup memory limit. |
+| Pod QoS | `Guaranteed`, `Burstable`, or `BestEffort`, affecting eviction priority and cgroup placement. |
+
+Practical checks from a container:
+
+```bash
+cat /proc/self/cgroup
+cat /sys/fs/cgroup/cpu.max
+cat /sys/fs/cgroup/cpu.stat
+cat /sys/fs/cgroup/memory.current
+cat /sys/fs/cgroup/memory.max
+cat /sys/fs/cgroup/memory.high
+cat /sys/fs/cgroup/memory.events
+cat /proc/pressure/cpu
+cat /proc/pressure/memory
+```
+
+Interpreting the evidence:
+
+- `nr_throttled` and `throttled_usec` in `cpu.stat` rising means CPU limit throttling, even if the node has idle CPU at other times.
+- `memory.events` `high` rising means the cgroup crossed `memory.high` and reclaim/throttling pressure occurred.
+- `memory.events` `oom` or `oom_kill` rising means allocation failed at the cgroup boundary.
+- PSI shows time lost to CPU, memory, or IO pressure and is often more useful than a single utilization percentage.
+
+For Kubernetes incidents, compare Pod metrics with cgroup files, kubelet eviction events, and node pressure. A Java heap sized only from the memory limit can still OOM because native memory, thread stacks, direct buffers, page cache, tmpfs, and sidecars also count.
+
+## cgroup v2 Labs
+
+CPU throttling lab:
+
+```bash
+cat /sys/fs/cgroup/cpu.max
+cat /sys/fs/cgroup/cpu.stat
+yes > /dev/null &
+sleep 10
+cat /sys/fs/cgroup/cpu.stat
+```
+
+If `nr_throttled` and `throttled_usec` rise, the cgroup hit its CPU quota. The host can still show idle CPU if this cgroup is limited while other CPUs or time slices are not available to it.
+
+Memory pressure lab:
+
+```bash
+cat /sys/fs/cgroup/memory.current
+cat /sys/fs/cgroup/memory.high
+cat /sys/fs/cgroup/memory.max
+cat /sys/fs/cgroup/memory.events
+cat /proc/pressure/memory
+```
+
+Watch `memory.events` before and after a controlled allocation test. `high` indicates reclaim/throttling pressure. `max`, `oom`, or `oom_kill` indicate the hard boundary was reached.
+
+Kubernetes mapping check:
+
+```bash
+kubectl describe pod <pod> | grep -A5 -E 'Requests|Limits'
+kubectl exec <pod> -- cat /sys/fs/cgroup/cpu.max
+kubectl exec <pod> -- cat /sys/fs/cgroup/cpu.stat
+kubectl exec <pod> -- cat /sys/fs/cgroup/memory.max
+kubectl exec <pod> -- cat /sys/fs/cgroup/memory.events
+```
+
+This proves the runtime limit rather than relying only on the manifest.
 
 ## Namespaces and PID 1
 

@@ -49,6 +49,46 @@ Operational questions:
 - Does the plugin replace kube-proxy?
 - What MTU does it set for Pods and tunnels?
 
+Common CNI shapes:
+
+| CNI Shape | Typical Datapath | Strength | Common Debug Focus |
+| --- | --- | --- | --- |
+| Flannel-style overlay | VXLAN/host-gw routes, simple Pod networking. | Simple cluster Pod reachability. | MTU, node routes, overlay interface, lack of NetworkPolicy. |
+| Calico-style routed/BGP | Routed Pod CIDRs, optional IP-in-IP/VXLAN, policy. | Policy plus routed networks. | BGP sessions, Felix logs, route tables, policy drops. |
+| Cilium-style eBPF | eBPF programs and maps, optional kube-proxy replacement. | Service maps, policy, observability, L7 options. | Cilium agent status, BPF maps, Hubble/drop reasons. |
+| Cloud VPC CNI | Pod IPs from cloud VPC/subnet interfaces. | Native cloud routing and security integration. | IP exhaustion, ENI/NIC limits, subnet routes, security groups. |
+
+## Pod Packet Paths
+
+Same-node Pod traffic, cross-node Pod traffic, Service traffic, and external egress can use different paths.
+
+| Path | What To Inspect |
+| --- | --- |
+| Same-node Pod to Pod | Pod netns, veth pair, bridge or BPF datapath, NetworkPolicy. |
+| Cross-node Pod to Pod | Pod CIDR route, tunnel interface, BGP route, cloud route, MTU. |
+| Pod to Service | EndpointSlice, kube-proxy mode, eBPF service maps, conntrack. |
+| Pod to external | DNS answer, node SNAT, egress gateway, NAT gateway, firewall, private endpoint. |
+
+```bash
+kubectl exec <pod> -- ip addr
+kubectl exec <pod> -- ip route
+kubectl exec <pod> -- ping -c 2 <same-node-pod-ip>
+kubectl exec <pod> -- ping -c 2 <cross-node-pod-ip>
+kubectl exec <pod> -- curl -v http://<service>.<namespace>.svc.cluster.local:<port>
+```
+
+Capture comparison for same-node versus cross-node:
+
+```bash
+kubectl get pod -o wide -l app=client
+kubectl get pod -o wide -l app=server
+kubectl exec <client-pod> -- curl -v http://<same-node-pod-ip>:8080
+kubectl exec <client-pod> -- curl -v http://<cross-node-pod-ip>:8080
+tcpdump -nn -i any host <cross-node-pod-ip>
+```
+
+If same-node works and cross-node fails, stop debugging the application listener. Focus on node routes, overlay encapsulation, cloud security groups, tunnel MTU, BGP routes, or CNI node agents.
+
 ## MTU, Encapsulation, and Node Boundaries
 
 Overlays add headers. If Pod MTU does not account for tunnel overhead, large requests can fail while small requests pass. Kubernetes incidents involving TLS, DNSSEC, gRPC, image pulls, or large HTTP responses can be MTU incidents.
@@ -71,6 +111,18 @@ Operational checks:
 - confirm whether app egress and DNS egress use the same gateway or policy,
 - watch NAT gateway metrics when `ndots` or retry-heavy clients multiply DNS queries.
 
+## Hairpin and SNAT Checks
+
+Hairpin traffic happens when a workload reaches a service through an address that loops back through a load balancer or NAT device. It often appears after public DNS is reused inside the cluster.
+
+```bash
+kubectl exec <pod> -- getent hosts app.example.com
+kubectl exec <pod> -- ip route get <resolved-ip>
+kubectl exec <pod> -- curl -v https://app.example.com/
+```
+
+If the name resolves to a public load balancer for in-cluster clients, prefer split-horizon DNS, a ClusterIP Service, a private endpoint, or explicit egress-gateway design. Otherwise the return path, source IP, mTLS identity, and firewall policy may differ from the intended internal path.
+
 ## Troubleshooting Flow
 
 1. Compare same-node and cross-node Pod-to-Pod traffic.
@@ -89,6 +141,7 @@ Operational checks:
   {% include study-card.html question="Why compare same-node and cross-node Pod traffic?" answer="It separates local Pod networking from routing, encapsulation, cloud, and node-to-node datapath problems." %}
   {% include study-card.html question="Why does Pod MTU matter?" answer="Overlay or tunnel overhead can black-hole large packets if the Pod MTU is too high for the real path." %}
   {% include study-card.html question="Why compare Pod DNS answers with egress routing?" answer="The DNS answer determines whether traffic stays in-cluster, uses a private endpoint, or exits through NAT." %}
+  {% include study-card.html question="Why can Pod-to-Service fail while direct Pod IP works?" answer="The workload listener is reachable, but the Service datapath, EndpointSlice state, kube-proxy replacement, or conntrack path may be broken." %}
 </div>
 
 ## References

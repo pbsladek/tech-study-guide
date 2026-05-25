@@ -13,6 +13,8 @@ tags:
 
 PostgreSQL is a process-based relational database. It is durable because changes are logged before data pages are relied on. It is concurrent because readers and writers usually avoid blocking each other through MVCC. It is fast when the planner has good statistics and the physical design matches the query workload.
 
+For concrete PostgreSQL query-plan, index, transaction, and operational inspection examples, see [Database and Search Examples](/docs/databases/practical-examples/).
+
 ## Architecture
 
 Important processes and memory areas:
@@ -35,6 +37,7 @@ PostgreSQL stores data in pages. Queries read pages into shared buffers. Changes
 | Topic | Why It Matters |
 | --- | --- |
 | [PostgreSQL Operations, HA, Replication, and Recovery](operations-ha/) | Covers managed HA, failover, physical and logical replication, sharding, base backups, PITR, WAL retention, high CPU, high RAM, and incident checks. |
+| [PostgreSQL Zero-Downtime Upgrades on Kubernetes](zero-downtime-upgrades/) | Covers minor and major upgrade strategies with CloudNativePG, logical replication, PgBouncer draining, `pg_upgrade`, rollback, and Kubernetes guardrails. |
 | [PgBouncer](pgbouncer/) | Explains connection pooling, transaction/session/statement pooling, sizing, HA placement, failover behavior, admin commands, prepared statement caveats, and failure modes. |
 | [CloudNativePG](cloudnativepg/) | Covers running PostgreSQL in Kubernetes with operator-managed clusters, services, failover, backups, and restore cautions. |
 
@@ -50,6 +53,26 @@ Operational implications:
 - Indexes can also accumulate dead entries.
 - Sequence increments are visible immediately and are not rolled back like ordinary table changes.
 
+### MVCC Snapshot Timeline
+
+```mermaid
+sequenceDiagram
+  participant T1 as Transaction 1
+  participant Row as Row versions
+  participant T2 as Transaction 2
+  participant Vacuum
+
+  T1->>Row: Starts and sees version v1
+  T2->>Row: UPDATE creates version v2, marks v1 old
+  T2->>Row: COMMIT
+  T1->>Row: Still sees v1 in its snapshot
+  Vacuum->>Row: Cannot remove v1 while T1 can see it
+  T1->>Row: COMMIT
+  Vacuum->>Row: Later removes dead version v1
+```
+
+This is why a single idle transaction can create table and index bloat on a busy table. The blocker may be a read-only session, a forgotten migration transaction, a replica query, or an application connection left `idle in transaction`.
+
 ## Isolation Levels
 
 PostgreSQL accepts the standard isolation names, but internally implements three distinct behaviors because `Read Uncommitted` behaves like `Read Committed`.
@@ -61,6 +84,17 @@ PostgreSQL accepts the standard isolation names, but internally implements three
 | Serializable | PostgreSQL uses Serializable Snapshot Isolation to prevent anomalies by aborting unsafe concurrent patterns. |
 
 If a transaction in Serializable fails with a serialization error, retry the transaction. That is part of the contract.
+
+Isolation examples:
+
+| Pattern | Read Committed | Repeatable Read | Serializable |
+| --- | --- | --- | --- |
+| Same SELECT repeated after another commit | May see new committed rows. | Sees the original transaction snapshot. | Sees a serializable snapshot or aborts unsafe pattern. |
+| Two transactions update same row | One waits, then rechecks row. | Conflict handling can abort one transaction. | Unsafe dependency can abort one transaction. |
+| Write skew across multiple rows | Possible unless constrained or locked deliberately. | Snapshot can still allow dangerous write skew. | PostgreSQL can abort with serialization failure. |
+| App retry requirement | Usually statement-level errors only. | Retry transaction on serialization-style conflicts. | Retry entire transaction on SQLSTATE `40001`. |
+
+Operational rule: isolation does not replace constraints. Use unique constraints, foreign keys, exclusion constraints, `SELECT ... FOR UPDATE`, advisory locks, or serializable retries when correctness depends on cross-row invariants.
 
 ## WAL
 
@@ -113,6 +147,18 @@ Index tradeoffs:
 - Partial indexes are powerful when predicates match common query filters.
 - Expression indexes only help when queries use matching expressions.
 
+Index design examples:
+
+| Query Shape | Useful Index Pattern | Trap |
+| --- | --- | --- |
+| `WHERE tenant_id = ? AND created_at >= ? ORDER BY created_at DESC` | `(tenant_id, created_at DESC)` | Reversing column order may not filter by tenant efficiently. |
+| `WHERE deleted_at IS NULL AND email = ?` | Partial index on `(email) WHERE deleted_at IS NULL` | Query predicate must match the partial-index predicate. |
+| `WHERE lower(email) = lower(?)` | Expression index on `lower(email)` | Plain index on `email` will not help that expression. |
+| JSONB containment | GIN index on JSONB column or expression. | GIN adds write cost and may not help every JSON operator. |
+| Large append-only time-series table | BRIN on timestamp plus partitioning where appropriate. | BRIN is approximate and depends on physical locality. |
+
+Before adding an index in production, check whether the query is frequent, whether it already has a better plan with fresh statistics, and whether the write overhead is acceptable. Use `CREATE INDEX CONCURRENTLY` for large live tables, and remember it can fail and leave an invalid index that must be cleaned up.
+
 ## Vacuum and Autovacuum
 
 Vacuum is routine maintenance, not an emergency-only tool. It:
@@ -162,7 +208,7 @@ PostgreSQL partitioning is not the same as sharding. Partitioning splits one log
 - Alert on replication lag and inactive slots.
 - Keep statistics fresh.
 - Test major upgrades separately; physical replication does not cross arbitrary major versions as an upgrade plan.
-- For deeper runbooks, see [PostgreSQL Operations, HA, Replication, and Recovery](operations-ha/) and [PgBouncer](pgbouncer/).
+- For deeper runbooks, see [PostgreSQL Operations, HA, Replication, and Recovery](operations-ha/), [PostgreSQL Zero-Downtime Upgrades on Kubernetes](zero-downtime-upgrades/), and [PgBouncer](pgbouncer/).
 
 ## CloudNativePG
 

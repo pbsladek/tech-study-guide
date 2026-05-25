@@ -1,0 +1,75 @@
+- id: kubernetes-dns-outage
+  title: Kubernetes DNS Outage
+  topic: Kubernetes
+  url: /docs/kubernetes/dns-coredns/
+  summary: Pods intermittently fail name resolution while node-level DNS still works.
+  symptoms:
+    - "`nslookup` inside Pods times out for ClusterIP Services."
+    - CoreDNS Pods are running but query latency spikes.
+    - Node lookups through the host resolver succeed.
+  evidence:
+    - "Compare `/etc/resolv.conf` inside a Pod with the node resolver."
+    - Check CoreDNS logs, metrics, endpoints, and EndpointSlice watch errors.
+    - "Run `dig +search +showsearch` to expose `ndots` expansion."
+  checks:
+    - "kubectl -n kube-system logs deploy/coredns --tail=100"
+    - "kubectl -n kube-system get endpointslice,endpoints,svc -l k8s-app=kube-dns"
+    - "kubectl exec deploy/debug -- dig kubernetes.default.svc.cluster.local"
+  answer: Prove whether the failure is stub resolver search expansion, CoreDNS health, upstream recursion, NetworkPolicy, or API watch state before changing the Corefile.
+
+- id: postgres-failover-pooling
+  title: PostgreSQL Failover and Pooling
+  topic: Databases
+  url: /docs/databases/postgres/operations-ha/
+  summary: A failover completes, but application errors continue through stale pooled connections.
+  symptoms:
+    - Application logs show read-only transaction or connection reset errors.
+    - PgBouncer pools point at the old primary.
+    - Replication lag is low, but write traffic still fails.
+  evidence:
+    - "Compare `pg_is_in_recovery()` across endpoints."
+    - "Inspect PgBouncer `SHOW POOLS` and `SHOW SERVERS`."
+    - Check application DNS TTL and connection retry behavior.
+  checks:
+    - "psql -c \"select pg_is_in_recovery(), now() - pg_last_xact_replay_timestamp()\""
+    - "psql -p 6432 pgbouncer -c \"show pools\""
+    - "psql -p 6432 pgbouncer -c \"reconnect\""
+  answer: Treat database promotion, pool reconnection, DNS/service routing, and application retry budgets as one cutover sequence.
+
+- id: linux-boot-recovery
+  title: Linux Boot Recovery
+  topic: Linux
+  url: /docs/linux/boot-userspace/
+  summary: A host reaches emergency mode after a package or filesystem change.
+  symptoms:
+    - Console shows failed mounts or initramfs device discovery errors.
+    - "`systemd` drops to emergency target."
+    - Remote SSH never starts.
+  evidence:
+    - "Read `journalctl -xb` from the failed boot."
+    - "Compare `/etc/fstab` UUIDs with `blkid`."
+    - Check initramfs contents and kernel command line.
+  checks:
+    - "journalctl -xb -p warning"
+    - "blkid"
+    - "systemctl --failed"
+  answer: Restore boot by proving the failing unit or mount, disabling the bad dependency, rebuilding initramfs when needed, and keeping the recovery shell read/write only for the minimum repair.
+
+- id: vllm-inference-latency
+  title: vLLM Inference Latency Spike
+  topic: Machine Learning
+  url: /docs/ml/serving-inference-vllm/
+  summary: Token latency rises after traffic mix changes even though GPU utilization looks acceptable.
+  symptoms:
+    - Time to first token is stable, but inter-token latency rises.
+    - Queue depth grows during long-context requests.
+    - KV-cache pressure increases before errors appear.
+  evidence:
+    - Compare prompt length, output length, and batch shape histograms.
+    - Track KV-cache utilization, prefill/decode split, and scheduler queue time.
+    - Check whether speculative decoding or tensor parallel settings changed.
+  checks:
+    - "nvidia-smi dmon"
+    - "curl -sS http://localhost:8000/metrics | grep vllm"
+    - "kubectl top pod -l app=vllm"
+  answer: Separate queueing, prefill saturation, decode throughput, KV-cache eviction, and model parallelism before scaling replicas or changing batch limits.

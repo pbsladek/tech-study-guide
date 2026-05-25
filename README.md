@@ -1,8 +1,8 @@
 # Tech Study Guide
 
-A searchable Jekyll study guide for infrastructure, networking, databases, Linux, Kubernetes, DNS, identity, and related engineering topics.
+A searchable personal study guide for infrastructure, networking, databases, Linux, Kubernetes, DNS, identity, and related engineering topics.
 
-The site uses a project-local theme called StudyGraph. It includes full-text search, tags, expandable navigation, light/dark mode, reader mode, live font controls, syntax highlighting, study cards, and a generated knowledge graph.
+The site is tuned for my own study workflow. It includes full-text search, tags, expandable navigation, light/dark mode, reader mode, live font controls, syntax highlighting, study cards, study paths, scenario labs, and a generated knowledge graph.
 
 ## Requirements
 
@@ -126,7 +126,7 @@ make test-all
 └── package.json
 ```
 
-## Adding Study Notes
+## Maintaining Study Notes
 
 Create Markdown files under `docs/`.
 
@@ -144,7 +144,7 @@ tags:
 ---
 ```
 
-Add the page to [_data/study_nav.yml](_data/study_nav.yml) when it should appear in the left navigation. See [docs/template.md](docs/template.md) for a reusable note structure.
+Add the page to [_data/study_nav.yml](_data/study_nav.yml) when it should appear in the left navigation.
 
 Study cards can be added to any page:
 
@@ -154,7 +154,7 @@ Study cards can be added to any page:
 
 For broad topic decks, add cards to [_data/study_decks.yml](_data/study_decks.yml).
 
-## Testing New Content
+## Testing Content Changes
 
 For substantive content changes, update tests so the important terms cannot disappear silently:
 
@@ -173,7 +173,7 @@ make test-all
 
 This repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`.
 
-After pushing to GitHub:
+When publishing my copy:
 
 1. Open the repository settings.
 2. Go to **Pages**.

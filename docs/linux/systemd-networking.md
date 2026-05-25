@@ -74,6 +74,57 @@ journalctl -u systemd-networkd -b
 
 On Ubuntu, prefer editing Netplan when Netplan owns the source configuration. Direct networkd files under `/etc/systemd/network` can conflict with or override generated runtime files, so confirm the active renderer and generated state before mixing layers.
 
+## VLAN and Bridge Example
+
+A bridge with a VLAN subinterface is common for lab hosts, VM hosts, and appliances. The important split is `.netdev` creates virtual devices, while `.network` configures addresses and attachment.
+
+```ini
+# /etc/systemd/network/20-br0.netdev
+[NetDev]
+Name=br0
+Kind=bridge
+```
+
+```ini
+# /etc/systemd/network/21-vlan100.netdev
+[NetDev]
+Name=vlan100
+Kind=vlan
+
+[VLAN]
+Id=100
+```
+
+```ini
+# /etc/systemd/network/30-uplink.network
+[Match]
+Name=enp1s0
+
+[Network]
+Bridge=br0
+VLAN=vlan100
+```
+
+```ini
+# /etc/systemd/network/40-vlan100.network
+[Match]
+Name=vlan100
+
+[Network]
+Address=192.0.2.20/24
+Gateway=192.0.2.1
+DNS=192.0.2.53
+```
+
+After applying, verify both networkd state and kernel state:
+
+```bash
+networkctl status br0 vlan100 enp1s0
+ip -d link show vlan100
+bridge link
+ip route get 192.0.2.1
+```
+
 ## network.target vs network-online.target
 
 `network.target` and `network-online.target` are not the same thing.

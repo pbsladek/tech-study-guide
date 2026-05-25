@@ -3,7 +3,7 @@ layout: default
 ---
 
 <header class="page-header">
-  <p class="eyebrow">{{ page.category | default: site.theme_name }}</p>
+  <p class="eyebrow">{{ page.category | default: site.title }}</p>
   <h1>{{ page.title | default: site.title }}</h1>
   {% if page.summary %}
     <p class="page-summary">{{ page.summary }}</p>

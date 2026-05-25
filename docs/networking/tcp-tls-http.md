@@ -94,8 +94,8 @@ Each layer consumes time. A client timeout must cover DNS, TCP connect, TLS hand
 
 ## Deeper Study
 
-- [TCP and Sockets](tcp-sockets/) expands on listen queues, socket buffers, TIME_WAIT, ephemeral ports, and Linux TCP observability.
-- [Certificates and HTTPS](certificates-https/) expands on X.509 chains, SAN validation, SNI, CA stores, Ubuntu trust-store operations, and certificate troubleshooting.
+- [TCP and Sockets](../tcp-sockets/) expands on listen queues, socket buffers, TIME_WAIT, ephemeral ports, and Linux TCP observability.
+- [Certificates and HTTPS](../certificates-https/) expands on X.509 chains, SAN validation, SNI, CA stores, Ubuntu trust-store operations, and certificate troubleshooting.
 
 ## Study Cards
 

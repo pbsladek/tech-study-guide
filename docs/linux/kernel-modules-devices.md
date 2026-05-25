@@ -77,6 +77,44 @@ The kernel publishes device metadata including modalias strings. udev can match 
 
 Device nodes have major and minor numbers. The major number selects a driver or device class; the minor number identifies an instance or subdevice. Modern systems mostly let devtmpfs and udev create nodes automatically, but understanding major/minor numbers helps when a stale node exists or a container exposes a device incorrectly.
 
+### udev Rule Examples and Rename Failures
+
+Use udev for stable names, permissions, tags, and symlinks. Prefer stable symlinks over renaming kernel device nodes; kernel names such as `sdb`, `eth0`, and `video0` can change with probe order.
+
+Example storage symlink rule:
+
+```text
+# /etc/udev/rules.d/60-app-disk.rules
+SUBSYSTEM=="block", ENV{ID_SERIAL}=="Samsung_SSD_1234", SYMLINK+="disk/app-data", OWNER="postgres", GROUP="postgres", MODE="0660"
+```
+
+Example USB serial adapter rule:
+
+```text
+# /etc/udev/rules.d/70-console-cable.rules
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="tty/console-lab", GROUP="dialout", MODE="0660"
+```
+
+Reload and test without rebooting:
+
+```text
+udevadm control --reload
+udevadm trigger --subsystem-match=block
+udevadm test /sys/class/block/sdb 2>&1 | less
+udevadm info --query=property --name=/dev/sdb
+```
+
+Common device rename failure cases:
+
+| Failure | Why It Happens | Safer Pattern |
+| --- | --- | --- |
+| Rule matches `KERNEL=="sdb"` | Kernel enumeration order changes after reboot, hotplug, or driver timing. | Match serial, WWN, filesystem UUID, or by-id properties. |
+| Network interface rename races | Multiple `.link` files, predictable names, or driver-created names conflict. | Use systemd `.link` policy with stable MAC/path matches and inspect `udevadm test-builtin net_setup_link`. |
+| Rule depends on parent attribute from wrong level | `ATTR{}` matches current device; `ATTRS{}` walks parents. | Check `udevadm info -a -n <device>` and match the correct level. |
+| Rule is not in initramfs | Early boot storage, crypto, or network device needs the rule before root mounts. | Rebuild initramfs after changing early-device rules. |
+| Symlink points to old device | Device was replaced, cloned, or serial/UUID duplicated. | Audit `/dev/disk/by-*`, `blkid`, and physical serials after replacement. |
+| Container sees host node but not device access | Device cgroup or permissions deny opens even when `/dev` entry exists. | Check runtime device allow rules, groups, and cgroup device policy. |
+
 ## initramfs and Early Devices
 
 The real root filesystem may require modules before `/usr` or the normal root is available: storage HBA, NVMe, USB storage, filesystem, LVM, md RAID, dm-crypt, or network boot support. Those modules, firmware files, udev rules, and helper binaries must exist in initramfs if they are needed before root is mounted.

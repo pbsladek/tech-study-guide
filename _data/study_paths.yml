@@ -1,0 +1,84 @@
+- id: linux-foundations
+  title: Linux Foundations to Operations
+  summary: Build from boot, processes, filesystems, users, networking, and observability into practical host triage.
+  steps:
+    - title: Boot and Userspace
+      url: /docs/linux/boot-userspace/
+    - title: Processes and Threads
+      url: /docs/linux/processes-threads/
+    - title: Filesystems and IO
+      url: /docs/linux/filesystems-io/
+    - title: Network Stack
+      url: /docs/linux/network-stack/
+    - title: Logs and Observability
+      url: /docs/linux/logs-observability/
+    - title: Performance Triage Runbooks
+      url: /docs/linux/performance-triage-runbooks/
+
+- id: kubernetes-networking
+  title: Kubernetes Networking Incident Path
+  summary: Follow a request through Pod networking, Services, DNS, policy, ingress, and packet capture.
+  steps:
+    - title: Kubernetes Networking
+      url: /docs/kubernetes/networking/
+    - title: Pod Networking and CNI
+      url: /docs/kubernetes/pod-networking-cni/
+    - title: Services and EndpointSlices
+      url: /docs/kubernetes/services-endpointslices/
+    - title: Kubernetes DNS and CoreDNS
+      url: /docs/kubernetes/dns-coredns/
+    - title: NetworkPolicy
+      url: /docs/kubernetes/network-policy/
+    - title: Packet Capture and Analysis
+      url: /docs/networking/packet-capture-analysis/
+
+- id: postgres-reliability
+  title: PostgreSQL Reliability and Zero Downtime
+  summary: Connect PostgreSQL HA, PgBouncer, CloudNativePG, backups, and upgrade mechanics into one operational path.
+  steps:
+    - title: PostgreSQL
+      url: /docs/databases/postgres/
+    - title: PostgreSQL Operations and HA
+      url: /docs/databases/postgres/operations-ha/
+    - title: PgBouncer
+      url: /docs/databases/postgres/pgbouncer/
+    - title: CloudNativePG
+      url: /docs/databases/postgres/cloudnativepg/
+    - title: PostgreSQL Zero-Downtime Upgrades
+      url: /docs/databases/postgres/zero-downtime-upgrades/
+
+- id: production-ml
+  title: Production ML from 101 to Advanced Systems
+  summary: Move from ML basics through transformers, RAG, agents, serving, observability, evaluation, and security.
+  steps:
+    - title: ML 101 Foundations
+      url: /docs/ml/ml-101-foundations/
+    - title: Transformer Internals
+      url: /docs/ml/transformers-internals/
+    - title: Retrieval-Augmented Generation
+      url: /docs/ml/rag/
+    - title: Agents and Tool Use
+      url: /docs/ml/agents/
+    - title: Serving, Inference, and vLLM
+      url: /docs/ml/serving-inference-vllm/
+    - title: Evaluation and CI/CD
+      url: /docs/ml/evaluation-ci-cd/
+    - title: ML Security Threats
+      url: /docs/ml/ml-security-threats/
+
+- id: incident-response
+  title: Cross-Layer Incident Response
+  summary: Practice request-path debugging across DNS, proxies, load balancers, Kubernetes, Linux, and databases.
+  steps:
+    - title: Incident Entry Points
+      url: /docs/troubleshooting/incident-entrypoints/
+    - title: Request Path
+      url: /docs/networking/request-path/
+    - title: Cross-Layer Incident Runbooks
+      url: /docs/networking/cross-layer-incident-runbooks/
+    - title: Resilience, Timeouts, and Draining
+      url: /docs/networking/resilience-timeouts-draining/
+    - title: Load Balancers and Proxies
+      url: /docs/networking/load-balancers-proxies/
+    - title: Kubernetes Troubleshooting
+      url: /docs/kubernetes/troubleshooting/

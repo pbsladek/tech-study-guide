@@ -71,6 +71,43 @@ TLS, SNI, and HTTP Host must align. A request can reach the right IP but fail be
 - TLS terminates at a different layer than expected,
 - backend protocol expects HTTP while the proxy speaks HTTPS, or the reverse.
 
+Common TLS termination patterns:
+
+```mermaid
+flowchart LR
+  Client -->|TLS terminates| EdgeLB[Cloud LB / edge proxy]
+  EdgeLB -->|HTTP| Ingress[Ingress controller]
+  Ingress -->|HTTP| Service[Service and Pods]
+```
+
+```mermaid
+flowchart LR
+  Client -->|TLS passthrough| Ingress[Ingress / Gateway listener]
+  Ingress -->|TLS with SNI routing| Service[Service]
+  Service --> Pod[Pod terminates TLS]
+```
+
+```mermaid
+flowchart LR
+  Client -->|TLS| Gateway[Gateway terminates]
+  Gateway -->|mTLS or HTTPS upstream| Service[Backend Service]
+  Service --> Pod[Application Pod]
+```
+
+If TLS fails before an HTTP route is selected, inspect SNI, certificate chain, listener mode, and whether the load balancer or gateway is the actual TLS endpoint.
+
+## Load Balancer Health Check Mismatches
+
+External load balancers frequently make a different request than real clients. A shallow health check can pass while user traffic fails, or fail while the backend is healthy.
+
+| Mismatch | Symptom | Check |
+| --- | --- | --- |
+| Health check uses node port but traffic uses proxy Pod | Nodes look healthy while proxy routes are broken. | Controller docs, LB target group, node security groups. |
+| Health check path is `/healthz` but app route needs auth or dependencies | LB passes, users see 5xx. | Compare health path with real route and dependency readiness. |
+| `externalTrafficPolicy: Local` with no local endpoints | Some nodes fail health checks or black-hole traffic. | Endpoint placement per node, Service traffic policy. |
+| Health check sends HTTP to HTTPS listener | Backend marked unhealthy. | LB protocol, Gateway listener protocol, backend protocol annotation. |
+| Source IP allowlist misses health checker CIDRs | LB considers all targets down. | Cloud health checker ranges, firewall/security group logs. |
+
 ## Troubleshooting Flow
 
 1. Resolve the public name and confirm the load balancer address.

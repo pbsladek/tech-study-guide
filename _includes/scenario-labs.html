@@ -1,0 +1,41 @@
+{% assign rendered_labs = 0 %}
+<div class="lab-grid">
+  {% for lab in site.data.scenario_labs %}
+    {% if include.url == nil or include.url == lab.url %}
+      {% assign rendered_labs = rendered_labs | plus: 1 %}
+      <section class="lab-card" data-lab-card="{{ lab.id }}">
+        <div class="lab-card-header">
+          <span>{{ lab.topic }}</span>
+          <h2>{{ lab.title }}</h2>
+          <p>{{ lab.summary }}</p>
+        </div>
+        <div class="lab-columns">
+          <div>
+            <h3>Symptoms</h3>
+            <ul>
+              {% for symptom in lab.symptoms %}
+                <li>{{ symptom | markdownify | remove: '<p>' | remove: '</p>' }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div>
+            <h3>Evidence</h3>
+            <ul>
+              {% for item in lab.evidence %}
+                <li>{{ item | markdownify | remove: '<p>' | remove: '</p>' }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        <h3>Checks</h3>
+        <ul class="lab-checks">
+          {% for check in lab.checks %}
+            <li><code>{{ check }}</code></li>
+          {% endfor %}
+        </ul>
+        <p class="lab-answer"><strong>Answer:</strong> {{ lab.answer }}</p>
+        <a href="{{ lab.url | relative_url }}">Open related topic</a>
+      </section>
+    {% endif %}
+  {% endfor %}
+</div>

@@ -52,6 +52,29 @@ Operational rules:
 - replace suspect devices before redundancy is exhausted,
 - correlate kernel errors with physical slot, serial, or by-id path.
 
+### SMART and NVMe Interpretation Gallery
+
+| Evidence | Why It Matters | Action |
+| --- | --- | --- |
+| SMART `Reallocated_Sector_Ct` or `Current_Pending_Sector` rising | Media is remapping or waiting to remap unreadable sectors. | Replace the disk before RAID or replicas are exhausted. |
+| SMART `UDMA_CRC_Error_Count` rising | Often cable, backplane, controller, or signal integrity rather than platter/media failure. | Reseat or replace cable/backplane path and correlate with kernel link resets. |
+| SMART `Power_On_Hours` high but no errors | Age alone is not a failure, but it changes risk and maintenance planning. | Watch trend data and replace by fleet policy. |
+| SMART overall-health `PASSED` with kernel I/O errors | SMART summary is too coarse; the OS is already seeing failures. | Trust kernel errors and detailed attributes over the summary. |
+| NVMe `critical_warning` nonzero | Controller reports a critical health condition such as spare, temperature, reliability, or read-only risk. | Treat as urgent and inspect detailed log. |
+| NVMe `percentage_used` over 100 | Device has exceeded vendor endurance estimate; not always immediate failure. | Plan replacement and reduce write amplification. |
+| NVMe media/data integrity errors increasing | Controller is reporting unrecovered data integrity issues. | Replace or evacuate; verify application and filesystem consistency. |
+| NVMe unsafe shutdowns rising | Power loss or reset path may be unhealthy and can explain journal recovery. | Check power, firmware, host resets, and platform events. |
+
+Useful captures:
+
+```text
+smartctl -a /dev/sdX
+smartctl -x /dev/sdX
+nvme smart-log /dev/nvme0
+nvme error-log /dev/nvme0
+journalctl -k -g 'I/O error|reset|timeout|nvme|scsi|blk_update_request'
+```
+
 ## Kernel I/O Errors
 
 Kernel logs are often the first place storage failure appears. Look for I/O errors, resets, timeouts, medium errors, filesystem aborts, ext4 or XFS warnings, NVMe controller resets, SCSI sense data, and read-only remounts.

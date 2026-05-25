@@ -59,6 +59,33 @@ IPsec protects IP traffic with security policy and security associations.
 
 IKE normally uses UDP 500. With NAT traversal, peers use UDP 4500 and ESP is encapsulated so NAT devices can track the flow.
 
+### IKEv2 and Child SA Timeline
+
+```mermaid
+sequenceDiagram
+  participant A as Peer A
+  participant B as Peer B
+
+  A->>B: IKE_SA_INIT proposals, DH, nonce
+  B-->>A: Chosen proposal, DH, nonce, NAT detection
+  A->>B: IKE_AUTH identity, auth, traffic selectors
+  B-->>A: IKE_AUTH identity, auth, Child SA accepted/narrowed
+  A->>B: ESP or UDP 4500 encrypted data
+  B-->>A: ESP or UDP 4500 encrypted data
+  A->>B: CREATE_CHILD_SA rekey before lifetime expiry
+```
+
+Negotiation failure map:
+
+| Failure Point | Typical Evidence | Fix Area |
+| --- | --- | --- |
+| `IKE_SA_INIT` no response | UDP 500/4500 blocked, peer IP wrong, NAT path broken. | Outer firewall, routing, peer address. |
+| Proposal mismatch | Logs mention no proposal chosen. | Encryption, integrity, PRF, DH group, IKE version. |
+| Authentication fails | ID, PSK, certificate, CA, EKU, or clock mismatch. | Identity and trust chain. |
+| Child SA narrows unexpectedly | Traffic selectors differ between peers. | Local/remote prefixes and policy definitions. |
+| SAs up but no data counters | Route/policy does not select tunnel or inner firewall blocks traffic. | XFRM policy, routes, NAT order, inner ACLs. |
+| Data works until rekey | Lifetime, PFS, replay window, or rekey proposal mismatch. | Rekey timers and Child SA proposals. |
+
 ## Tunnel Mode and Transport Mode
 
 In tunnel mode, IPsec encapsulates the original IP packet and adds a new outer IP header. This is the normal mode for site-to-site and remote-access VPNs because the inner addresses can be private networks.

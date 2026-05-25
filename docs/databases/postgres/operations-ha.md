@@ -277,6 +277,20 @@ Start with active sessions and wait events before tuning. If the server is CPU-b
 
 Lock waits can look like CPU, memory, or application latency incidents. Use `pg_stat_activity`, `pg_locks`, and `pg_blocking_pids()` to separate "doing work" from "waiting for another transaction."
 
+Lock wait evidence path:
+
+```mermaid
+flowchart LR
+  Symptom[Slow query or request timeout] --> Activity[pg_stat_activity wait_event]
+  Activity --> Blocking[pg_blocking_pids]
+  Blocking --> Locks[pg_locks relation and mode]
+  Locks --> Tx[blocking transaction age and query]
+  Tx --> Decision{Safe to cancel or terminate?}
+  Decision -->|Cancel statement| Cancel[pg_cancel_backend]
+  Decision -->|Terminate session| Terminate[pg_terminate_backend]
+  Decision -->|Not safe| App[Coordinate app owner and preserve evidence]
+```
+
 ```sql
 SELECT blocked.pid AS blocked_pid,
        blocked.query AS blocked_query,
@@ -295,6 +309,16 @@ Important guardrails:
 - `transaction_timeout` limits total transaction duration, but be careful with middleware and connection poolers.
 
 Do not set every timeout globally without testing. Poolers, migration tools, maintenance jobs, and long analytical queries may need different limits.
+
+Lock triage guardrails:
+
+| Action | Use When | Risk |
+| --- | --- | --- |
+| `pg_cancel_backend(pid)` | A statement is blocking but the session can stay connected. | Transaction may remain open depending on client behavior. |
+| `pg_terminate_backend(pid)` | Session is abandoned, idle in transaction, or emergency requires rollback. | Rolls back the transaction and can surprise applications. |
+| Lower `lock_timeout` | Migrations or online DDL should fail instead of waiting forever. | Too low can break legitimate workload spikes. |
+| Add `idle_in_transaction_session_timeout` | Apps leave transactions open after work. | Poorly written apps may see disconnects until fixed. |
+| Add index or constraint concurrently | Need safer online schema change. | Still takes locks at phases; monitor and rehearse. |
 
 ## High RAM
 

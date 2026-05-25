@@ -92,6 +92,23 @@ Common patterns:
 
 Always test DNS from the same network path as the client. A laptop using public DNS, a Pod using CoreDNS, and a VM using a corporate resolver may all receive different answers for the same name.
 
+Split-horizon ownership example:
+
+| Zone | ExternalDNS Instance | Filters | Example Answer |
+| --- | --- | --- | --- |
+| Public `example.com` | `external-dns-public` | `--domain-filter=example.com`, public zone ID, owner `cluster-a-public` | `app.example.com -> public-lb.example.net` |
+| Private `example.com` | `external-dns-private` | private zone ID, owner `cluster-a-private`, internal source annotations | `app.example.com -> internal-lb.example.net` |
+
+The same hostname can be intentionally present in both zones, but TXT ownership records must not collide. Keep owner IDs and zone filters explicit so the public controller cannot delete the private answer, and the private controller cannot publish internal targets publicly.
+
+```text
+dig app.example.com
+dig @<public-authoritative-ns> app.example.com A
+dig @<private-resolver> app.example.com A
+dig @<public-authoritative-ns> app.example.com TXT
+dig @<private-resolver> app.example.com TXT
+```
+
 ## DNS and Kubernetes Timing
 
 ExternalDNS depends on other controllers. If a `LoadBalancer` Service has no external address yet, ExternalDNS may have no usable target. If an Ingress controller rejects an Ingress, the hostname can be syntactically present but still not routable.

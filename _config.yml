@@ -16,8 +16,6 @@ kramdown:
   input: GFM
   syntax_highlighter: rouge
 
-theme_name: StudyGraph
-
 github:
   username: pbsladek
 

@@ -64,6 +64,43 @@ Mount propagation controls whether mount and unmount events flow between related
 
 Container storage bugs often reduce to propagation: the host mounts a volume after a container starts, but the container never sees it, or a mount made inside one namespace unexpectedly appears elsewhere.
 
+### Propagation Lab
+
+This lab shows why a bind mount can exist in one mount namespace but not another. Run it on a disposable VM or lab host.
+
+```text
+mkdir -p /tmp/prop-host /tmp/prop-peer /tmp/prop-source
+mount --bind /tmp/prop-host /tmp/prop-host
+mount --make-rshared /tmp/prop-host
+unshare --mount --fork --pid -- bash
+```
+
+Inside the new shell:
+
+```text
+findmnt -o TARGET,PROPAGATION /tmp/prop-host
+mkdir -p /tmp/prop-host/inside
+mount --bind /tmp/prop-source /tmp/prop-host/inside
+```
+
+From the original namespace, check whether the nested mount propagated:
+
+```text
+findmnt /tmp/prop-host/inside
+findmnt -o TARGET,SOURCE,PROPAGATION /tmp/prop-host /tmp/prop-host/inside
+```
+
+Repeat with `mount --make-rprivate /tmp/prop-host` before entering `unshare`; the nested mount will stop crossing the boundary. That is the same class of failure that appears when a container needs to see host-mounted volumes, CSI mounts, or nested bind mounts but the parent mount tree is `private`.
+
+Operational interpretation:
+
+| Observation | Meaning |
+| --- | --- |
+| Host mount appears inside container later | Parent bind is shared or slave in a direction that allows propagation. |
+| Host mount never appears | Parent mount is private or container runtime did not request recursive propagation. |
+| Container mount appears on host unexpectedly | Propagation is shared back to the host; check runtime `rshared` settings. |
+| `findmnt` differs from `/proc/<pid>/mountinfo` | You are comparing different namespaces or stale assumptions. |
+
 ## Root Changes
 
 `chroot` changes pathname resolution root for a process, but it is not a complete container boundary. `pivot_root` and mount namespaces are part of stronger root filesystem isolation used by container runtimes.

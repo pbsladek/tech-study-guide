@@ -79,6 +79,16 @@ Common mTLS failures:
 - proxy terminates TLS before the app sees the client certificate,
 - certificate identity does not match the app's authorization policy.
 
+Practical mTLS checks:
+
+```bash
+openssl verify -CAfile client-ca.pem -purpose sslclient client.crt
+openssl x509 -in client.crt -noout -subject -issuer -dates -ext subjectAltName -ext extendedKeyUsage
+curl -vk --cert client.crt --key client.key --cacert server-ca.pem https://api.example.com/
+```
+
+If a proxy terminates TLS, decide explicitly whether the backend should trust a forwarded identity header, PROXY protocol metadata, a new internal mTLS connection, or no client identity at all. Forwarded identity is security-sensitive and should be accepted only from trusted proxies.
+
 ## Certificate Lifecycle
 
 Certificate incidents are usually lifecycle incidents:
@@ -91,6 +101,41 @@ Certificate incidents are usually lifecycle incidents:
 - inventory: know which endpoint, hostname, and trust store uses each certificate.
 
 Short-lived certificates reduce stale credential risk but require reliable automation and monitoring. Long-lived certificates reduce renewal frequency but increase blast radius when keys leak or ownership changes.
+
+For zero-trust network designs, certificate rotation needs trust overlap: deploy new roots or intermediates to validators before serving new leaf certificates, verify SNI and ALPN behavior at the edge, and remove old trust only after old leaves and long-lived clients are gone.
+
+## Certificate Rotation Runbook
+
+Root or intermediate rotation:
+
+1. Inventory endpoints, clients, trust stores, containers, Java stores, meshes, and appliances.
+2. Add the new root or intermediate to validators while keeping the old trust chain.
+3. Issue test leaf certificates from the new chain.
+4. Validate served chain, SNI, ALPN, hostname SAN, and EKU from real clients.
+5. Roll new leaf certificates through load balancers, ingress, proxies, and apps.
+6. Monitor old-chain usage until it reaches zero.
+7. Remove old trust roots only after old leaves expire or are fully removed.
+
+mTLS client CA rotation:
+
+```text
+server trusts old client CA + new client CA
+clients receive certificates from new CA
+server logs confirm new issuer/SPIFFE/SAN identities
+old client CA is removed after old clients are gone
+rollback keeps old CA trusted until cutover is proven
+```
+
+Validation commands:
+
+```bash
+openssl verify -CAfile combined-client-ca.pem -purpose sslclient new-client.crt
+openssl verify -CAfile new-server-ca.pem -purpose sslserver -verify_hostname api.example.com server.crt
+printf '' | openssl s_client -connect api.example.com:443 -servername api.example.com -alpn h2 -showcerts
+curl -vk --cert new-client.crt --key new-client.key --cacert new-server-ca.pem https://api.example.com/
+```
+
+Rollback is a trust decision: keep the old issuer trusted until every dependent client and server has proven the new chain works.
 
 ## Certificate Management Examples
 

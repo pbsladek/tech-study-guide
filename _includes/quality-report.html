@@ -1,0 +1,57 @@
+{% assign docs_pages = site.pages | where_exp: "item", "item.url contains '/docs/'" %}
+
+<div class="quality-grid">
+  <section class="quality-panel">
+    <h2>Coverage Snapshot</h2>
+    <p><strong>{{ docs_pages.size }}</strong> documentation pages are generated under <code>/docs/</code>.</p>
+    <p>The checks below surface pages that need metadata, references, study cards, or operational structure.</p>
+  </section>
+
+  <section class="quality-panel">
+    <h2>Pages Missing Summaries or Tags</h2>
+    <ul>
+      {% assign missing_metadata = 0 %}
+      {% for item in docs_pages %}
+        {% if item.summary == nil or item.tags == nil %}
+          {% assign missing_metadata = missing_metadata | plus: 1 %}
+          <li><a href="{{ item.url | relative_url }}">{{ item.title | default: item.url }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if missing_metadata == 0 %}
+        <li>No generated docs pages are missing summaries or tags.</li>
+      {% endif %}
+    </ul>
+  </section>
+
+  <section class="quality-panel">
+    <h2>Pages Missing References</h2>
+    <ul>
+      {% assign missing_references = 0 %}
+      {% for item in docs_pages %}
+        {% unless item.content contains '## References' %}
+          {% assign missing_references = missing_references | plus: 1 %}
+          <li><a href="{{ item.url | relative_url }}">{{ item.title | default: item.url }}</a></li>
+        {% endunless %}
+      {% endfor %}
+      {% if missing_references == 0 %}
+        <li>No generated docs pages are missing reference sections.</li>
+      {% endif %}
+    </ul>
+  </section>
+
+  <section class="quality-panel">
+    <h2>Pages Missing Study Cards</h2>
+    <ul>
+      {% assign missing_cards = 0 %}
+      {% for item in docs_pages %}
+        {% unless item.content contains 'study-card' %}
+          {% assign missing_cards = missing_cards | plus: 1 %}
+          <li><a href="{{ item.url | relative_url }}">{{ item.title | default: item.url }}</a></li>
+        {% endunless %}
+      {% endfor %}
+      {% if missing_cards == 0 %}
+        <li>No generated docs pages are missing study cards.</li>
+      {% endif %}
+    </ul>
+  </section>
+</div>

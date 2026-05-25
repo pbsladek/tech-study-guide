@@ -17,6 +17,19 @@ Kubernetes is best understood as a set of independent control loops coordinated 
 
 The API server is not a passive database front end. It is the consistency boundary for Kubernetes state.
 
+```mermaid
+flowchart LR
+  Client[kubectl / controller / webhook client] --> Authn[Authentication]
+  Authn --> Authz[Authorization]
+  Authz --> Admit[Mutating and validating admission]
+  Admit --> Validate[Schema and field validation]
+  Validate --> Etcd[(etcd persistent state)]
+  Etcd --> Watch[Watch streams]
+  Watch --> Controllers[Controllers and kubelets]
+  Controllers --> Status[Status updates and events]
+  Status --> Etcd
+```
+
 Request path for a normal write:
 
 1. Authentication identifies the caller.
@@ -27,6 +40,16 @@ Request path for a normal write:
 6. Watches notify controllers, kubelets, and clients.
 
 `resourceVersion` supports optimistic concurrency. If two clients update the same object from stale state, one update may conflict and must be retried from a fresh read. This is why controllers are written as reconciliation loops instead of one-shot scripts.
+
+Example: a controller that watches Deployments might see `resourceVersion: "1024"` on a Deployment, compute a ReplicaSet change, then fail its update because another actor already wrote `resourceVersion: "1025"`. The correct behavior is to re-list or re-watch, recompute from the new object, and try again.
+
+```text
+kubectl get deployment web -o jsonpath='{.metadata.resourceVersion}{"\n"}'
+kubectl get deployment web --watch --output-watch-events
+kubectl get --raw '/api/v1/namespaces/default/pods?watch=true&resourceVersion=0' | head
+```
+
+Watch streams are why Kubernetes controllers react quickly without constantly polling every object. A stale watch is not fatal; clients must handle compaction, reconnect, and resume from a fresh list when the API server says a resource version is too old.
 
 ## Object Model
 

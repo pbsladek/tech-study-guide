@@ -43,6 +43,27 @@ A successful `write()` often means data reached kernel memory, not durable stora
 
 Dirty pages are eventually written back. Dirty writeback tuning, slow storage, and congested queues can create latency spikes far from the code that caused the writes.
 
+```mermaid
+flowchart LR
+  App[read/write syscall] --> VFS[VFS and filesystem]
+  VFS --> Cache[Page cache]
+  Cache -->|cache hit| App
+  Cache -->|dirty pages| Writeback[writeback threads]
+  Writeback --> Block[block layer scheduler]
+  Block --> Device[SSD / HDD / network volume]
+  Device --> Complete[IO completion]
+```
+
+fio examples:
+
+```bash
+fio --name=randread --filename=/mnt/testfile --size=2G --rw=randread --bs=4k --iodepth=32 --direct=1
+fio --name=seqwrite --filename=/mnt/testfile --size=2G --rw=write --bs=1M --iodepth=8 --direct=1
+fio --name=fsync --filename=/mnt/testfile --size=512M --rw=write --bs=4k --fsync=1
+```
+
+Use `--direct=1` when you want device behavior more than cache behavior. Use fsync-heavy tests for databases and metadata-sensitive workloads.
+
 ## Mounts and Namespaces
 
 Mounts define where filesystems appear. Containers may have different mount namespaces from the host, so a path can exist in one namespace but not another. Bind mounts and overlay filesystems are common in container runtimes.

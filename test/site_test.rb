@@ -181,6 +181,55 @@ class SiteTest < Minitest::Test
       "cat /proc/net/softnet_stat",
       "mpstat -P ALL 1"
     ],
+    "docs/linux/ebpf-tracing/index.html" => [
+      "uname -r",
+      "bpftool feature probe",
+      "bpftool prog show",
+      "bpftool map show",
+      "bpftrace -l 'tracepoint:syscalls:sys_enter_*' | head"
+    ],
+    "docs/linux/memory-pressure-oom/index.html" => [
+      "free -h",
+      "cat /proc/meminfo",
+      "cat /proc/pressure/memory",
+      "vmstat 1",
+      "ps -eo pid,ppid,comm,rss,vsz,%mem --sort=-rss | head",
+      "journalctl -k -g 'Out of memory|Killed process|oom-kill'"
+    ],
+    "docs/linux/syscall-debugging/index.html" => [
+      "strace -f -p <pid>",
+      "strace -ff -o /tmp/trace.log <command>",
+      "strace -f -e trace=file,network -p <pid>",
+      "strace -ttT -f -p <pid>",
+      "strace -yy -s 256 -f -e trace=network,desc -p <pid>",
+      "strace -c -f <command>",
+      "strace -f -e status=failed <command>",
+      "cat /proc/<pid>/syscall"
+    ],
+    "docs/linux/security-controls/index.html" => [
+      "id",
+      "sudo -l",
+      "getcap -r /usr/bin /usr/sbin 2>/dev/null",
+      "aa-status 2>/dev/null || true",
+      "sestatus 2>/dev/null || true",
+      "journalctl -k -g 'apparmor|SELinux|seccomp|audit'"
+    ],
+    "docs/linux/package-boot-recovery/index.html" => [
+      "cat /etc/os-release",
+      "uname -a",
+      "systemctl --failed",
+      "journalctl -xb",
+      "dpkg --audit",
+      "apt-mark showhold"
+    ],
+    "docs/linux/performance-triage-runbooks/index.html" => [
+      "uptime",
+      "vmstat 1",
+      "mpstat -P ALL 1",
+      "iostat -xz 1",
+      "pidstat -durh 1",
+      "cat /proc/pressure/cpu /proc/pressure/memory /proc/pressure/io"
+    ],
     "docs/linux/tcp-kernel-tuning/index.html" => [
       "sysctl net.core.somaxconn",
       "sysctl net.ipv4.tcp_max_syn_backlog",
@@ -346,20 +395,25 @@ class SiteTest < Minitest::Test
       "curl -vk https://<host>/"
     ],
     "docs/dns/index.html" => [
-      "dig example.com A",
-      "dig example.com AAAA",
-      "dig +trace example.com",
-      "dig @1.1.1.1 example.com",
-      "dig NS example.com",
-      "dig SOA example.com",
-      "dig +dnssec example.com"
+      "getent hosts www.example.com",
+      "getent ahosts www.example.com",
+      "cat /etc/nsswitch.conf",
+      "readlink -f /etc/resolv.conf",
+      "cat /etc/resolv.conf",
+      "resolvectl status",
+      "resolvectl query www.example.com",
+      "tcpdump -nn -i any 'port 53'"
     ],
     "docs/dns/resolution-caching/index.html" => [
       "getent hosts example.com",
       "dig example.com A",
       "dig example.com AAAA",
       "dig +trace example.com",
-      "dig @1.1.1.1 example.com"
+      "dig @1.1.1.1 example.com",
+      "nslookup example.com",
+      "nslookup -type=SRV _ldap._tcp.dc._msdcs.example.com",
+      "nslookup -debug example.com",
+      "nslookup -vc example.com"
     ],
     "docs/dns/authoritative-zones/index.html" => [
       "dig NS example.com",
@@ -409,6 +463,49 @@ class SiteTest < Minitest::Test
       "ip neigh",
       "ss -tuna",
       "tcpdump -nn -i any host 203.0.113.10"
+    ],
+    "docs/networking/packet-capture-analysis/index.html" => [
+      "ip addr",
+      "ip route get 203.0.113.10",
+      "tcpdump -D",
+      "sudo tcpdump -nn -i any host 203.0.113.10",
+      "sudo tcpdump -nn -i eth0 'tcp port 443 and host 203.0.113.10'"
+    ],
+    "docs/networking/bgp-dynamic-routing/index.html" => [
+      "show bgp summary",
+      "show bgp ipv4 unicast",
+      "show route protocol bgp",
+      "show bgp neighbors",
+      "show bgp <prefix>"
+    ],
+    "docs/networking/cloud-networking/index.html" => [
+      "ip addr",
+      "ip route",
+      "curl -sS ifconfig.me",
+      "traceroute 203.0.113.10",
+      "dig api.example.com"
+    ],
+    "docs/networking/network-namespaces-virtual-networking/index.html" => [
+      "ip netns list",
+      "lsns -t net",
+      "readlink /proc/<pid>/ns/net",
+      "nsenter --target <pid> --net -- ip addr",
+      "nsenter --target <pid> --net -- ip route"
+    ],
+    "docs/networking/ipv6-operations/index.html" => [
+      "ip -6 addr",
+      "ip -6 route",
+      "ip -6 neigh",
+      "resolvectl query example.com AAAA",
+      "ping -6 2001:4860:4860::8888",
+      "tracepath6 example.com"
+    ],
+    "docs/networking/http-proxy-debugging/index.html" => [
+      "curl -v https://api.example.com/healthz",
+      "curl -vk --resolve api.example.com:443:203.0.113.10 https://api.example.com/healthz",
+      "curl -v --http1.1 https://api.example.com/",
+      "curl -v --http2 https://api.example.com/",
+      "env | grep -i proxy"
     ],
     "docs/networking/routing-nat-firewalls/index.html" => [
       "ip route",
@@ -524,12 +621,14 @@ class SiteTest < Minitest::Test
       "tcpdump -nn -i any host proxy.example"
     ],
     "docs/kubernetes/storage-upgrades/index.html" => [
-      "kubectl get pv,pvc,storageclass,volumesnapshotclass",
-      "kubectl describe pvc <claim>",
-      "kubectl get volumeattachment",
-      "kubeadm upgrade plan",
-      "kubectl drain <node> --ignore-daemonsets --delete-emptydir-data",
-      "kubectl uncordon <node>"
+      "kubectl version",
+      "kubectl get nodes -o wide",
+      "kubectl get pods -A -o wide",
+      "kubectl get apiservices",
+      "kubectl get mutatingwebhookconfiguration,validatingwebhookconfiguration",
+      "kubectl get pdb -A",
+      "kubectl get deployment,daemonset,statefulset -A",
+      "kubeadm upgrade plan"
     ],
     "docs/ceph/index.html" => [
       "ceph -s",
@@ -547,6 +646,47 @@ class SiteTest < Minitest::Test
       "kubectl -n rook-ceph get cephblockpool,cephfilesystem,cephobjectstore",
       "kubectl get storageclass"
     ],
+    "docs/ceph/rados-crush-placement/index.html" => [
+      "ceph osd lspools",
+      "ceph osd pool ls detail",
+      "ceph osd pool get <pool> all",
+      "ceph osd crush tree",
+      "ceph osd crush rule ls",
+      "ceph osd crush rule dump <rule>",
+      "ceph pg dump pgs_brief",
+      "ceph pg map <pool>.<object-or-pgid>",
+      "ceph pg <pgid> query"
+    ],
+    "docs/ceph/block-file-object/index.html" => [
+      "rbd pool init <pool>",
+      "rbd create <pool>/<image> --size 100G",
+      "rbd info <pool>/<image>",
+      "rbd status <pool>/<image>",
+      "rbd snap create <pool>/<image>@before-change",
+      "rbd snap ls <pool>/<image>",
+      "rbd du <pool>/<image>",
+      "rbd perf image iostat"
+    ],
+    "docs/ceph/operations-recovery/index.html" => [
+      "ceph -s",
+      "ceph health detail",
+      "ceph versions",
+      "ceph mon stat",
+      "ceph mgr stat",
+      "ceph osd stat",
+      "ceph osd tree",
+      "ceph osd df tree",
+      "ceph pg stat",
+      "ceph pg dump_stuck"
+    ],
+    "docs/ceph/performance-capacity/index.html" => [
+      "ceph osd perf",
+      "ceph osd df tree",
+      "ceph osd pool stats",
+      "ceph tell osd.* perf dump",
+      "ceph daemon osd.<id> perf dump",
+      "ceph health detail"
+    ],
     "docs/istio/index.html" => [
       "istioctl version",
       "istioctl proxy-status",
@@ -563,6 +703,47 @@ class SiteTest < Minitest::Test
       "kubectl logs -n istio-system deploy/istiod",
       "kubectl logs -n istio-system -l app=ztunnel"
     ],
+    "docs/istio/traffic-management/index.html" => [
+      "kubectl get virtualservice,destinationrule,gateway,serviceentry --all-namespaces",
+      "istioctl analyze --all-namespaces",
+      "istioctl proxy-config routes <pod> -n <namespace>",
+      "istioctl proxy-config clusters <pod> -n <namespace>",
+      "istioctl proxy-config endpoints <pod> -n <namespace>"
+    ],
+    "docs/istio/security-mtls-policy/index.html" => [
+      "kubectl get peerauthentication --all-namespaces",
+      "istioctl authn tls-check <pod>.<namespace>",
+      "istioctl proxy-config secret <pod> -n <namespace>",
+      "istioctl proxy-config cluster <pod> -n <namespace> --fqdn <service>.<namespace>.svc.cluster.local"
+    ],
+    "docs/istio/gateways-ingress-egress/index.html" => [
+      "kubectl get svc,pod -n istio-system",
+      "kubectl get gateway,virtualservice --all-namespaces",
+      "kubectl get httproute,gateway --all-namespaces",
+      "istioctl proxy-config listeners deploy/<gateway-deploy> -n istio-system",
+      "istioctl proxy-config routes deploy/<gateway-deploy> -n istio-system"
+    ],
+    "docs/istio/zero-downtime-upgrades/index.html" => [
+      "istioctl version",
+      "istioctl x precheck",
+      "istioctl analyze --all-namespaces",
+      "istioctl proxy-status",
+      "kubectl get pods -n istio-system -o wide",
+      "kubectl get mutatingwebhookconfiguration,validatingwebhookconfiguration",
+      "kubectl get ns -L istio-injection,istio.io/rev,istio.io/dataplane-mode",
+      "kubectl get pdb --all-namespaces"
+    ],
+    "docs/istio/observability-troubleshooting/index.html" => [
+      "istioctl version",
+      "istioctl proxy-status",
+      "istioctl analyze --all-namespaces",
+      "istioctl proxy-config listeners <pod> -n <namespace>",
+      "istioctl proxy-config routes <pod> -n <namespace>",
+      "istioctl proxy-config clusters <pod> -n <namespace>",
+      "istioctl proxy-config endpoints <pod> -n <namespace>",
+      "istioctl proxy-config secret <pod> -n <namespace>",
+      "kubectl logs -n istio-system deploy/istiod"
+    ],
     "docs/databases/postgres/index.html" => [
       "psql -d <database>",
       "EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM table_name;",
@@ -578,6 +759,17 @@ class SiteTest < Minitest::Test
       "psql -d <database> -c \"SELECT pg_is_in_recovery(), pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn(), now() - pg_last_xact_replay_timestamp() AS replay_delay;\"",
       "psql -d <database> -c \"SELECT subname, subenabled, subfailover FROM pg_subscription;\""
     ],
+    "docs/databases/postgres/zero-downtime-upgrades/index.html" => [
+      "kubectl get clusters.postgresql.cnpg.io,pods,pvc,svc -A",
+      "kubectl cnpg status <cluster> -n <namespace>",
+      "kubectl get pdb -A",
+      "kubectl get events -n <namespace> --sort-by=.lastTimestamp",
+      "psql -d <database> -c \"SHOW server_version;\"",
+      "psql -d <database> -c \"SELECT * FROM pg_stat_replication;\"",
+      "psql -d <database> -c \"SELECT slot_name, active, restart_lsn, wal_status, safe_wal_size FROM pg_replication_slots;\"",
+      "psql -d <database> -c \"SELECT subname, subenabled, subfailover FROM pg_subscription;\"",
+      "psql -d <database> -c \"SELECT schemaname, sequencename, last_value FROM pg_sequences ORDER BY 1, 2 LIMIT 20;\""
+    ],
     "docs/databases/postgres/pgbouncer/index.html" => [
       "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW POOLS;\"",
       "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW STATS;\"",
@@ -585,6 +777,14 @@ class SiteTest < Minitest::Test
       "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW SERVERS;\"",
       "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW DATABASES;\"",
       "psql \"postgresql://<user>@<pgbouncer-host>:6432/pgbouncer\" -c \"SHOW CONFIG;\""
+    ],
+    "docs/databases/postgres/cloudnativepg/index.html" => [
+      "kubectl -n cnpg-system get deploy,pod,svc",
+      "kubectl -n cnpg-system describe deploy cnpg-controller-manager",
+      "kubectl -n cnpg-system scale deploy cnpg-controller-manager --replicas=2",
+      "kubectl -n cnpg-system rollout status deploy cnpg-controller-manager",
+      "kubectl -n cnpg-system logs deploy/cnpg-controller-manager --tail=100",
+      "kubectl get validatingwebhookconfiguration,mutatingwebhookconfiguration | grep -i cnpg"
     ],
     "docs/databases/opensearch/index.html" => [
       "curl -sS https://<opensearch>:9200/_cluster/health?pretty",
@@ -646,7 +846,7 @@ class SiteTest < Minitest::Test
     assert_includes css, ".highlight pre"
   end
 
-  def test_custom_study_theme_replaces_third_party_theme
+  def test_local_study_assets_replace_third_party_theme
     html = read_site("index.html")
     config = File.read(File.join(ROOT, "_config.yml"))
     gemfile = File.read(File.join(ROOT, "Gemfile"))
@@ -656,7 +856,8 @@ class SiteTest < Minitest::Test
     refute_includes html, "jekyll-theme-chirpy"
     assert_includes html, "/assets/css/study.css"
     assert_includes html, "/assets/js/study.js"
-    assert_includes html, "StudyGraph"
+    assert_includes html, "Tech Study Guide"
+    refute_includes config, "theme_name:"
   end
 
   def test_github_pages_workflow_builds_project_pages_site
@@ -707,10 +908,88 @@ class SiteTest < Minitest::Test
     assert_includes html, 'data-action="toggle-sidebar"'
     assert_includes html, 'id="mode-toggle"'
     assert_includes html, 'data-action="toggle-reader"'
+    assert_includes html, 'data-action="mark-complete"'
+    assert_includes html, 'data-action="toggle-runbook"'
+    assert_includes html, 'data-action="copy-page-link"'
     assert_includes html, 'data-action="open-study"'
     assert_includes html, 'id="study-mode-toggle"'
     assert_includes html, 'id="font-family-control"'
     assert_includes html, 'id="text-size-control"'
+    assert_includes html, 'id="page-toc"'
+    assert_includes html, 'class="related-pages"'
+    assert_includes html, 'class="nav-neighbors"'
+    assert_includes html, 'id="study-weak-only"'
+    assert_includes html, 'id="study-missed-only"'
+  end
+
+  def test_ceph_and_istio_have_expanded_subpage_navigation
+    nav = YAML.load_file(File.join(ROOT, "_data/study_nav.yml"))
+    ceph = nav.find { |item| item.fetch("title") == "Ceph" }
+    istio = nav.find { |item| item.fetch("title") == "Istio" }
+
+    refute_nil ceph
+    refute_nil istio
+
+    ceph_subpages = ceph.fetch("children").reject { |item| item.fetch("title") == "Overview" }
+    istio_subpages = istio.fetch("children").reject { |item| item.fetch("title") == "Overview" }
+
+    assert_operator ceph_subpages.length, :>=, 4
+    assert_operator istio_subpages.length, :>=, 4
+
+    ceph_subpages.each do |item|
+      html_path = item.fetch("url").sub(%r{\A/}, "").sub(%r{/\z}, "/index.html")
+      assert_includes read_site(html_path), 'class="study-card-grid"', "Expected study cards for #{item.fetch("url")}"
+    end
+
+    istio_subpages.each do |item|
+      html_path = item.fetch("url").sub(%r{\A/}, "").sub(%r{/\z}, "/index.html")
+      assert_includes read_site(html_path), 'class="study-card-grid"', "Expected study cards for #{item.fetch("url")}"
+    end
+  end
+
+  def test_navigation_supports_topic_embedded_examples_and_postgres_groups
+    nav = YAML.load_file(File.join(ROOT, "_data/study_nav.yml"))
+    databases = nav.find { |item| item.fetch("title") == "Databases" }
+    postgres = databases.fetch("children").find { |item| item.fetch("title") == "PostgreSQL" }
+    networking = nav.find { |item| item.fetch("title") == "Networking" }
+    troubleshooting = nav.find { |item| item.fetch("title") == "Troubleshooting" }
+
+    assert_nil nav.find { |item| item.fetch("title") == "Practical Examples" }
+    refute_nil databases
+    refute_nil postgres
+    refute_nil networking
+    refute_nil troubleshooting
+    refute_nil nav.find { |item| item.fetch("title") == "Cross-Topic Study Paths" }
+    refute_nil nav.find { |item| item.fetch("title") == "Glossary" }
+
+    ["Linux", "DNS", "Networking", "Kubernetes", "Identity and Access", "Databases", "Ceph", "Istio", "Troubleshooting"].each do |title|
+      section = nav.find { |item| item.fetch("title") == title }
+      refute_nil section
+      refute section.fetch("children").any? { |item| item.fetch("title") == "Practical Examples" }, "Expected practical examples to be embedded in topic pages under #{title}"
+    end
+
+    ["Request Path", "Cross-Layer Incident Runbooks", "Datacenter L2/L3 Operations", "Resilience, Timeouts, and Draining", "Zero-Trust Networking"].each do |title|
+      assert networking.fetch("children").any? { |item| item.fetch("title") == title }, "Expected Networking nav to include #{title}"
+    end
+    assert troubleshooting.fetch("children").any? { |item| item.fetch("title") == "Incident Entry Points" }
+
+    assert_operator postgres.fetch("children").length, :>=, 4
+
+    html = read_site("docs/databases/postgres/cloudnativepg/index.html")
+    assert_includes html, "nav-level-2"
+    assert_includes html, "nav-level-3"
+    assert_includes html, "Zero-Downtime Upgrades"
+
+    graph = read_site("knowledge-graph/index.html")
+    assert_includes graph, "Request Path"
+    assert_includes graph, "Cross-Layer Incident Runbooks"
+    assert_includes graph, "Incident Entry Points"
+    assert_includes graph, "Cross-Topic Study Paths"
+    assert_includes graph, "Glossary"
+    assert_includes graph, "Datacenter L2/L3 Operations"
+    assert_includes graph, "Resilience, Timeouts, and Draining"
+    assert_includes graph, "Zero-Trust Networking"
+    assert_includes graph, "Zero-Downtime Upgrades"
   end
 
   def test_search_index_contains_pages_tags_and_content
@@ -718,11 +997,29 @@ class SiteTest < Minitest::Test
     databases = index.find { |item| item["title"] == "Databases" }
     postgres = index.find { |item| item["title"] == "PostgreSQL" }
     postgres_ops = index.find { |item| item["title"] == "PostgreSQL Operations, HA, Replication, and Recovery" }
+    postgres_upgrades = index.find { |item| item["title"] == "PostgreSQL Zero-Downtime Upgrades on Kubernetes" }
     pgbouncer = index.find { |item| item["title"] == "PgBouncer" }
     opensearch = index.find { |item| item["title"] == "OpenSearch Operations, Replication, Sharding, and HA" }
     troubleshooting = index.find { |item| item["title"] == "Troubleshooting and Error Handling" }
+    incident_entrypoints = index.find { |item| item["title"] == "Incident Entry Points" }
     foundational_review = index.find { |item| item["title"] == "Foundational Study Review" }
-    practical_examples = index.find { |item| item["title"] == "Practical Examples" }
+    study_paths = index.find { |item| item["title"] == "Cross-Topic Study Paths" }
+    glossary = index.find { |item| item["title"] == "Glossary" }
+    practical_linux = index.find { |item| item["title"] == "Linux Operations Examples" }
+    linux_ebpf = index.find { |item| item["title"] == "Linux eBPF and Tracing" }
+    linux_memory = index.find { |item| item["title"] == "Linux Memory Pressure and OOM" }
+    linux_syscalls = index.find { |item| item["title"] == "Linux System Call Debugging" }
+    linux_security = index.find { |item| item["title"] == "Linux Security Controls" }
+    linux_recovery = index.find { |item| item["title"] == "Linux Package and Boot Recovery" }
+    linux_perf_runbooks = index.find { |item| item["title"] == "Linux Performance Triage Runbooks" }
+    practical_dns = index.find { |item| item["title"] == "DNS Examples" }
+    practical_network = index.find { |item| item["title"] == "Networking TLS and mTLS Examples" }
+    practical_kubernetes = index.find { |item| item["title"] == "Kubernetes Examples" }
+    practical_identity = index.find { |item| item["title"] == "Identity Examples" }
+    practical_databases = index.find { |item| item["title"] == "Database and Search Examples" }
+    practical_ceph = index.find { |item| item["title"] == "Ceph Storage Examples" }
+    practical_istio = index.find { |item| item["title"] == "Istio Service Mesh Examples" }
+    practical_troubleshooting = index.find { |item| item["title"] == "Troubleshooting Examples" }
     ceph = index.find { |item| item["title"] == "Ceph" }
     lvm = index.find { |item| item["title"] == "Linux LVM" }
     systemd = index.find { |item| item["title"] == "systemd" }
@@ -753,12 +1050,21 @@ class SiteTest < Minitest::Test
     gpu_drivers = index.find { |item| item["title"] == "Linux GPU Drivers" }
     systemd_networking = index.find { |item| item["title"] == "systemd Networking" }
     systemd_socket_network = index.find { |item| item["title"] == "systemd Socket Activation and Network Services" }
+    dns_overview = index.find { |item| item["title"] == "DNS" && item["url"] == "/docs/dns/" }
     dns_cache = index.find { |item| item["title"] == "DNS Resolution and Caching" }
     zones = index.find { |item| item["title"] == "Authoritative DNS and Zones" }
     dnssec = index.find { |item| item["title"] == "DNSSEC and DNS Privacy" }
     dns_records = index.find { |item| item["title"] == "DNS Records, Responses, and Transport" }
+    request_path = index.find { |item| item["title"] == "Request Path" }
     packet_path = index.find { |item| item["title"] == "Packet Path" }
+    cross_layer_runbooks = index.find { |item| item["title"] == "Cross-Layer Incident Runbooks" }
+    packet_capture = index.find { |item| item["title"] == "Packet Capture and Analysis" }
     routing = index.find { |item| item["title"] == "Routing, NAT, and Firewalls" }
+    bgp = index.find { |item| item["title"] == "BGP and Dynamic Routing" }
+    datacenter_l2_l3 = index.find { |item| item["title"] == "Datacenter L2/L3 Operations" }
+    cloud_networking = index.find { |item| item["title"] == "Cloud Networking" }
+    network_namespaces = index.find { |item| item["title"] == "Network Namespaces and Virtual Networking" }
+    ipv6_operations = index.find { |item| item["title"] == "IPv6 Operations" }
     nat_gateways = index.find { |item| item["title"] == "NAT Gateways and Network Address Translation" }
     firewall_netfilter = index.find { |item| item["title"] == "Firewalls, iptables, and Netfilter" }
     vpn_ipsec = index.find { |item| item["title"] == "VPNs and IPsec Tunnels" }
@@ -770,9 +1076,13 @@ class SiteTest < Minitest::Test
     tcp_sockets = index.find { |item| item["title"] == "TCP and Sockets" }
     udp_quic = index.find { |item| item["title"] == "UDP, QUIC, and Connectionless Traffic" }
     load_balancers = index.find { |item| item["title"] == "Load Balancers and Proxies" }
+    resilience_timeouts = index.find { |item| item["title"] == "Resilience, Timeouts, and Draining" }
     forward_reverse_proxies = index.find { |item| item["title"] == "Forward and Reverse Proxies" }
+    http_proxy_debugging = index.find { |item| item["title"] == "HTTP and Proxy Debugging" }
+    zero_trust_networking = index.find { |item| item["title"] == "Zero-Trust Networking" }
     tcp_tls = index.find { |item| item["title"] == "TCP, TLS, and HTTP" }
     k8s_core = index.find { |item| item["title"] == "Core Concepts" }
+    k8s_networking = index.find { |item| item["title"] == "Kubernetes Networking" }
     k8s_troubleshooting = index.find { |item| item["title"] == "Troubleshooting" && item["url"] == "/docs/kubernetes/troubleshooting/" }
     k8s_dns = index.find { |item| item["title"] == "Kubernetes DNS and CoreDNS" }
     k8s_nats_dns = index.find { |item| item["title"] == "NATS, DNS, and Kubernetes Networking" }
@@ -781,21 +1091,50 @@ class SiteTest < Minitest::Test
     k8s_pod_networking = index.find { |item| item["title"] == "Kubernetes Pod Networking and CNI" }
     k8s_network_policy = index.find { |item| item["title"] == "Kubernetes NetworkPolicy" }
     k8s_ingress_gateway = index.find { |item| item["title"] == "Kubernetes Ingress, Gateway, and Load Balancers" }
+    k8s_storage_upgrades = index.find { |item| item["title"] == "Kubernetes Storage and Upgrades" }
     identity = index.find { |item| item["title"] == "Identity and Access" }
     auth_protocols = index.find { |item| item["title"] == "IdP, SAML, JWT, OAuth, and OIDC" }
     domain_controllers = index.find { |item| item["title"] == "Domain Controllers and Directory DNS" }
     debian = index.find { |item| item["title"] == "Debian and Ubuntu Operations" }
     istio = index.find { |item| item["title"] == "Istio" }
     service_mesh = index.find { |item| item["title"] == "Istio Service Mesh" }
+    istio_traffic = index.find { |item| item["title"] == "Istio Traffic Management" }
+    istio_security = index.find { |item| item["title"] == "Istio Security, mTLS, and Policy" }
+    istio_gateways = index.find { |item| item["title"] == "Istio Gateways, Ingress, and Egress" }
+    istio_zero_downtime = index.find { |item| item["title"] == "Istio Zero Downtime Upgrades on Kubernetes" }
+    istio_observability = index.find { |item| item["title"] == "Istio Observability and Troubleshooting" }
+    ceph_rados = index.find { |item| item["title"] == "Ceph RADOS, CRUSH, and Placement" }
+    ceph_interfaces = index.find { |item| item["title"] == "Ceph Block, File, and Object Interfaces" }
+    ceph_operations = index.find { |item| item["title"] == "Ceph Operations and Recovery" }
+    ceph_performance = index.find { |item| item["title"] == "Ceph Performance and Capacity" }
 
     refute_nil databases
     refute_nil postgres
     refute_nil postgres_ops
+    refute_nil postgres_upgrades
     refute_nil pgbouncer
     refute_nil opensearch
     refute_nil troubleshooting
+    refute_nil incident_entrypoints
     refute_nil foundational_review
-    refute_nil practical_examples
+    refute_nil study_paths
+    refute_nil glossary
+    assert_nil index.find { |item| item["title"] == "Practical Examples" }
+    refute_nil practical_linux
+    refute_nil linux_ebpf
+    refute_nil linux_memory
+    refute_nil linux_syscalls
+    refute_nil linux_security
+    refute_nil linux_recovery
+    refute_nil linux_perf_runbooks
+    refute_nil practical_dns
+    refute_nil practical_network
+    refute_nil practical_kubernetes
+    refute_nil practical_identity
+    refute_nil practical_databases
+    refute_nil practical_ceph
+    refute_nil practical_istio
+    refute_nil practical_troubleshooting
     refute_nil ceph
     refute_nil lvm
     refute_nil systemd
@@ -826,12 +1165,21 @@ class SiteTest < Minitest::Test
     refute_nil gpu_drivers
     refute_nil systemd_networking
     refute_nil systemd_socket_network
+    refute_nil dns_overview
     refute_nil dns_cache
     refute_nil zones
     refute_nil dnssec
     refute_nil dns_records
+    refute_nil request_path
     refute_nil packet_path
+    refute_nil cross_layer_runbooks
+    refute_nil packet_capture
     refute_nil routing
+    refute_nil bgp
+    refute_nil datacenter_l2_l3
+    refute_nil cloud_networking
+    refute_nil network_namespaces
+    refute_nil ipv6_operations
     refute_nil nat_gateways
     refute_nil firewall_netfilter
     refute_nil vpn_ipsec
@@ -843,9 +1191,13 @@ class SiteTest < Minitest::Test
     refute_nil tcp_sockets
     refute_nil udp_quic
     refute_nil load_balancers
+    refute_nil resilience_timeouts
     refute_nil forward_reverse_proxies
+    refute_nil http_proxy_debugging
+    refute_nil zero_trust_networking
     refute_nil tcp_tls
     refute_nil k8s_core
+    refute_nil k8s_networking
     refute_nil k8s_troubleshooting
     refute_nil k8s_dns
     refute_nil k8s_nats_dns
@@ -854,14 +1206,27 @@ class SiteTest < Minitest::Test
     refute_nil k8s_pod_networking
     refute_nil k8s_network_policy
     refute_nil k8s_ingress_gateway
+    refute_nil k8s_storage_upgrades
     refute_nil identity
     refute_nil auth_protocols
     refute_nil domain_controllers
     refute_nil debian
     refute_nil istio
     refute_nil service_mesh
+    refute_nil istio_traffic
+    refute_nil istio_security
+    refute_nil istio_gateways
+    refute_nil istio_zero_downtime
+    refute_nil istio_observability
+    refute_nil ceph_rados
+    refute_nil ceph_interfaces
+    refute_nil ceph_operations
+    refute_nil ceph_performance
     assert_includes postgres["tags"], "databases"
     assert_includes postgres["content"], "PgBouncer"
+    assert_includes postgres["content"], "MVCC Snapshot Timeline"
+    assert_includes postgres["content"], "Isolation examples"
+    assert_includes postgres["content"], "Index design examples"
     assert_includes postgres_ops["content"], "managed HA"
     assert_includes postgres_ops["content"], "replication slots"
     assert_includes postgres_ops["content"], "HA Failover"
@@ -879,12 +1244,33 @@ class SiteTest < Minitest::Test
     assert_includes postgres_ops["content"], "remote_apply"
     assert_includes postgres_ops["content"], "High CPU"
     assert_includes postgres_ops["content"], "High RAM"
+    assert_includes postgres_ops["content"], "Lock wait evidence path"
+    assert_includes postgres_ops["content"], "Lock triage guardrails"
+    assert_includes postgres_upgrades["tags"], "cloudnativepg"
+    assert_includes postgres_upgrades["content"], "CloudNativePG Minor Updates"
+    assert_includes postgres_upgrades["content"], "Blue/Green Logical Replication Runbook"
+    assert_includes postgres_upgrades["content"], "pg_upgrade"
+    assert_includes postgres_upgrades["content"], "PgBouncer and Connection Draining"
+    assert_includes postgres_upgrades["content"], "Kubernetes Guardrails"
+    assert_includes postgres_upgrades["content"], "sequences"
     assert_includes pgbouncer["content"], "transaction pooling"
     assert_includes pgbouncer["content"], "SHOW POOLS"
     assert_includes pgbouncer["content"], "cl_waiting"
     assert_includes pgbouncer["content"], "max_client_conn"
     assert_includes pgbouncer["content"], "server_reset_query"
     assert_includes pgbouncer["content"], "auth_query"
+    cloudnativepg = index.find { |item| item["title"] == "CloudNativePG" }
+    refute_nil cloudnativepg
+    assert_includes cloudnativepg["content"], "Operator Deployment and Scaling"
+    assert_includes cloudnativepg["content"], "Operator Upgrades"
+    assert_includes cloudnativepg["content"], "leader election"
+    assert_includes cloudnativepg["content"], "CLUSTERS_ROLLOUT_DELAY"
+    assert_includes cloudnativepg["content"], "ENABLE_INSTANCE_MANAGER_INPLACE_UPDATES"
+    assert_includes k8s_storage_upgrades["content"], "Upgrade Inventory"
+    assert_includes k8s_storage_upgrades["content"], "Version Skew and Order"
+    assert_includes k8s_storage_upgrades["content"], "Worker Node Workflow"
+    assert_includes k8s_storage_upgrades["content"], "Post-Upgrade Validation"
+    assert_includes k8s_storage_upgrades["content"], "Managed Kubernetes"
     assert_includes opensearch["tags"], "opensearch"
     assert_includes opensearch["content"], "Cross-Cluster Replication"
     assert_includes opensearch["content"], "cluster-manager"
@@ -899,6 +1285,9 @@ class SiteTest < Minitest::Test
     assert_includes troubleshooting["content"], "Universal Method"
     assert_includes troubleshooting["content"], "data plane"
     assert_includes troubleshooting["content"], "control plane"
+    assert_includes incident_entrypoints["content"], "DNS works on node but not Pod"
+    assert_includes incident_entrypoints["content"], "Large Payloads Hang"
+    assert_includes incident_entrypoints["content"], "Intermittent 5xx"
     assert_includes foundational_review["content"], "Topic Coverage Matrix"
     assert_includes foundational_review["content"], "Big 101 Gaps"
     assert_includes foundational_review["content"], "data plane"
@@ -906,21 +1295,98 @@ class SiteTest < Minitest::Test
     assert_includes foundational_review["content"], "stub resolvers"
     assert_includes foundational_review["content"], "JWT decoding"
     assert_includes foundational_review["content"], "RAID, replication, snapshots, and backups"
-    assert_includes foundational_review["content"], "Practical Examples"
-    assert_includes practical_examples["content"], "systemd service"
-    assert_includes practical_examples["content"], "nftables"
-    assert_includes practical_examples["content"], "DNS Zone Example"
-    assert_includes practical_examples["content"], "mTLS"
-    assert_includes practical_examples["content"], "NetworkPolicy"
-    assert_includes practical_examples["content"], "StatefulSet"
-    assert_includes practical_examples["content"], "OAuth authorization-code token exchange"
-    assert_includes practical_examples["content"], "CREATE INDEX CONCURRENTLY"
-    assert_includes practical_examples["content"], "PgBouncer"
-    assert_includes practical_examples["content"], "OpenSearch"
-    assert_includes practical_examples["content"], "ceph osd pool create"
-    assert_includes practical_examples["content"], "VirtualService"
-    assert_includes practical_examples["content"], "AuthorizationPolicy"
-    assert_includes practical_examples["content"], "Troubleshooting Capture Example"
+    assert_includes study_paths["content"], "Linux Foundations to Operations"
+    assert_includes study_paths["content"], "Kubernetes Networking Incident Path"
+    assert_includes study_paths["content"], "PostgreSQL Reliability and Zero Downtime"
+    assert_includes study_paths["content"], "Production ML from 101 to Advanced Systems"
+    assert_includes study_paths["content"], "Cross-Layer Incident Response"
+    assert_includes glossary["content"], "conntrack"
+    assert_includes glossary["content"], "EndpointSlice"
+    assert_includes glossary["content"], "memory.high"
+    assert_includes glossary["content"], "ALPN"
+    assert_includes glossary["content"], "VXLAN"
+    assert_includes systemd_networking["content"], "VLAN and Bridge Example"
+    assert_includes firewall_netfilter["content"], "Host Firewall Example"
+    assert_includes firewall_netfilter["content"], "nftables host policy"
+    assert_includes linux_ebpf["content"], "tracepoints"
+    assert_includes linux_ebpf["content"], "bpftrace"
+    assert_includes linux_ebpf["content"], "XDP"
+    assert_includes linux_ebpf["content"], "Symptom-driven one-liners"
+    assert_includes linux_memory["content"], "OOM killer"
+    assert_includes linux_memory["content"], "memory.events"
+    assert_includes linux_memory["content"], "Pressure Stall Information"
+    assert_includes linux_memory["content"], "OOM Comparison Matrix"
+    assert_includes linux_memory["content"], "kubelet eviction"
+    assert_includes linux_memory["content"], "Application heap OOM"
+    assert_includes linux_memory["content"], "Runtime Memory Examples"
+    assert_includes linux_memory["content"], "Java service"
+    assert_includes linux_memory["content"], "Go service"
+    assert_includes linux_syscalls["content"], "errno"
+    assert_includes linux_syscalls["content"], "epoll_wait"
+    assert_includes linux_syscalls["content"], "EINPROGRESS"
+    assert_includes linux_syscalls["content"], "What strace Proves"
+    assert_includes linux_syscalls["content"], "Annotated strace Output Gallery"
+    assert_includes linux_syscalls["content"], "DNS Through strace"
+    assert_includes linux_syscalls["content"], "Common Troubleshooting Recipes"
+    assert_includes linux_syscalls["content"], "getsockopt(SO_ERROR)"
+    assert_includes linux_security["content"], "seccomp"
+    assert_includes linux_security["content"], "AppArmor"
+    assert_includes linux_security["content"], "SELinux"
+    assert_includes linux_recovery["content"], "GRUB rescue"
+    assert_includes linux_recovery["content"], "update-initramfs"
+    assert_includes linux_perf_runbooks["content"], "High Load, Low CPU"
+    assert_includes linux_perf_runbooks["content"], "cgroup throttling"
+    assert_includes dns_overview["content"], "Browser Enter-to-Answer Walkthrough"
+    assert_includes dns_overview["content"], "Parse URL and check browser DNS/cache state"
+    assert_includes dns_overview["content"], "OS and Stub Resolver Details"
+    assert_includes dns_overview["content"], "Recursive Resolver Cache-Miss Traversal"
+    assert_includes dns_overview["content"], "Root, TLD, and Authoritative Referrals"
+    assert_includes dns_overview["content"], "Root referral"
+    assert_includes dns_overview["content"], "Lame delegation"
+    assert_includes dns_overview["content"], "query name minimization"
+    assert_includes dns_overview["content"], "Address selection"
+    assert_includes dns_overview["content"], "curl --resolve"
+    assert_includes dns_overview["content"], "Per-link routing"
+    assert_includes dns_overview["content"], "Referral anatomy"
+    assert_includes dns_overview["content"], "Stub resolver behavior checklist"
+    assert_includes dns_overview["content"], "Retry multiplication"
+    assert_includes dns_overview["content"], "closest cached delegation"
+    assert_includes dns_overview["content"], "Record type matters"
+    assert_includes dns_overview["content"], "Parent-child delegation consistency"
+    assert_includes dns_overview["content"], "additional section is not a source of arbitrary truth"
+    assert_includes dns_overview["content"], "Anycast or geo DNS inconsistency"
+    assert_includes dns_overview["content"], "A healthy authoritative server"
+    assert_includes dns_cache["content"], "Intermittent DNS Runbook"
+    assert_includes dns_cache["content"], "dig +tcp"
+    assert_includes dns_cache["content"], "nslookup Deep Dive"
+    assert_includes dns_cache["content"], "nslookup Output Interpretation"
+    assert_includes dns_cache["content"], "nslookup Troubleshooting Workflows"
+    assert_includes dns_cache["content"], "set vc"
+    assert_includes cross_layer_runbooks["content"], "HTTP 504"
+    assert_includes cross_layer_runbooks["content"], "Connection Refused"
+    assert_includes cross_layer_runbooks["content"], "Connection Reset"
+    assert_includes cross_layer_runbooks["content"], "TLS Timeout"
+    assert_includes cross_layer_runbooks["content"], "DNS Intermittent"
+    assert_includes cross_layer_runbooks["content"], "Large Requests Hang"
+    assert_includes cross_layer_runbooks["content"], "Node Can Reach Service but Pod Cannot"
+    assert_includes request_path["content"], "End-to-End Diagram"
+    assert_includes request_path["content"], "DNS, client behavior"
+    assert_includes request_path["content"], "Database"
+    assert_includes request_path["content"], "Response Path"
+    assert_includes k8s_networking["content"], "Service Datapath Modes"
+    assert_includes k8s_networking["content"], "Service Datapath Diagrams"
+    assert_includes k8s_networking["content"], "IPVS mode"
+    assert_includes k8s_networking["content"], "eBPF replacement mode"
+    assert_includes k8s_networking["content"], "allow-dns-egress"
+    assert_includes k8s_pod_networking["content"], "Hairpin and SNAT Checks"
+    assert_includes practical_identity["content"], "OAuth authorization-code token exchange"
+    assert_includes practical_databases["content"], "CREATE INDEX CONCURRENTLY"
+    assert_includes practical_databases["content"], "PgBouncer"
+    assert_includes practical_databases["content"], "OpenSearch"
+    assert_includes practical_ceph["content"], "ceph osd pool create"
+    assert_includes practical_istio["content"], "VirtualService"
+    assert_includes practical_istio["content"], "AuthorizationPolicy"
+    assert_includes practical_troubleshooting["content"], "Troubleshooting Capture Example"
     assert_includes postgres["content"], "EXPLAIN"
     assert_includes databases["content"], "ACID"
     assert_includes databases["content"], "B-trees"
@@ -930,6 +1396,13 @@ class SiteTest < Minitest::Test
     assert_includes ceph["content"], "RADOS"
     assert_includes ceph["content"], "Client IO Path"
     assert_includes ceph["content"], "Erasure-coded pool"
+    assert_includes ceph_rados["content"], "PG autoscaler"
+    assert_includes ceph_rados["content"], "Placement evidence"
+    assert_includes ceph_rados["content"], "PG peering and recovery lifecycle"
+    assert_includes ceph_interfaces["content"], "RBD"
+    assert_includes ceph_operations["content"], "Recovery and Backfill"
+    assert_includes ceph_operations["content"], "Recovery tuning decision matrix"
+    assert_includes ceph_performance["content"], "BlueStore"
     assert_includes lvm["content"], "pvmove"
     assert_includes systemd["content"], "journalctl"
     assert_includes resolv["content"], "ndots"
@@ -947,14 +1420,21 @@ class SiteTest < Minitest::Test
     assert_includes kernel_modules_devices["content"], "modalias"
     assert_includes kernel_modules_devices["content"], "devtmpfs"
     assert_includes kernel_modules_devices["content"], "Secure Boot"
+    assert_includes kernel_modules_devices["content"], "udev Rule Examples"
+    assert_includes kernel_modules_devices["content"], "device rename failure cases"
     assert_includes filesystems["content"], "VFS"
     assert_includes block_devices["content"], "/dev/disk/by-id"
     assert_includes block_devices["content"], "PARTUUID"
+    assert_includes block_devices["content"], "Typical GPT layout"
     assert_includes mounts["content"], "findmnt --verify"
     assert_includes mounts["content"], "systemd-fstab-generator"
     assert_includes mounts["content"], "x-systemd.device-timeout"
+    assert_includes mounts["content"], "systemd Mount Dependency Examples"
+    assert_includes mounts["content"], "RequiresMountsFor"
     assert_includes mount_namespaces["content"], "mountinfo"
+    assert_includes mount_namespaces["content"], "Propagation Lab"
     assert_includes ext4_xfs["content"], "xfs_repair"
+    assert_includes ext4_xfs["content"], "What Not To Do During Repair"
     assert_includes storage_drives_raid_db["content"], "SSD"
     assert_includes storage_drives_raid_db["content"], "HDD"
     assert_includes storage_drives_raid_db["content"], "RAID 0"
@@ -971,12 +1451,21 @@ class SiteTest < Minitest::Test
     assert_includes raid_multipath["content"], "LUKS"
     assert_includes lvm["content"], "LVM and RAID"
     assert_includes storage_health["content"], "SMART"
+    assert_includes storage_health["content"], "SMART and NVMe Interpretation Gallery"
+    assert_includes storage_health["content"], "critical_warning"
     assert_includes containerization_oci_vms["content"], "OCI"
     assert_includes containerization_oci_vms["content"], "cgroups"
     assert_includes containerization_oci_vms["content"], "namespaces"
     assert_includes containerization_oci_vms["content"], "cgroup v2"
     assert_includes containerization_oci_vms["content"], "cpu.max"
     assert_includes containerization_oci_vms["content"], "memory.max"
+    assert_includes containerization_oci_vms["content"], "memory.high"
+    assert_includes containerization_oci_vms["content"], "Kubernetes Resource Mapping"
+    assert_includes containerization_oci_vms["content"], "cgroup v2 Labs"
+    assert_includes containerization_oci_vms["content"], "nr_throttled"
+    assert_includes containerization_oci_vms["content"], "cpu.stat"
+    assert_includes containerization_oci_vms["content"], "memory.events"
+    assert_includes containerization_oci_vms["content"], "PSI"
     assert_includes containerization_oci_vms["content"], "pids.max"
     assert_includes containerization_oci_vms["content"], "overlayfs"
     assert_includes containerization_oci_vms["content"], "lowerdir"
@@ -996,13 +1485,21 @@ class SiteTest < Minitest::Test
     assert_includes containerization_oci_vms["content"], "KVM"
     assert_includes containerization_oci_vms["content"], "Hyper-V isolation"
     assert_includes containerization_oci_vms["content"], "Virtual Machine"
+    assert_includes containerization_oci_vms["content"], "Security boundary layering"
     assert_includes linux_network["content"], "conntrack"
     assert_includes linux_network["content"], "Linux bridge"
     assert_includes linux_network["content"], "MASQUERADE"
     assert_includes linux_network["content"], "DNAT"
+    assert_includes linux_network["content"], "Netfilter and routing lookup path"
     assert_includes kernel_network_performance["content"], "NAPI"
     assert_includes kernel_network_performance["content"], "RPS"
+    assert_includes kernel_network_performance["content"], "Syscall-to-NIC Diagnostic Path"
+    assert_includes kernel_network_performance["content"], "strace -ttT"
+    assert_includes kernel_network_performance["content"], "ethtool -S"
+    assert_includes kernel_network_performance["content"], "Queue and CPU steering map"
     assert_includes tcp_kernel_tuning["content"], "tcp_max_syn_backlog"
+    assert_includes tcp_kernel_tuning["content"], "Backlog Saturation Lab"
+    assert_includes tcp_kernel_tuning["content"], "ListenOverflows"
     assert_includes sockets_ipc["content"], "Unix domain sockets"
     assert_includes processes_threads["content"], "thread group"
     assert_includes users_permissions["content"], "visudo"
@@ -1033,8 +1530,48 @@ class SiteTest < Minitest::Test
     assert_includes dns_records["content"], "NODATA"
     assert_includes dns_records["content"], "EDNS"
     assert_includes packet_path["content"], "qdisc"
+    assert_includes packet_path["content"], "Production Packet-Capture Labs"
+    assert_includes packet_path["content"], "MTU black hole"
+    assert_includes packet_path["content"], "TLS SNI mismatch"
+    assert_includes packet_path["content"], "DNS truncation"
+    assert_includes packet_path["content"], "QUIC blocked"
+    assert_includes packet_capture["content"], "tcpdump"
+    assert_includes packet_capture["content"], "tcp.analysis.retransmission"
+    assert_includes packet_capture["content"], "Packet-Capture Interpretation Gallery"
+    assert_includes packet_capture["content"], "Wireshark Display-Filter Cheatsheet"
+    assert_includes packet_capture["content"], "tls.handshake.extensions_server_name"
+    assert_includes packet_capture["content"], "Rolling Captures"
     assert_includes routing["content"], "policy routing"
+    assert_includes routing["content"], "Route Lookup and Policy Routing Example"
+    assert_includes routing["content"], "Neighbor lookup"
+    assert_includes bgp["content"], "AS path"
+    assert_includes bgp["content"], "communities"
+    assert_includes bgp["content"], "anycast"
+    assert_includes bgp["content"], "Best-Path Walkthrough"
+    assert_includes bgp["content"], "next hop reachable"
+    assert_includes datacenter_l2_l3["content"], "LACP"
+    assert_includes datacenter_l2_l3["content"], "MLAG"
+    assert_includes datacenter_l2_l3["content"], "EVPN"
+    assert_includes datacenter_l2_l3["content"], "Route dampening"
+    assert_includes datacenter_l2_l3["content"], "EVPN/VXLAN Failure Map"
+    assert_includes cloud_networking["content"], "security groups"
+    assert_includes cloud_networking["content"], "Private endpoint"
+    assert_includes cloud_networking["content"], "overlapping CIDRs"
+    assert_includes cloud_networking["content"], "AWS, Azure, and Google Cloud Differences"
+    assert_includes cloud_networking["content"], "Private Service Connect"
+    assert_includes network_namespaces["content"], "veth pair"
+    assert_includes network_namespaces["content"], "VXLAN"
+    assert_includes network_namespaces["content"], "CNI"
+    assert_includes ipv6_operations["content"], "Router Advertisements"
+    assert_includes ipv6_operations["content"], "NAT64"
+    assert_includes ipv6_operations["content"], "DNS64"
+    assert_includes ipv6_operations["content"], "Router Advertisement and SLAAC flow"
+    assert_includes ipv6_operations["content"], "NDP failure interpretation"
     assert_includes nat_gateways["content"], "port exhaustion"
+    assert_includes nat_gateways["content"], "NAT Exhaustion Runbook"
+    assert_includes nat_gateways["content"], "NAT Port Budget Estimator"
+    assert_includes nat_gateways["content"], "reuse connections"
+    assert_includes nat_gateways["content"], "Cloud Provider"
     assert_includes nat_gateways["content"], "hairpin NAT"
     assert_includes nat_gateways["content"], "PAT"
     assert_includes nat_gateways["content"], "split-horizon DNS"
@@ -1043,6 +1580,8 @@ class SiteTest < Minitest::Test
     assert_includes firewall_netfilter["content"], "iptables-save"
     assert_includes vpn_ipsec["content"], "IKEv2"
     assert_includes vpn_ipsec["content"], "traffic selectors"
+    assert_includes vpn_ipsec["content"], "IKEv2 and Child SA Timeline"
+    assert_includes vpn_ipsec["content"], "Proposal mismatch"
     assert_includes dhcp_routers_switches["content"], "DORA"
     assert_includes dhcp_routers_switches["content"], "DHCP relay"
     assert_includes dhcp_routers_switches["content"], "Option 82"
@@ -1064,11 +1603,36 @@ class SiteTest < Minitest::Test
     assert_includes certificates["content"], "cert-manager"
     assert_includes certificates["content"], "mTLS"
     assert_includes certificates["content"], "client certificate"
+    assert_includes certificates["content"], "trust overlap"
+    assert_includes certificates["content"], "Certificate Rotation Runbook"
+    assert_includes certificates["content"], "mTLS client CA rotation"
     assert_includes tcp_sockets["content"], "TIME_WAIT"
+    assert_includes tcp_sockets["content"], "Connection refused"
     assert_includes udp_quic["content"], "HTTP/3"
     assert_includes load_balancers["content"], "X-Forwarded-For"
+    assert_includes load_balancers["content"], "Draining and Rolling Restarts"
+    assert_includes load_balancers["content"], "Draining timeline"
+    assert_includes load_balancers["content"], "Drain budget checklist"
+    assert_includes resilience_timeouts["content"], "Timeout Budget"
+    assert_includes resilience_timeouts["content"], "Timeout-Budget Calculator"
+    assert_includes resilience_timeouts["content"], "backoff with jitter"
+    assert_includes resilience_timeouts["content"], "Circuit breakers"
+    assert_includes resilience_timeouts["content"], "load balancer draining"
+    assert_includes resilience_timeouts["content"], "DNS TTLs"
     assert_includes forward_reverse_proxies["content"], "CONNECT"
     assert_includes forward_reverse_proxies["content"], "NO_PROXY"
+    assert_includes http_proxy_debugging["content"], "curl --resolve"
+    assert_includes http_proxy_debugging["content"], "HTTP CONNECT"
+    assert_includes http_proxy_debugging["content"], "timeout alignment"
+    assert_includes zero_trust_networking["content"], "nftables"
+    assert_includes zero_trust_networking["content"], "mTLS"
+    assert_includes zero_trust_networking["content"], "SNI"
+    assert_includes zero_trust_networking["content"], "ALPN"
+    assert_includes zero_trust_networking["content"], "auditd"
+    assert_includes zero_trust_networking["content"], "SELinux"
+    assert_includes zero_trust_networking["content"], "AppArmor"
+    assert_includes zero_trust_networking["content"], "Zero-Trust Walkthrough"
+    assert_includes zero_trust_networking["content"], "SPIFFE-like"
     assert_includes tcp_tls["content"], "SNI"
     assert_includes tcp_tls["content"], "Failure Ladder Example"
     assert_includes tcp_tls["content"], "Timeout Budget"
@@ -1084,6 +1648,10 @@ class SiteTest < Minitest::Test
     assert_includes k8s_troubleshooting["content"], "PVC pending"
     assert_includes k8s_dns["content"], "ndots"
     assert_includes k8s_dns["content"], "NATS"
+    assert_includes k8s_dns["content"], "CoreDNS Failure Labs"
+    assert_includes k8s_dns["content"], "EndpointSlice RBAC"
+    assert_includes k8s_dns["content"], "SERVFAIL"
+    assert_includes k8s_dns["content"], "TCP fallback"
     assert_includes k8s_nats_dns["content"], "headless Service"
     assert_includes k8s_nats_dns["content"], "StatefulSet Pod DNS"
     assert_includes k8s_nats_dns["content"], "cluster.advertise"
@@ -1100,6 +1668,9 @@ class SiteTest < Minitest::Test
     assert_includes k8s_services["content"], "EndpointSlices"
     assert_includes k8s_pod_networking["content"], "CNI"
     assert_includes k8s_network_policy["content"], "default-deny"
+    assert_includes k8s_network_policy["content"], "Lab Scenarios"
+    assert_includes k8s_network_policy["content"], "namespaceSelector"
+    assert_includes k8s_network_policy["content"], "Ingress plus egress isolation test"
     assert_includes k8s_ingress_gateway["content"], "Gateway API"
     assert_includes identity["content"], "Identity Provider"
     assert_includes identity["content"], "authentication"
@@ -1114,6 +1685,10 @@ class SiteTest < Minitest::Test
     assert_includes auth_protocols["content"], "Refresh token"
     assert_includes auth_protocols["content"], "Key Rotation and JWKS"
     assert_includes auth_protocols["content"], "PKCE"
+    assert_includes auth_protocols["content"], "SAML Browser SSO Flow"
+    assert_includes auth_protocols["content"], "OAuth/OIDC Authorization Code with PKCE"
+    assert_includes auth_protocols["content"], "JWT Validation Decision Tree"
+    assert_includes auth_protocols["content"], "Session and Token Lifetime Timeline"
     assert_includes domain_controllers["content"], "_msdcs"
     assert_includes domain_controllers["content"], "Kerberos"
     assert_includes domain_controllers["content"], "Global Catalog"
@@ -1122,6 +1697,17 @@ class SiteTest < Minitest::Test
     assert_includes istio["content"], "xDS"
     assert_includes istio["content"], "Listener"
     assert_includes service_mesh["content"], "ztunnel"
+    assert_includes istio_traffic["content"], "VirtualService"
+    assert_includes istio_traffic["content"], "xDS Route Debugging Path"
+    assert_includes istio_security["content"], "PeerAuthentication"
+    assert_includes istio_security["content"], "mTLS Handshake and Identity Path"
+    assert_includes istio_security["content"], "Policy boundary matrix"
+    assert_includes istio_gateways["content"], "TLS passthrough"
+    assert_includes istio_zero_downtime["content"], "revision tags"
+    assert_includes istio_zero_downtime["content"], "maxUnavailable: 0"
+    assert_includes istio_zero_downtime["content"], "Gateway Upgrades"
+    assert_includes istio_zero_downtime["content"], "ztunnel"
+    assert_includes istio_observability["content"], "response flags"
     assert_operator index.length, :>=, 70
   end
 
@@ -1133,11 +1719,17 @@ class SiteTest < Minitest::Test
     assert_includes tags, "Core Concepts"
     assert_includes tags, 'id="postgres"'
     assert_includes graph, 'class="graph-board"'
+    assert_includes graph, 'class="graph-controls"'
+    assert_includes graph, 'id="graph-filter"'
+    assert_includes graph, 'data-graph-node'
+    assert_includes graph, 'data-graph-cluster="kubernetes"'
     assert_includes graph, 'class="tag-cloud"'
     assert_includes graph, "Kubernetes"
     assert_includes graph, "Troubleshooting"
+    assert_includes graph, "Incident Entry Points"
     assert_includes graph, "Foundational Study Review"
-    assert_includes graph, "Practical Examples"
+    assert_includes graph, "Cross-Topic Study Paths"
+    assert_includes graph, "Glossary"
     assert_includes graph, "DNS and CoreDNS"
     assert_includes graph, "NATS, DNS, and Kubernetes"
     assert_includes graph, "ExternalDNS"
@@ -1158,6 +1750,7 @@ class SiteTest < Minitest::Test
     assert_includes graph, "Records, Responses, and Transport"
     assert_includes graph, "Domain Controllers"
     assert_includes graph, "Packet Path"
+    assert_includes graph, "Request Path"
     assert_includes graph, "NAT Gateways and NAT"
     assert_includes graph, "Firewalls, iptables, and Netfilter"
     assert_includes graph, "VPNs and IPsec Tunnels"
@@ -1197,6 +1790,134 @@ class SiteTest < Minitest::Test
     assert_includes graph, "systemd Socket Activation"
     assert_includes graph, "Istio"
     assert_includes graph, "Service Mesh"
+    assert_includes graph, "Machine Learning"
+    assert_includes graph, "Fine-Tuning and LoRA"
+    assert_includes graph, "Retrieval-Augmented Generation"
+    assert_includes graph, "Explainability"
+  end
+
+  def test_study_paths_labs_and_quality_pages_render
+    study_paths = read_site("docs/study-paths/index.html")
+    labs = read_site("docs/labs/index.html")
+    quality = read_site("docs/quality/index.html")
+
+    assert_includes study_paths, 'class="path-card"'
+    assert_includes study_paths, 'data-path-card'
+    assert_includes study_paths, 'data-path-progress-fill'
+    assert_includes study_paths, 'data-path-step-url="/docs/ml/serving-inference-vllm/"'
+    assert_includes study_paths, "Production ML from 101 to Advanced Systems"
+    assert_includes study_paths, "PostgreSQL Reliability and Zero Downtime"
+
+    assert_includes labs, 'class="lab-card"'
+    assert_includes labs, 'data-lab-card="kubernetes-dns-outage"'
+    assert_includes labs, "Symptoms"
+    assert_includes labs, "Evidence"
+    assert_includes labs, "Checks"
+    assert_includes labs, "Answer:"
+    assert_includes labs, "vLLM Inference Latency Spike"
+
+    assert_includes quality, "Content Quality Dashboard"
+    assert_includes quality, "Coverage Snapshot"
+    assert_includes quality, "Pages Missing References"
+    assert_includes quality, "Pages Missing Study Cards"
+    assert_includes quality, 'class="quality-panel"'
+
+    embedded_lab = read_site("docs/ml/serving-inference-vllm/index.html")
+    assert_includes embedded_lab, "Scenario Lab"
+    assert_includes embedded_lab, "vLLM Inference Latency Spike"
+  end
+
+  def test_machine_learning_section_search_nav_and_content
+    nav = YAML.load_file(File.join(ROOT, "_data/study_nav.yml"))
+    ml_nav = nav.find { |item| item.fetch("title") == "Machine Learning" }
+    refute_nil ml_nav
+
+    expected_pages = {
+      "Machine Learning" => ["docs/ml/index.html", ["ML 101 Foundations", "Math for ML", "Classical ML", "Transformer Internals", "Advanced Inference and vLLM", "Responsible AI and Governance"]],
+      "ML 101 Foundations" => ["docs/ml/ml-101-foundations/index.html", ["When Not To Use ML", "Overfitting", "Practical Lab"]],
+      "Math for ML" => ["docs/ml/math-for-ml/index.html", ["Cosine Similarity", "Gradient Descent", "Attention Intuition"]],
+      "Classical ML" => ["docs/ml/classical-ml/index.html", ["LogisticRegression", "Gradient boosting", "Tabular Workflow"]],
+      "Deep Learning Fundamentals" => ["docs/ml/deep-learning-fundamentals/index.html", ["Training Stability", "Activation", "Practical Lab"]],
+      "ML Models, Types, and Weights" => ["docs/ml/models-weights/index.html", ["Supervised", "Transformers", "tokenizer", "checkpoint"]],
+      "Transformer Internals" => ["docs/ml/transformers-internals/index.html", ["RoPE", "KV Cache", "MoE Basics"]],
+      "LLM Training Lifecycle" => ["docs/ml/llm-training-lifecycle/index.html", ["Continued pretraining", "RLHF", "DPO", "Synthetic Data"]],
+      "ML Accelerators: GPU and TPU" => ["docs/ml/accelerators-gpu-tpu/index.html", ["GPU", "TPU", "BF16", "accelerator memory"]],
+      "PyTorch Fundamentals" => ["docs/ml/pytorch-fundamentals/index.html", ["autograd", "nn.Module", "optimizer", "checkpoint"]],
+      "Fine-Tuning and LoRA" => ["docs/ml/finetuning-lora/index.html", ["LoRA", "adapter", "fine-tuning", "regression eval", "Fine-tune release gate"]],
+      "Advanced Fine-Tuning" => ["docs/ml/advanced-finetuning/index.html", ["QLoRA", "Multi-Adapter Serving", "Dataset Mixing"]],
+      "Retrieval-Augmented Generation" => ["docs/ml/rag/index.html", ["embeddings", "chunking", "reranking", "faithfulness", "Retrieval debugging matrix"]],
+      "Advanced RAG" => ["docs/ml/advanced-rag/index.html", ["GraphRAG", "Citation Verification", "Hybrid retrieval"]],
+      "ML Agents and Tool Use" => ["docs/ml/agents/index.html", ["tool", "idempotency", "Guardrails", "trajectories", "Agent safety test cases"]],
+      "Advanced Agents" => ["docs/ml/advanced-agents/index.html", ["Durable execution", "Trajectory Review", "Approval"]],
+      "Multimodal ML" => ["docs/ml/multimodal-ml/index.html", ["OCR Pipeline", "Multimodal RAG", "Document QA Evidence"]],
+      "ML Serving, Inference, and vLLM" => ["docs/ml/serving-inference-vllm/index.html", ["prefill", "decode", "KV cache", "PagedAttention", "vLLM Tuning Matrix", "speculative decoding"]],
+      "Advanced Inference and vLLM" => ["docs/ml/advanced-inference-vllm/index.html", ["Disaggregated prefill", "KV-Cache Memory Math", "speculative decoding"]],
+      "ML Observability and Incident Response" => ["docs/ml/observability-incident-response/index.html", ["drift", "Prompt and retrieval logging", "Incident Runbook", "Quality Monitoring"]],
+      "Advanced ML Observability" => ["docs/ml/advanced-observability/index.html", ["Trace Schema", "Online Evaluation", "Incident Review Template"]],
+      "ML Data Pipelines and Feature Stores" => ["docs/ml/data-pipelines-feature-stores/index.html", ["feature store", "train/serve skew", "point-in-time correctness", "Data Quality Gates"]],
+      "MLOps Systems" => ["docs/ml/mlops-systems/index.html", ["Model Registry Record", "Shadow evaluation", "Cost Governance"]],
+      "ML Evaluation and CI/CD" => ["docs/ml/evaluation-ci-cd/index.html", ["golden set", "Regression gates", "Release Pipeline", "vLLM/runtime"]],
+      "ML Evaluation Mastery" => ["docs/ml/evaluation-mastery/index.html", ["Statistical Confidence", "Contamination Controls", "Eval Case Schema"]],
+      "ML Security and Privacy" => ["docs/ml/security-privacy/index.html", ["Prompt injection", "Data exfiltration", "Tenant isolation", "Security Release Gate"]],
+      "ML Security Threats" => ["docs/ml/ml-security-threats/index.html", ["Membership inference", "Secure RAG Checklist", "Prompt Injection Test"]],
+      "ML Prompt Operations" => ["docs/ml/prompt-operations/index.html", ["Prompt templates", "structured outputs", "Prompt Release Runbook", "generation config"]],
+      "Advanced ML Architectures" => ["docs/ml/advanced-architectures/index.html", ["Mixture of Experts", "Long-Context Design", "Architecture Decision Record"]],
+      "ML Performance Engineering" => ["docs/ml/performance-engineering/index.html", ["FlashAttention", "Activation checkpointing", "Performance Report"]],
+      "ML Alignment and Evaluation" => ["docs/ml/alignment-evaluation/index.html", ["RLHF", "DPO", "red teaming", "regression eval"]],
+      "ML Explainability" => ["docs/ml/explainability/index.html", ["SHAP", "LIME", "attention", "model card"]],
+      "Responsible AI and Governance" => ["docs/ml/responsible-ai-governance/index.html", ["Dataset card", "Risk Classification", "Release Approval Checklist"]]
+    }
+
+    expected_pages.each do |_title, (relative_path, terms)|
+      html = read_site(relative_path)
+      text = text_content(html)
+      assert_includes html, 'class="study-card-grid"', "Expected study cards in #{relative_path}"
+      terms.each { |term| assert_includes text, term, "Expected #{term} in #{relative_path}" }
+    end
+
+    expected_urls = expected_pages.values.map { |relative_path, _terms| "/#{relative_path.sub(%r{/index\.html\z}, "/")}" }
+    expected_urls.each do |url|
+      assert ml_nav.fetch("children").any? { |item| item.fetch("url") == url }, "Expected ML nav to include #{url}"
+    end
+
+    index = JSON.parse(read_site("assets/js/search-index.json"))
+    expected_pages.each do |title, (_relative_path, terms)|
+      page = index.find { |item| item["title"] == title }
+      refute_nil page, "Expected search index entry for #{title}"
+      terms.each { |term| assert_includes page["content"], term, "Expected #{term} in search entry for #{title}" }
+    end
+  end
+
+  def test_machine_learning_100_gap_closure_is_implemented
+    index_text = text_content(read_site("docs/ml/index.html"))
+    assert_includes index_text, "ML 100 Gap Closure Matrix"
+    assert_includes index_text, "ML-GAP-001 through ML-GAP-012"
+    assert_includes index_text, "ML-GAP-087 through ML-GAP-100"
+
+    gap_pages = {
+      "docs/ml/models-weights/index.html" => (1..12).to_a,
+      "docs/ml/accelerators-gpu-tpu/index.html" => (13..23).to_a,
+      "docs/ml/pytorch-fundamentals/index.html" => (24..35).to_a,
+      "docs/ml/finetuning-lora/index.html" => (36..47).to_a,
+      "docs/ml/rag/index.html" => (48..60).to_a,
+      "docs/ml/agents/index.html" => (61..72).to_a,
+      "docs/ml/alignment-evaluation/index.html" => (73..86).to_a,
+      "docs/ml/explainability/index.html" => (87..100).to_a
+    }
+
+    observed = []
+    gap_pages.each do |relative_path, expected_numbers|
+      text = text_content(read_site(relative_path))
+      page_numbers = text.scan(/ML-GAP-(\d{3})/).flatten.map(&:to_i).uniq.sort
+      assert_equal expected_numbers, page_numbers, "Expected exact ML gap range in #{relative_path}"
+      expected_numbers.each do |number|
+        label = format("ML-GAP-%03d", number)
+        assert_includes text, label, "Expected #{label} in #{relative_path}"
+      end
+      observed.concat(page_numbers)
+    end
+
+    assert_equal (1..100).to_a, observed.uniq.sort
   end
 
   def test_study_cards_render_and_script_supports_flipping
@@ -1232,6 +1953,12 @@ class SiteTest < Minitest::Test
       "docs/linux/network-stack/index.html",
       "docs/linux/kernel-network-performance/index.html",
       "docs/linux/tcp-kernel-tuning/index.html",
+      "docs/linux/ebpf-tracing/index.html",
+      "docs/linux/memory-pressure-oom/index.html",
+      "docs/linux/syscall-debugging/index.html",
+      "docs/linux/security-controls/index.html",
+      "docs/linux/package-boot-recovery/index.html",
+      "docs/linux/performance-triage-runbooks/index.html",
       "docs/linux/sockets-ipc/index.html",
       "docs/linux/processes-threads/index.html",
       "docs/linux/debian-ubuntu/index.html",
@@ -1245,7 +1972,15 @@ class SiteTest < Minitest::Test
       "docs/linux/systemd-networking/index.html",
       "docs/linux/systemd-socket-network-services/index.html",
       "docs/foundational-study-review/index.html",
-      "docs/practical-examples/index.html",
+      "docs/linux/practical-examples/index.html",
+      "docs/dns/practical-examples/index.html",
+      "docs/networking/practical-examples/index.html",
+      "docs/kubernetes/practical-examples/index.html",
+      "docs/identity/practical-examples/index.html",
+      "docs/databases/practical-examples/index.html",
+      "docs/ceph/practical-examples/index.html",
+      "docs/istio/practical-examples/index.html",
+      "docs/troubleshooting/practical-examples/index.html",
       "docs/troubleshooting/index.html",
       "docs/kubernetes/index.html",
       "docs/kubernetes/core-concepts/index.html",
@@ -1269,7 +2004,12 @@ class SiteTest < Minitest::Test
       "docs/dns/domain-controllers/index.html",
       "docs/networking/index.html",
       "docs/networking/packet-path/index.html",
+      "docs/networking/packet-capture-analysis/index.html",
       "docs/networking/routing-nat-firewalls/index.html",
+      "docs/networking/bgp-dynamic-routing/index.html",
+      "docs/networking/cloud-networking/index.html",
+      "docs/networking/network-namespaces-virtual-networking/index.html",
+      "docs/networking/ipv6-operations/index.html",
       "docs/networking/nat-gateways/index.html",
       "docs/networking/firewalls-iptables-netfilter/index.html",
       "docs/networking/vpn-ipsec-tunnels/index.html",
@@ -1282,6 +2022,7 @@ class SiteTest < Minitest::Test
       "docs/networking/udp-quic-connectionless/index.html",
       "docs/networking/load-balancers-proxies/index.html",
       "docs/networking/proxies-forward-reverse/index.html",
+      "docs/networking/http-proxy-debugging/index.html",
       "docs/networking/tcp-tls-http/index.html",
       "docs/istio/index.html",
       "docs/istio/service-mesh/index.html",
@@ -1290,9 +2031,43 @@ class SiteTest < Minitest::Test
       "docs/databases/index.html",
       "docs/databases/postgres/index.html",
       "docs/databases/postgres/operations-ha/index.html",
+      "docs/databases/postgres/zero-downtime-upgrades/index.html",
       "docs/databases/postgres/pgbouncer/index.html",
       "docs/databases/postgres/cloudnativepg/index.html",
-      "docs/databases/opensearch/index.html"
+      "docs/databases/opensearch/index.html",
+      "docs/ml/index.html",
+      "docs/ml/ml-101-foundations/index.html",
+      "docs/ml/math-for-ml/index.html",
+      "docs/ml/classical-ml/index.html",
+      "docs/ml/deep-learning-fundamentals/index.html",
+      "docs/ml/models-weights/index.html",
+      "docs/ml/transformers-internals/index.html",
+      "docs/ml/llm-training-lifecycle/index.html",
+      "docs/ml/accelerators-gpu-tpu/index.html",
+      "docs/ml/pytorch-fundamentals/index.html",
+      "docs/ml/finetuning-lora/index.html",
+      "docs/ml/advanced-finetuning/index.html",
+      "docs/ml/rag/index.html",
+      "docs/ml/advanced-rag/index.html",
+      "docs/ml/agents/index.html",
+      "docs/ml/advanced-agents/index.html",
+      "docs/ml/multimodal-ml/index.html",
+      "docs/ml/serving-inference-vllm/index.html",
+      "docs/ml/advanced-inference-vllm/index.html",
+      "docs/ml/observability-incident-response/index.html",
+      "docs/ml/advanced-observability/index.html",
+      "docs/ml/data-pipelines-feature-stores/index.html",
+      "docs/ml/mlops-systems/index.html",
+      "docs/ml/evaluation-ci-cd/index.html",
+      "docs/ml/evaluation-mastery/index.html",
+      "docs/ml/security-privacy/index.html",
+      "docs/ml/ml-security-threats/index.html",
+      "docs/ml/prompt-operations/index.html",
+      "docs/ml/advanced-architectures/index.html",
+      "docs/ml/performance-engineering/index.html",
+      "docs/ml/alignment-evaluation/index.html",
+      "docs/ml/explainability/index.html",
+      "docs/ml/responsible-ai-governance/index.html"
     ].each do |relative_path|
       html = read_site(relative_path)
 
@@ -1302,9 +2077,7 @@ class SiteTest < Minitest::Test
   end
 
   def test_all_content_docs_render_study_cards
-    markdown_paths = Dir[File.join(ROOT, "docs/**/*.md")].reject do |path|
-      path.end_with?("/docs/template.md")
-    end
+    markdown_paths = Dir[File.join(ROOT, "docs/**/*.md")]
 
     markdown_paths.each do |path|
       relative_markdown = path.delete_prefix("#{ROOT}/")
@@ -1394,36 +2167,134 @@ class SiteTest < Minitest::Test
     assert_includes html, 'class="language-yaml highlighter-rouge"'
   end
 
-  def test_practical_examples_cover_each_major_area_with_code
-    html = read_site("docs/practical-examples/index.html")
-    text = text_content(html)
+  def test_embedded_practical_examples_cover_each_major_area_with_code
+    pages = {
+      "docs/linux/systemd-networking/index.html" => ["VLAN and Bridge Example", "networkctl status", "systemd-networkd"],
+      "docs/linux/containerization-oci-vms/index.html" => ["Kubernetes Resource Mapping", "memory.high", "cpu.stat"],
+      "docs/dns/resolution-caching/index.html" => ["Intermittent DNS Runbook", "dig +tcp", "tcpdump"],
+      "docs/networking/cross-layer-incident-runbooks/index.html" => ["HTTP 504", "Connection Refused", "Node Can Reach Service but Pod Cannot"],
+      "docs/networking/packet-path/index.html" => ["Production Packet-Capture Labs", "MTU black hole", "QUIC blocked"],
+      "docs/networking/firewalls-iptables-netfilter/index.html" => ["Host Firewall Example", "nftables", "ct state established"],
+      "docs/kubernetes/networking/index.html" => ["Service Datapath Modes", "allow-dns-egress", "Pod-to-External Egress"],
+      "docs/kubernetes/pod-networking-cni/index.html" => ["Pod Packet Paths", "Hairpin and SNAT Checks", "kubectl exec"],
+      "docs/identity/practical-examples/index.html" => ["Identity OAuth and JWT Examples", "OAuth authorization-code token exchange", "jwks.json"],
+      "docs/databases/practical-examples/index.html" => ["PostgreSQL Examples", "CREATE INDEX CONCURRENTLY", "PgBouncer Example", "OpenSearch Examples"],
+      "docs/ceph/practical-examples/index.html" => ["Ceph Examples", "ceph osd pool create", "rbd create"],
+      "docs/istio/practical-examples/index.html" => ["Istio Examples", "kind: VirtualService", "AuthorizationPolicy"],
+      "docs/troubleshooting/practical-examples/index.html" => ["Troubleshooting Capture Example", "journalctl -p warning..alert"]
+    }
 
-    [
-      "Linux Service Example",
-      "Linux Backup Script Example",
-      "nftables Firewall Example",
-      "DNS Zone Example",
-      "TLS and mTLS Examples",
-      "Kubernetes Deployment Example",
-      "Kubernetes NetworkPolicy Example",
-      "Kubernetes Storage Example",
-      "Identity OAuth and JWT Examples",
-      "PostgreSQL Examples",
-      "PgBouncer Example",
-      "OpenSearch Examples",
-      "Ceph Examples",
-      "Istio Examples",
-      "Troubleshooting Capture Example"
-    ].each do |section|
-      assert_includes text, section
+    total_code_blocks = 0
+    pages.each do |relative_path, expected_terms|
+      html = read_site(relative_path)
+      text = text_content(html)
+      expected_terms.each { |term| assert_includes text, term }
+      assert_includes html, 'class="study-card-grid"'
+      total_code_blocks += html.scan('class="language-').length
     end
 
-    assert_operator html.scan('class="language-').length, :>=, 20
-    assert_includes text, "CREATE INDEX CONCURRENTLY"
-    assert_includes text, "ceph osd pool create"
-    assert_includes text, "kind: NetworkPolicy"
-    assert_includes text, "kind: VirtualService"
-    assert_includes text, "AuthorizationPolicy"
+    assert_operator total_code_blocks, :>=, 20
+  end
+
+  def test_operational_pages_have_embedded_examples_and_invariants
+    operational_pages = [
+      "docs/networking/request-path/index.html",
+      "docs/troubleshooting/incident-entrypoints/index.html",
+      "docs/networking/cross-layer-incident-runbooks/index.html",
+      "docs/networking/packet-path/index.html",
+      "docs/networking/packet-capture-analysis/index.html",
+      "docs/networking/nat-gateways/index.html",
+      "docs/networking/cloud-networking/index.html",
+      "docs/networking/datacenter-l2-l3-operations/index.html",
+      "docs/networking/resilience-timeouts-draining/index.html",
+      "docs/networking/zero-trust-networking/index.html",
+      "docs/networking/certificates-https/index.html",
+      "docs/kubernetes/networking/index.html",
+      "docs/kubernetes/dns-coredns/index.html",
+      "docs/kubernetes/network-policy/index.html",
+      "docs/kubernetes/pod-networking-cni/index.html",
+      "docs/kubernetes/services-endpointslices/index.html",
+      "docs/linux/containerization-oci-vms/index.html",
+      "docs/linux/memory-pressure-oom/index.html",
+      "docs/linux/kernel-network-performance/index.html",
+      "docs/linux/systemd-networking/index.html"
+    ]
+
+    operational_pages.each do |relative_path|
+      html = read_site(relative_path)
+      text = text_content(html)
+
+      assert_match(/First Checks|First Evidence/, text, "Expected first checks/evidence in #{relative_path}")
+      assert_includes html, 'class="study-card-grid"', "Expected study cards in #{relative_path}"
+      assert_includes text, "References", "Expected references in #{relative_path}"
+      assert_operator html.scan('class="language-').length, :>=, 1, "Expected at least one practical code example in #{relative_path}"
+      assert_match(/Runbook|Flow|Lab|Checklist|Matrix|Diagram|Gallery|Example|Troubleshooting/, text, "Expected operational workflow content in #{relative_path}")
+    end
+  end
+
+  def test_content_pages_have_required_front_matter_and_references
+    markdown_paths = (Dir[File.join(ROOT, "docs/**/*.md")] + Dir[File.join(ROOT, "docs/*.md")]).uniq
+
+    markdown_paths.each do |path|
+      relative_path = path.delete_prefix("#{ROOT}/")
+      text = File.read(path)
+      front_matter = text[%r{\A---\n(.*?)\n---}m, 1]
+
+      refute_nil front_matter, "Expected front matter in #{relative_path}"
+      %w[title layout permalink summary tags].each do |key|
+        assert_match(/^#{Regexp.escape(key)}:/, front_matter, "Expected #{key} in #{relative_path}")
+      end
+
+      assert_includes text, "## References", "Expected references in #{relative_path}"
+    end
+  end
+
+  def test_operational_pages_have_runbook_callouts_and_diagrams
+    {
+      "docs/networking/request-path/index.html" => ["sequenceDiagram", "End-to-End Diagram", "Response Path"],
+      "docs/kubernetes/networking/index.html" => ["flowchart LR", "Service Datapath Diagrams", "eBPF replacement mode"],
+      "docs/kubernetes/dns-coredns/index.html" => ["flowchart LR", "DNS Resolution Diagram", "CoreDNS Failure Labs"],
+      "docs/linux/containerization-oci-vms/index.html" => ["flowchart TB", "cgroup v2 Labs", "memory.events"],
+      "docs/networking/resilience-timeouts-draining/index.html" => ["flowchart LR", "Timeout-Budget Calculator", "Load Balancer Draining"],
+      "docs/kubernetes/storage-upgrades/index.html" => ["version-callout", "runbook-panel", "flowchart LR", "Post-Upgrade Validation"],
+      "docs/databases/postgres/cloudnativepg/index.html" => ["version-callout", "runbook-panel", "flowchart LR", "Operator Upgrades"],
+      "docs/databases/postgres/zero-downtime-upgrades/index.html" => ["version-callout", "runbook-panel", "flowchart LR", "Blue/Green Logical Replication Runbook"],
+      "docs/ceph/operations-recovery/index.html" => ["runbook-panel", "flowchart LR", "Recovery and Backfill"],
+      "docs/istio/zero-downtime-upgrades/index.html" => ["runbook-panel", "flowchart LR", "Gateway Upgrades"]
+    }.each do |relative_path, expected_terms|
+      html = read_site(relative_path)
+      expected_terms.each { |term| assert_includes html, term, "Expected #{term} in #{relative_path}" }
+    end
+  end
+
+  def test_internal_links_resolve_to_rendered_files
+    html_paths = Dir[File.join(ROOT, "_site/**/*.html")].reject do |path|
+      path.include?("/_site/playwright-report/")
+    end
+
+    html_paths.each do |path|
+      html = File.read(path)
+      current_dir = File.dirname(path)
+      html.scan(/href="([^"]+)"/).flatten.each do |href|
+        next if href.start_with?("#", "http://", "https://", "mailto:", "javascript:")
+        next if href.start_with?("tel:")
+
+        href_path = href.split("#", 2).first
+        next if href_path.empty?
+
+        target =
+          if href_path.start_with?("/")
+            File.join(ROOT, "_site", href_path.delete_prefix("/"))
+          else
+            File.expand_path(href_path, current_dir)
+          end
+
+        target = File.join(target, "index.html") if href_path.end_with?("/")
+        target = File.join(target, "index.html") if File.directory?(target)
+
+        assert_path_exists target, "Broken internal link #{href.inspect} from #{path.delete_prefix("#{ROOT}/")}"
+      end
+    end
   end
 
   def test_overarching_topics_use_launcher_instead_of_rendering_50_cards_inline
@@ -1434,7 +2305,8 @@ class SiteTest < Minitest::Test
       "networking" => "docs/networking/index.html",
       "postgres" => "docs/databases/postgres/index.html",
       "ceph" => "docs/ceph/index.html",
-      "istio" => "docs/istio/index.html"
+      "istio" => "docs/istio/index.html",
+      "ml" => "docs/ml/index.html"
     }.each do |deck, relative_path|
       html = read_site(relative_path)
 
@@ -1448,7 +2320,7 @@ class SiteTest < Minitest::Test
   def test_study_deck_data_has_at_least_50_cards_per_overarching_topic
     decks = YAML.load_file(File.join(ROOT, "_data/study_decks.yml"))
 
-    %w[linux kubernetes dns networking postgres ceph istio].each do |deck|
+    %w[linux kubernetes dns networking postgres ceph istio ml].each do |deck|
       assert_operator decks.fetch(deck).fetch("cards").length, :>=, 50, "Expected at least 50 cards in #{deck} deck"
     end
   end
@@ -1456,7 +2328,7 @@ class SiteTest < Minitest::Test
   def test_generated_study_deck_json_exposes_all_decks
     decks = JSON.parse(read_site("assets/js/study-decks.json"))
 
-    %w[linux kubernetes dns networking postgres ceph istio].each do |deck|
+    %w[linux kubernetes dns networking postgres ceph istio ml].each do |deck|
       assert_operator decks.fetch(deck).fetch("cards").length, :>=, 50
       assert decks.fetch(deck).fetch("cards").first.key?("q")
       assert decks.fetch(deck).fetch("cards").first.key?("a")
@@ -1487,16 +2359,24 @@ class SiteTest < Minitest::Test
     assert_includes html, 'data-action="mark-wrong"'
     assert_includes html, 'data-action="reset-study"'
     assert_includes html, 'id="study-progress-fill"'
-    assert_includes html, 'id="study-stage-card" role="button" tabindex="0" aria-pressed="false"'
+    assert_includes html, 'id="study-stage-card" role="button" tabindex="0" aria-pressed="false" aria-keyshortcuts="Enter Space ArrowLeft ArrowRight ArrowUp ArrowDown"'
+    assert_includes html, 'id="study-card-label">Start quiz</span>'
+    assert_includes html, 'id="study-card-text">Start selected cards</p>'
+    assert_includes html, 'id="study-card-hint">Click this card to begin.</small>'
 
     assert_includes script, "study-decks.json"
     assert_includes script, "openStudy"
     assert_includes script, "studyProgressFill"
     assert_includes script, "selectedStudyDecks"
     assert_includes script, "moveStudyCard"
+    assert_includes script, "startOrRevealStudyCard"
     assert_includes script, 'studyStageCard.addEventListener("click"'
     assert_includes script, "revealStudyCard();"
     assert_includes script, 'studyStageCard.setAttribute("aria-pressed"'
+    assert_includes script, 'event.key === "ArrowLeft"'
+    assert_includes script, 'event.key === "ArrowRight"'
+    assert_includes script, 'event.key === "ArrowUp" || event.key === "ArrowDown"'
+    assert_includes script, "studyCardHint.hidden = true"
     assert_includes script, "markStudyCard"
     assert_includes script, "Complete:"
 
@@ -1507,6 +2387,7 @@ class SiteTest < Minitest::Test
     assert_includes css, ".study-topic-chip"
     assert_includes css, ".study-progress-track"
     assert_includes css, ".study-stage-card"
+    assert_includes css, ".study-stage-card small"
   end
 
   def test_researched_topic_coverage_is_present
@@ -1584,6 +2465,7 @@ class SiteTest < Minitest::Test
       "docs/ceph/rook-ceph/index.html",
       "docs/databases/postgres/index.html",
       "docs/databases/postgres/operations-ha/index.html",
+      "docs/databases/postgres/zero-downtime-upgrades/index.html",
       "docs/databases/postgres/pgbouncer/index.html",
       "docs/databases/postgres/cloudnativepg/index.html",
       "docs/databases/opensearch/index.html"
@@ -1938,6 +2820,14 @@ class SiteTest < Minitest::Test
       "LoadBalancer",
       "CSI",
       "kubeadm upgrade",
+      "Version Skew and Order",
+      "Worker Node Workflow",
+      "Post-Upgrade Validation",
+      "Admission webhooks",
+      "Operator Deployment and Scaling",
+      "Operator Upgrades",
+      "leader election",
+      "CLUSTERS_ROLLOUT_DELAY",
       "Identity Provider",
       "IdP",
       "authentication",
@@ -2105,6 +2995,12 @@ class SiteTest < Minitest::Test
       "pg_promote",
       "pg_rewind",
       "timeline",
+      "zero downtime",
+      "CloudNativePG Minor Updates",
+      "Blue/Green Logical Replication Runbook",
+      "PgBouncer and Connection Draining",
+      "Kubernetes Guardrails",
+      "pg_upgrade",
       "Sharding",
       "shard key",
       "shard map",
@@ -2203,12 +3099,23 @@ class SiteTest < Minitest::Test
 
     assert_includes script, "toggle-theme"
     assert_includes script, "toggle-reader"
+    assert_includes script, "toggle-runbook"
+    assert_includes script, "mark-complete"
+    assert_includes script, "copy-page-link"
     assert_includes script, "collapse-sidebar"
     assert_includes script, "toggle-sidebar"
     assert_includes script, "open-study"
     assert_includes script, "font-family-control"
     assert_includes script, "text-size-control"
     assert_includes script, "search-index.json"
+    assert_includes script, "pageProgress"
+    assert_includes script, "studyStats"
+    assert_includes script, "studyWeakOnly"
+    assert_includes script, "studyMissedOnly"
+    assert_includes script, "renderPageToc"
+    assert_includes script, "addCopyButtons"
+    assert_includes script, "searchFilters"
+    assert_includes script, "renderGraphFilters"
   end
 
   def test_css_supports_mobile_responsive_layout_and_reader_mode
@@ -2217,6 +3124,13 @@ class SiteTest < Minitest::Test
     assert_includes css, "@media (max-width: 980px)"
     assert_includes css, "@media (max-width: 640px)"
     assert_includes css, ".reader-mode"
+    assert_includes css, ".runbook-mode"
+    assert_includes css, ".page-toc"
+    assert_includes css, ".copy-code-button"
+    assert_includes css, ".path-card"
+    assert_includes css, ".lab-card"
+    assert_includes css, ".quality-panel"
+    assert_includes css, ".graph-controls"
     assert_includes css, "--reader-size"
     assert_includes css, "data-theme=\"dark\""
   end

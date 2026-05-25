@@ -63,6 +63,49 @@ Every hop has timeouts:
 
 Timeouts should form a deliberate budget. If an outer timeout is shorter than an inner timeout, clients may see failures while backends keep working on abandoned requests.
 
+For deeper zero-downtime behavior, see [Resilience, Timeouts, and Draining](../resilience-timeouts-draining/). The short version is: connection pools, retries, keepalive, load-balancer idle timeout, backend request timeout, and deployment drain timeout must agree.
+
+## Draining and Rolling Restarts
+
+A backend leaving service should stop receiving new traffic before it exits. In Kubernetes that usually means readiness fails first, EndpointSlices update, the load balancer or proxy stops choosing the endpoint, and the process continues serving in-flight requests until `terminationGracePeriodSeconds`.
+
+Common failure modes:
+
+- readiness stays true until the process exits,
+- `preStop` sleeps but the app keeps accepting new work,
+- load balancer deregistration delay is longer than pod grace period,
+- clients reuse pooled connections to a backend that is already draining,
+- retries repeat unsafe writes during rollout.
+
+Draining timeline:
+
+```mermaid
+sequenceDiagram
+  participant Orchestrator
+  participant Backend
+  participant Service as Service/LB Registry
+  participant Proxy
+  participant Client
+
+  Orchestrator->>Backend: SIGTERM or drain signal
+  Backend->>Backend: Stop accepting new work / fail readiness
+  Service->>Proxy: Remove endpoint after propagation delay
+  Client->>Proxy: Existing request or reused connection
+  Proxy->>Backend: In-flight request completes during grace period
+  Backend-->>Proxy: Response
+  Backend->>Orchestrator: Exit before grace period ends
+```
+
+Drain budget checklist:
+
+| Timer | Must Be Coordinated With |
+| --- | --- |
+| Kubernetes `terminationGracePeriodSeconds` | App shutdown time, in-flight request maximum, sidecar drain time. |
+| `preStop` hook | Readiness failure and endpoint propagation delay, not a substitute for app drain logic. |
+| Load balancer deregistration delay | Pod grace period and backend keepalive behavior. |
+| Proxy upstream idle timeout | Client keepalive and backend server keepalive. |
+| Client retry budget | Idempotency and total request deadline. |
+
 ## Troubleshooting Flow
 
 1. Test DNS, TCP, TLS, and HTTP separately.
@@ -79,6 +122,7 @@ Timeouts should form a deliberate budget. If an outer timeout is shorter than an
   {% include study-card.html question="What can an L7 proxy route on?" answer="Application data such as HTTP Host, path, headers, methods, cookies, or protocol-specific fields." %}
   {% include study-card.html question="Why are shallow health checks risky?" answer="They can mark a backend healthy even when dependencies or the real request path are broken." %}
   {% include study-card.html question="Why should forwarding headers be trusted only from known proxies?" answer="Clients can forge headers such as X-Forwarded-For unless the edge proxy sanitizes them." %}
+  {% include study-card.html question="Why fail readiness before shutdown?" answer="It gives Services, proxies, and load balancers time to stop sending new requests before the process exits." %}
 </div>
 
 ## References

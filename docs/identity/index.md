@@ -14,6 +14,8 @@ tags:
 
 Identity systems answer two different questions that often get mixed together: who is the caller, and what is that caller allowed to do? The operational work is making those answers trustworthy across browsers, APIs, services, certificates, tokens, sessions, and policy engines.
 
+For OAuth token exchange, JWKS discovery, and JWT claim-check examples, see [Identity Examples](/docs/identity/practical-examples/).
+
 ## Critical Subtopics
 
 | Topic | Why It Matters |

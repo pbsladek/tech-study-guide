@@ -13,6 +13,8 @@ tags:
 
 Database fundamentals and implementation-specific notes.
 
+For concrete PostgreSQL, PgBouncer, and OpenSearch examples, see [Database and Search Examples](/docs/databases/practical-examples/).
+
 ## Core Mental Model
 
 A database is both a data model and a durability engine. It accepts logical operations such as queries and transactions, then turns them into page reads, page writes, logs, locks, cache behavior, replication streams, and recovery decisions.
@@ -48,6 +50,7 @@ The useful student habit is to translate a symptom into the layer that can produ
 - Transactions, isolation levels, locking, and MVCC.
 - Storage layout, drive behavior, RAID tradeoffs, write durability, and recovery.
 - Replication, backups, restores, and high availability.
+- Kubernetes PostgreSQL upgrades, including CloudNativePG rolling updates and logical-replication cutovers.
 - Search clusters, shard allocation, replica placement, and failover.
 - Observability and performance troubleshooting.
 
@@ -87,6 +90,7 @@ Do not pick a system only because it can store the shape of data. Pick it based 
 
 - [PostgreSQL](postgres/)
 - [PostgreSQL Operations, HA, Replication, and Recovery](postgres/operations-ha/)
+- [PostgreSQL Zero-Downtime Upgrades on Kubernetes](postgres/zero-downtime-upgrades/)
 - [PgBouncer](postgres/pgbouncer/)
 - [CloudNativePG](postgres/cloudnativepg/)
 - [OpenSearch Operations, Replication, Sharding, and HA](opensearch/)

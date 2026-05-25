@@ -71,6 +71,22 @@ Be precise about which stable identifier you use. Filesystem UUIDs identify a fi
 
 GPT is the common modern partition table. MBR still appears on older systems and small disks. A partition table divides a disk into partitions, but higher layers may use the whole disk directly, especially in LVM, cloud, database, or Ceph environments.
 
+Typical GPT layout:
+
+```mermaid
+flowchart LR
+  Disk[/Disk: /dev/nvme0n1/]
+  Disk --> Header1[Primary GPT header]
+  Disk --> Entries[Partition entry array]
+  Entries --> ESP[1 EFI System Partition\nFAT32, boot files]
+  Entries --> Boot[2 /boot or XBOOTLDR\nkernel and initramfs]
+  Entries --> Root[3 root filesystem\next4, XFS, LUKS, or LVM PV]
+  Entries --> Data[4 data / database / PV\noptional]
+  Disk --> Header2[Backup GPT header at end of disk]
+```
+
+GPT gives each partition a type GUID and a unique PARTUUID. Filesystems inside partitions have their own UUIDs. That distinction matters: bootloaders and initramfs may use PARTUUID to find a partition, while `/etc/fstab` often uses filesystem UUID or label to mount a filesystem.
+
 Partition safety rules:
 
 - confirm the target disk by size, serial, path, and current holders,

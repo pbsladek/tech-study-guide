@@ -37,6 +37,40 @@ Key ideas:
 - source address selection affects return traffic,
 - ECMP can split flows across next hops.
 
+### Route Lookup and Policy Routing Example
+
+```mermaid
+flowchart LR
+  Packet[Packet: src, dst, mark, input interface] --> Rules[ip rule priority order]
+  Rules --> Local[local table]
+  Rules --> Main[main table]
+  Rules --> Custom[custom table by source or fwmark]
+  Main --> LPM[longest-prefix match]
+  Custom --> LPM
+  LPM --> NextHop[next hop and egress interface]
+  NextHop --> Neigh[ARP/NDP neighbor lookup]
+  Neigh --> Output[egress qdisc and interface]
+```
+
+Policy routing lab:
+
+```text
+ip rule add from 10.10.20.0/24 table 200 priority 1000
+ip route add default via 10.10.20.1 dev eth1 table 200
+ip route get 198.51.100.10 from 10.10.20.50
+ip rule show
+ip route show table 200
+```
+
+Interpretation:
+
+| Observation | Meaning |
+| --- | --- |
+| `ip route` shows one default but `ip route get ... from ...` uses another | A policy rule selected a non-main table. |
+| Forward path works but replies leave a different interface | Source routing, asymmetric routes, or SNAT state is mismatched. |
+| Route exists but first packet stalls | Neighbor lookup, ARP/NDP filtering, or gateway reachability is failing. |
+| ECMP route exists but only some flows fail | One next hop or hash bucket is bad; vary source ports during tests. |
+
 Routers often provide the first routed boundary for DHCP. Because DHCPv4 starts with local broadcast, a router interface or relay agent must forward requests to DHCP servers on other subnets. The relay-selected interface address, commonly recorded in `giaddr`, is how the server chooses the right scope. A routing device can therefore break DHCP even while ordinary routed traffic works.
 
 Router-provided host configuration commonly arrives through DHCP options:

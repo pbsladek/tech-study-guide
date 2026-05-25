@@ -47,12 +47,22 @@ systemctl daemon-reload
 
 Dependencies and ordering are separate:
 
+```mermaid
+flowchart LR
+  NetworkTarget[network-online.target] -->|After=| App[app.service]
+  DB[postgresql.service] -->|Requires= and After=| App
+  Socket[app.socket] -->|Triggers| App
+  App -->|Wants=| Metrics[metrics-sidecar.service]
+```
+
 - `Requires=` and `Wants=` express requirement strength.
 - `After=` and `Before=` express order.
 - `PartOf=` propagates stop/restart behavior.
 - `BindsTo=` is stronger coupling, often tied to device or mount lifetime.
 
 Do not assume `After=network.target` means the network is fully usable. For network-dependent services, understand the distribution's network stack and whether `network-online.target` is appropriate.
+
+If a service starts too early, check both dependency and ordering. `Requires=network-online.target` without `After=network-online.target` can still be ordered incorrectly.
 
 ## Drop-ins
 
