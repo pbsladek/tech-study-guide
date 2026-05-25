@@ -39,21 +39,37 @@ test("study mode can start from the card, use arrow keys, score, and reset", asy
 
   await page.getByRole("button", { name: "Study" }).first().click();
   await expect(page.getByRole("dialog", { name: "Study Mode" })).toBeVisible();
+  await expect(page.locator(".study-filters")).toBeVisible();
+  await expect(page.locator("#study-summary")).toContainText("Selected");
+  await expect(page.locator("#study-due-counts")).toContainText("Due next");
+  await expect(page.getByRole("button", { name: "Review last missed" })).toBeVisible();
   await expect(page.locator(".study-topic-chip").first()).toBeVisible();
+  await expect(page.locator(".study-topic-meter").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Previous" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Reveal" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Next" })).toHaveCount(0);
 
-  await page.locator("#study-mode-select").selectOption("test");
+  await page.locator(".study-topic-chip").first().click();
+  await expect(page.locator("#study-all-topics")).not.toBeChecked();
+  await page.locator(".study-topic-chip").first().click();
+  await expect(page.locator("#study-all-topics")).toBeChecked();
+
+  await page.getByLabel("Test").check();
   await page.locator("#study-size-select").selectOption("10");
-  await expect(page.locator("#study-card-label")).toHaveText("Start quiz");
-  await expect(page.locator("#study-card-text")).toHaveText("Start selected cards");
+  await expect(page.locator("#study-card-label")).toHaveText("Ready");
+  await expect(page.locator("#study-card-state")).toHaveText("New");
+  await expect(page.locator("#study-card-text")).toHaveText("Click card to start");
 
   await page.locator("#study-stage-card").click();
 
   await expect(page.locator("#study-progress-text")).toHaveText("1 / 10");
+  await expect(page.locator("#study-bury-card")).toBeVisible();
   const questionText = await page.locator("#study-card-text").textContent();
 
   await page.locator("#study-stage-card").press("ArrowDown");
-  await expect(page.locator("#study-card-label")).toHaveText("Answer");
+  await expect(page.locator("#study-card-label")).toContainText("Answer");
   await expect(page.locator("#study-card-text")).not.toHaveText(questionText || "");
+  await expect(page.locator("#study-keyboard-hints")).toBeVisible();
 
   await page.locator("#study-stage-card").press("ArrowRight");
   await expect(page.locator("#study-progress-text")).toHaveText("2 / 10");
@@ -61,12 +77,23 @@ test("study mode can start from the card, use arrow keys, score, and reset", asy
   await page.locator("#study-stage-card").press("ArrowLeft");
   await expect(page.locator("#study-progress-text")).toHaveText("1 / 10");
 
-  await page.getByRole("button", { name: "Right" }).click();
+  await page.locator("#study-stage-card").press("ArrowDown");
+  await expect(page.getByRole("button", { name: "Got it" })).toBeVisible();
+  await page.getByRole("button", { name: "Got it" }).click();
   await expect(page.locator("#study-score-text")).toContainText("1 right");
+  await expect(page.locator("#study-progress-text")).toHaveText("2 / 10");
 
-  await page.getByRole("button", { name: "Reset" }).click();
+  await page.getByRole("button", { name: "Reset session" }).click();
   await expect(page.locator("#study-progress-text")).toHaveText("0 / 0");
-  await expect(page.locator("#study-card-text")).toHaveText("Start selected cards");
+  await expect(page.locator("#study-card-text")).toHaveText("Click card to start");
+
+  await page.locator("#study-stage-card").click();
+  await expect(page.locator("#study-progress-text")).toHaveText("1 / 10");
+  await page.locator("#study-bury-card").click();
+  await expect(page.locator("#study-progress-text")).toHaveText("1 / 9");
+
+  await page.getByRole("button", { name: "Review last missed" }).click();
+  await expect(page.getByRole("button", { name: "Review last missed" })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("topic pages for current coverage render important content", async ({ page }) => {

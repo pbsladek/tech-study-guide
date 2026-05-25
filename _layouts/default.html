@@ -227,7 +227,31 @@
         </div>
 
         <div class="study-workspace">
-          <section class="study-setup" aria-label="Study setup">
+          <section class="study-setup study-filters" aria-label="Study filters">
+            <div class="study-summary-panel" id="study-summary" aria-live="polite">
+              <div>
+                <span>Selected</span>
+                <strong data-study-summary="selected">0</strong>
+              </div>
+              <div>
+                <span>Weak</span>
+                <strong data-study-summary="weak">0</strong>
+              </div>
+              <div>
+                <span>Missed</span>
+                <strong data-study-summary="missed">0</strong>
+              </div>
+              <div>
+                <span>Time</span>
+                <strong data-study-summary="time">0m</strong>
+              </div>
+            </div>
+
+            <div class="study-quick-panel">
+              <button type="button" id="study-last-missed" data-action="toggle-last-missed" aria-pressed="false">Review last missed</button>
+              <div id="study-due-counts" class="study-due-counts">Due next: 0 new, 0 weak, 0 missed</div>
+            </div>
+
             <div class="study-topic-panel">
               <div class="study-control-heading">
                 <span>Topics</span>
@@ -240,13 +264,17 @@
             </div>
 
             <div class="study-option-panel">
-              <label>
-                Mode
-                <select id="study-mode-select">
-                  <option value="review">Review</option>
-                  <option value="test">Test</option>
-                </select>
-              </label>
+              <fieldset class="study-mode-toggle">
+                <legend>Mode</legend>
+                <label>
+                  <input type="radio" name="study-mode" value="review" checked>
+                  Review
+                </label>
+                <label>
+                  <input type="radio" name="study-mode" value="test">
+                  Test
+                </label>
+              </fieldset>
 
               <label>
                 Size
@@ -269,8 +297,7 @@
               </label>
 
               <div class="study-actions">
-                <button type="button" data-action="start-study">Start</button>
-                <button type="button" data-action="reset-study">Reset</button>
+                <button type="button" data-action="reset-study">Reset session</button>
               </div>
             </div>
           </section>
@@ -287,20 +314,21 @@
             </div>
 
             <article class="study-stage-card" id="study-stage-card" role="button" tabindex="0" aria-pressed="false" aria-keyshortcuts="Enter Space ArrowLeft ArrowRight ArrowUp ArrowDown">
-              <span id="study-card-label">Start quiz</span>
-              <p id="study-card-text">Start selected cards</p>
+              <div class="study-card-meta">
+                <span id="study-card-label">Ready</span>
+                <span id="study-card-state" class="study-state-badge">New</span>
+              </div>
+              <p id="study-card-text">Click card to start</p>
               <small id="study-card-hint">Click this card to begin.</small>
             </article>
 
-            <div class="study-card-controls">
-              <button type="button" data-action="previous-card">Previous</button>
-              <button type="button" data-action="reveal-card">Reveal</button>
-              <button type="button" data-action="next-card">Next</button>
-            </div>
+            <div class="study-keyboard-hints" id="study-keyboard-hints" aria-hidden="true">Space flips. Arrow keys move. 1 missed. 2 got it.</div>
+
+            <button type="button" class="study-bury-button" id="study-bury-card" data-action="bury-card" hidden>Bury card</button>
 
             <div class="study-test-controls" id="study-test-controls" hidden>
-              <button type="button" data-action="mark-wrong">Wrong</button>
-              <button type="button" data-action="mark-right">Right</button>
+              <button type="button" data-action="mark-wrong">Missed</button>
+              <button type="button" data-action="mark-right">Got it</button>
             </div>
 
             <div class="study-report" id="study-report" hidden></div>

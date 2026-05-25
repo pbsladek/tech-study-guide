@@ -2342,32 +2342,46 @@ class SiteTest < Minitest::Test
 
     assert_includes html, 'id="study-modal"'
     assert_includes html, 'class="study-workspace"'
+    assert_includes html, 'class="study-setup study-filters"'
+    assert_includes html, 'id="study-summary"'
+    assert_includes html, 'data-study-summary="selected"'
+    assert_includes html, 'id="study-last-missed"'
+    assert_includes html, 'id="study-due-counts"'
     assert_includes html, 'class="study-topic-panel"'
     assert_includes html, 'class="study-option-panel"'
     assert_includes html, 'id="study-all-topics"'
     assert_includes html, 'id="study-topic-list"'
-    assert_includes html, 'id="study-mode-select"'
-    assert_includes html, '<option value="review">Review</option>'
-    assert_includes html, '<option value="test">Test</option>'
+    assert_includes html, 'class="study-mode-toggle"'
+    assert_includes html, 'name="study-mode" value="review" checked'
+    assert_includes html, 'name="study-mode" value="test"'
     assert_includes html, 'id="study-size-select"'
     assert_includes html, '<option value="all">All selected</option>'
     assert_includes html, '<option value="10">10 cards</option>'
-    assert_includes html, 'data-action="previous-card"'
-    assert_includes html, 'data-action="next-card"'
-    assert_includes html, 'data-action="reveal-card"'
+    refute_includes html, 'data-action="previous-card"'
+    refute_includes html, 'data-action="next-card"'
+    refute_includes html, 'data-action="reveal-card"'
     assert_includes html, 'data-action="mark-right"'
     assert_includes html, 'data-action="mark-wrong"'
     assert_includes html, 'data-action="reset-study"'
     assert_includes html, 'id="study-progress-fill"'
     assert_includes html, 'id="study-stage-card" role="button" tabindex="0" aria-pressed="false" aria-keyshortcuts="Enter Space ArrowLeft ArrowRight ArrowUp ArrowDown"'
-    assert_includes html, 'id="study-card-label">Start quiz</span>'
-    assert_includes html, 'id="study-card-text">Start selected cards</p>'
+    assert_includes html, 'id="study-card-state"'
+    assert_includes html, 'id="study-card-label">Ready</span>'
+    assert_includes html, 'id="study-card-text">Click card to start</p>'
     assert_includes html, 'id="study-card-hint">Click this card to begin.</small>'
+    assert_includes html, 'id="study-keyboard-hints"'
+    assert_includes html, 'id="study-bury-card"'
 
     assert_includes script, "study-decks.json"
+    assert_includes script, "studyFilters"
+    assert_includes script, "studyLastMissed"
     assert_includes script, "openStudy"
     assert_includes script, "studyProgressFill"
     assert_includes script, "selectedStudyDecks"
+    assert_includes script, "selectedStudyMode"
+    assert_includes script, "saveStudyFilters"
+    assert_includes script, "applySavedStudyFilters"
+    assert_includes script, "updateStudySummary"
     assert_includes script, "moveStudyCard"
     assert_includes script, "startOrRevealStudyCard"
     assert_includes script, 'studyStageCard.addEventListener("click"'
@@ -2376,18 +2390,29 @@ class SiteTest < Minitest::Test
     assert_includes script, 'event.key === "ArrowLeft"'
     assert_includes script, 'event.key === "ArrowRight"'
     assert_includes script, 'event.key === "ArrowUp" || event.key === "ArrowDown"'
-    assert_includes script, "studyCardHint.hidden = true"
+    assert_includes script, "Click to reveal the answer."
+    assert_includes script, "buryCurrentCard"
+    assert_includes script, "touchstart"
+    assert_includes script, "touchend"
     assert_includes script, "markStudyCard"
     assert_includes script, "Complete:"
+    assert_includes script, "is-advancing"
 
     assert_includes css, ".study-card-grid"
     assert_includes css, "display: none"
     assert_includes css, ".study-modal"
     assert_includes css, ".study-workspace"
+    assert_includes css, ".study-filters"
+    assert_includes css, ".study-summary-panel"
+    assert_includes css, ".study-due-counts"
+    assert_includes css, ".study-topic-meter"
+    assert_includes css, ".study-mode-toggle"
     assert_includes css, ".study-topic-chip"
     assert_includes css, ".study-progress-track"
     assert_includes css, ".study-stage-card"
     assert_includes css, ".study-stage-card small"
+    assert_includes css, ".study-keyboard-hints"
+    assert_includes css, ".study-bury-button"
   end
 
   def test_researched_topic_coverage_is_present

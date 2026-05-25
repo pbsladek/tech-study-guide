@@ -5,21 +5,28 @@
   const baseUrl = document.body.dataset.baseurl || "";
   const pageProgressKey = "pageProgress";
   const studyStatsKey = "studyStats";
+  const studyFiltersKey = "studyFilters";
+  const studyLastMissedKey = "studyLastMissed";
   const studyModal = document.querySelector("#study-modal");
   const studyTopicList = document.querySelector("#study-topic-list");
   const studyAllTopics = document.querySelector("#study-all-topics");
-  const studyModeSelect = document.querySelector("#study-mode-select");
+  const studyModeInputs = Array.from(document.querySelectorAll("input[name='study-mode']"));
   const studySizeSelect = document.querySelector("#study-size-select");
   const studyWeakOnly = document.querySelector("#study-weak-only");
   const studyMissedOnly = document.querySelector("#study-missed-only");
+  const studyLastMissed = document.querySelector("#study-last-missed");
+  const studyDueCounts = document.querySelector("#study-due-counts");
   const studyStatus = document.querySelector("#study-status");
+  const studySummary = document.querySelector("#study-summary");
   const studyProgressText = document.querySelector("#study-progress-text");
   const studyProgressFill = document.querySelector("#study-progress-fill");
   const studyScoreText = document.querySelector("#study-score-text");
   const studyCardLabel = document.querySelector("#study-card-label");
+  const studyCardState = document.querySelector("#study-card-state");
   const studyCardText = document.querySelector("#study-card-text");
   const studyCardHint = document.querySelector("#study-card-hint");
   const studyStageCard = document.querySelector("#study-stage-card");
+  const studyBuryCard = document.querySelector("#study-bury-card");
   const studyTestControls = document.querySelector("#study-test-controls");
   const studyReport = document.querySelector("#study-report");
   const searchInput = document.querySelector("#site-search");
@@ -35,6 +42,8 @@
   let activeSearchIndex = -1;
   let searchItems = [];
   let searchMatches = [];
+  let studyTouchStartX = 0;
+  let studyTouchStartY = 0;
 
   function readJson(key, fallback) {
     try {
@@ -119,6 +128,16 @@
     document.execCommand("copy");
     textarea.remove();
     return Promise.resolve();
+  }
+
+  function tomorrowIsoDate() {
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function todayIsoDate() {
+    return new Date().toISOString().slice(0, 10);
   }
 
   function pageProgress() {
@@ -236,6 +255,11 @@
     return cardStats(card).wrong > 0;
   }
 
+  function isBuriedCard(card) {
+    const buriedUntil = cardStats(card).buriedUntil;
+    return buriedUntil && buriedUntil >= todayIsoDate();
+  }
+
   function updateStudyStats(card, isRight) {
     const stats = studyStats();
     const id = cardId(card);
@@ -286,15 +310,39 @@
     Object.keys(studyDecks).forEach((deckName) => {
       const label = document.createElement("label");
       const checkbox = document.createElement("input");
+      const name = document.createElement("span");
+      const meter = document.createElement("span");
+      const meterFill = document.createElement("span");
+      const metric = document.createElement("small");
       const cardCount = studyDecks[deckName].cards.length;
+      const stats = studyStats();
+      const cards = studyDecks[deckName].cards.map((card) => ({ ...card, deck: deckName }));
+      const mastered = cards.filter((card) => (stats.cards[cardId(card)] || {}).state === "mastered").length;
+      const answered = cards.reduce((count, card) => {
+        const cardRecord = stats.cards[cardId(card)] || {};
+        return count + (cardRecord.right || 0) + (cardRecord.wrong || 0);
+      }, 0);
+      const right = cards.reduce((count, card) => count + ((stats.cards[cardId(card)] || {}).right || 0), 0);
+      const accuracy = answered > 0 ? Math.round((right / answered) * 100) : 0;
+      const masteredPercent = cardCount > 0 ? Math.round((mastered / cardCount) * 100) : 0;
 
       label.className = "study-topic-chip";
+      label.dataset.deckName = deckName;
       checkbox.type = "checkbox";
       checkbox.value = deckName;
       checkbox.checked = preferredDeck ? deckName === preferredDeck : true;
 
+      name.className = "study-topic-name";
+      name.textContent = `${titleize(deckName)} (${cardCount})`;
+      meter.className = "study-topic-meter";
+      meterFill.style.width = `${masteredPercent}%`;
+      metric.textContent = answered > 0 ? `${accuracy}% accuracy` : "new deck";
+
       label.appendChild(checkbox);
-      label.appendChild(document.createTextNode(`${titleize(deckName)} (${cardCount})`));
+      label.appendChild(name);
+      meter.appendChild(meterFill);
+      label.appendChild(meter);
+      label.appendChild(metric);
       studyTopicList.appendChild(label);
     });
 
@@ -309,10 +357,95 @@
     return checked.length > 0 ? checked : Object.keys(studyDecks);
   }
 
+  function selectedStudyMode() {
+    return studyModeInputs.find((input) => input.checked)?.value || "review";
+  }
+
+  function lastMissedActive() {
+    return studyLastMissed?.getAttribute("aria-pressed") === "true";
+  }
+
+  function saveStudyFilters() {
+    if (!studyTopicList) return;
+    writeJson(studyFiltersKey, {
+      decks: selectedStudyDecks(),
+      mode: selectedStudyMode(),
+      size: studySizeSelect?.value || "all",
+      weakOnly: studyWeakOnly?.checked || false,
+      missedOnly: studyMissedOnly?.checked || false,
+      lastMissedOnly: lastMissedActive()
+    });
+  }
+
+  function applySavedStudyFilters(preferredDeck) {
+    const filters = readJson(studyFiltersKey, {});
+
+    if (studyTopicList) {
+      const deckSelection = preferredDeck ? [preferredDeck] : filters.decks;
+      if (Array.isArray(deckSelection) && deckSelection.length > 0) {
+        studyTopicList.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
+          checkbox.checked = deckSelection.includes(checkbox.value);
+        });
+      }
+    }
+
+    if (filters.mode) {
+      studyModeInputs.forEach((input) => {
+        input.checked = input.value === filters.mode;
+      });
+    }
+    if (studySizeSelect && filters.size) studySizeSelect.value = filters.size;
+    if (studyWeakOnly) studyWeakOnly.checked = Boolean(filters.weakOnly);
+    if (studyMissedOnly) studyMissedOnly.checked = Boolean(filters.missedOnly);
+    if (studyLastMissed) studyLastMissed.setAttribute("aria-pressed", filters.lastMissedOnly ? "true" : "false");
+    updateStudyAllTopics();
+  }
+
   function updateStudyAllTopics() {
     if (!studyAllTopics || !studyTopicList) return;
     const checkboxes = Array.from(studyTopicList.querySelectorAll("input[type='checkbox']"));
     studyAllTopics.checked = checkboxes.length > 0 && checkboxes.every((checkbox) => checkbox.checked);
+  }
+
+  function selectedPoolCards() {
+    if (!studyDecks) return [];
+    const lastMissed = readJson(studyLastMissedKey, []);
+    return selectedStudyDecks()
+      .flatMap((deckName) => studyDecks[deckName].cards.map((card) => ({ ...card, deck: deckName })))
+      .filter((card) => !isBuriedCard(card))
+      .filter((card) => !studyWeakOnly?.checked || isWeakCard(card))
+      .filter((card) => !studyMissedOnly?.checked || isMissedCard(card))
+      .filter((card) => !lastMissedActive() || lastMissed.includes(cardId(card)));
+  }
+
+  function updateStudySummary() {
+    if (!studyDecks) return;
+    const cards = selectedPoolCards();
+    const weak = cards.filter(isWeakCard).length;
+    const missed = cards.filter(isMissedCard).length;
+    const fresh = cards.filter((card) => cardStats(card).state === "new").length;
+    const minutes = cards.length > 0 ? Math.max(1, Math.ceil(cards.length * 0.35)) : 0;
+
+    if (studySummary) {
+      const set = (name, value) => {
+        const target = studySummary.querySelector(`[data-study-summary="${name}"]`);
+        if (target) target.textContent = value;
+      };
+      set("selected", cards.length);
+      set("weak", weak);
+      set("missed", missed);
+      set("time", `${minutes}m`);
+    }
+
+    if (studyDueCounts) {
+      studyDueCounts.textContent = `Due next: ${fresh} new, ${weak} weak, ${missed} missed`;
+    }
+  }
+
+  function refreshStudySetup() {
+    updateStudyAllTopics();
+    updateStudySummary();
+    saveStudyFilters();
   }
 
   function openStudy(preferredDeck) {
@@ -325,6 +458,8 @@
     loadStudyDecks()
       .then(() => {
         renderStudyTopics(preferredDeck);
+        applySavedStudyFilters(preferredDeck);
+        updateStudySummary();
         resetStudy();
         studyStatus.textContent = preferredDeck ? `${titleize(preferredDeck)} deck selected.` : "All topics selected.";
       })
@@ -343,12 +478,14 @@
     if (studyStageCard) {
       studyStageCard.dataset.revealed = "false";
       studyStageCard.setAttribute("aria-pressed", "false");
+      studyStageCard.classList.remove("is-advancing");
     }
-    if (studyCardLabel) studyCardLabel.textContent = "Start quiz";
-    if (studyCardText) studyCardText.textContent = "Start selected cards";
+    if (studyCardLabel) studyCardLabel.textContent = "Ready";
+    if (studyCardState) studyCardState.textContent = "New";
+    if (studyCardText) studyCardText.textContent = "Click card to start";
     if (studyCardHint) {
       studyCardHint.hidden = false;
-      studyCardHint.textContent = "Click this card to begin.";
+      studyCardHint.textContent = "Filters are on the left. Click to begin.";
     }
   }
 
@@ -366,6 +503,8 @@
       studyReport.textContent = "";
     }
     if (studyTestControls) studyTestControls.hidden = true;
+    if (studyBuryCard) studyBuryCard.hidden = true;
+    updateStudySummary();
   }
 
   function updateStudyProgress() {
@@ -394,14 +533,23 @@
 
     const card = studyCards[studyIndex];
     const stats = cardStats(card);
-    studyCardLabel.textContent = studyRevealed ? "Answer" : `Question - ${titleize(card.deck)} - ${titleize(stats.state)}`;
+    studyCardLabel.textContent = studyRevealed ? `Answer - ${titleize(card.deck)}` : `Question - ${titleize(card.deck)}`;
+    if (studyCardState) studyCardState.textContent = titleize(stats.state || "new");
     studyCardText.textContent = studyRevealed ? card.a : card.q;
     if (studyCardHint) {
-      studyCardHint.hidden = true;
-      studyCardHint.textContent = "";
+      studyCardHint.hidden = false;
+      studyCardHint.textContent = studyRevealed
+        ? selectedStudyMode() === "test"
+          ? "Mark this card below."
+          : "Click again for the next card."
+        : "Click to reveal the answer.";
     }
     studyStageCard.dataset.revealed = studyRevealed ? "true" : "false";
     studyStageCard.setAttribute("aria-pressed", studyRevealed ? "true" : "false");
+    if (studyTestControls) {
+      studyTestControls.hidden = selectedStudyMode() !== "test" || !studyRevealed;
+    }
+    if (studyBuryCard) studyBuryCard.hidden = false;
     updateStudyProgress();
   }
 
@@ -409,20 +557,10 @@
     if (!studyDecks) return;
 
     const decks = selectedStudyDecks();
-    let allCards = decks.flatMap((deckName) => {
-      return studyDecks[deckName].cards.map((card) => ({ ...card, deck: deckName }));
-    });
-
-    if (studyWeakOnly?.checked) {
-      allCards = allCards.filter(isWeakCard);
-    }
-
-    if (studyMissedOnly?.checked) {
-      allCards = allCards.filter(isMissedCard);
-    }
+    let allCards = selectedPoolCards();
 
     const size = studySizeSelect?.value || "all";
-    const shouldShuffle = size !== "all" || studyModeSelect?.value === "test" || studyWeakOnly?.checked || studyMissedOnly?.checked;
+    const shouldShuffle = size !== "all" || selectedStudyMode() === "test" || studyWeakOnly?.checked || studyMissedOnly?.checked;
 
     studyCards = shouldShuffle ? shuffle(allCards) : allCards;
     if (size !== "all") {
@@ -434,7 +572,7 @@
     studyResults = new Array(studyCards.length).fill(null);
 
     if (studyTestControls) {
-      studyTestControls.hidden = studyModeSelect?.value !== "test";
+      studyTestControls.hidden = true;
     }
     if (studyReport) {
       studyReport.hidden = true;
@@ -447,7 +585,7 @@
 
     if (studyCards.length === 0) {
       renderStudyStartCard();
-      if (studyStatus) studyStatus.textContent = studyMissedOnly?.checked ? "No missed cards found for the selected decks." : "No weak cards found for the selected decks.";
+      if (studyStatus) studyStatus.textContent = "No cards match the current filters.";
       return;
     }
 
@@ -473,6 +611,15 @@
       return;
     }
 
+    if (studyRevealed && selectedStudyMode() === "review") {
+      moveStudyCard(1);
+      return;
+    }
+
+    if (studyRevealed && selectedStudyMode() === "test") {
+      return;
+    }
+
     revealStudyCard();
   }
 
@@ -483,18 +630,53 @@
     studyResults[studyIndex] = isRight;
     updateStudyStats(card, isRight);
     updateStudyProgress();
+    updateStudySummary();
 
     const answered = studyResults.filter((result) => result !== null).length;
     if (answered === studyCards.length && studyReport) {
       const right = studyResults.filter((result) => result === true).length;
       const percent = Math.round((right / studyCards.length) * 100);
       const decks = [...new Set(studyCards.map((item) => item.deck))];
+      const missed = studyCards.filter((item, index) => studyResults[index] === false).map(cardId);
+      writeJson(studyLastMissedKey, missed);
+      renderStudyTopics();
+      applySavedStudyFilters();
+      updateStudySummary();
       studyReport.hidden = false;
       studyReport.innerHTML = `<strong>Complete:</strong> ${right} of ${studyCards.length} correct (${percent}%).<br>${deckAccuracySummary(decks).join("<br>")}`;
       return;
     }
 
-    moveStudyCard(1);
+    if (studyTestControls) studyTestControls.hidden = true;
+    studyStageCard?.classList.add("is-advancing");
+    window.setTimeout(() => {
+      studyStageCard?.classList.remove("is-advancing");
+      moveStudyCard(1);
+    }, 220);
+  }
+
+  function buryCurrentCard() {
+    if (studyCards.length === 0) return;
+    const card = studyCards[studyIndex];
+    const stats = studyStats();
+    const id = cardId(card);
+    stats.cards[id] ||= { seen: 0, right: 0, wrong: 0, state: "new" };
+    stats.cards[id].buriedUntil = tomorrowIsoDate();
+    writeJson(studyStatsKey, stats);
+
+    studyCards.splice(studyIndex, 1);
+    studyResults.splice(studyIndex, 1);
+    if (studyIndex >= studyCards.length) studyIndex = Math.max(0, studyCards.length - 1);
+    updateStudySummary();
+
+    if (studyCards.length === 0) {
+      resetStudy();
+      if (studyStatus) studyStatus.textContent = "All remaining cards are buried for today.";
+      return;
+    }
+
+    studyRevealed = false;
+    renderStudyCard();
   }
 
   function renderSearchFilters() {
@@ -646,24 +828,19 @@
       closeStudy();
     }
 
-    if (action === "start-study") {
-      startStudy();
-    }
-
     if (action === "reset-study") {
       resetStudy();
     }
 
-    if (action === "previous-card") {
-      moveStudyCard(-1);
+    if (action === "toggle-last-missed") {
+      const pressed = studyLastMissed?.getAttribute("aria-pressed") === "true";
+      studyLastMissed?.setAttribute("aria-pressed", pressed ? "false" : "true");
+      refreshStudySetup();
+      resetStudy();
     }
 
-    if (action === "next-card") {
-      moveStudyCard(1);
-    }
-
-    if (action === "reveal-card") {
-      revealStudyCard();
+    if (action === "bury-card") {
+      buryCurrentCard();
     }
 
     if (action === "mark-right") {
@@ -696,10 +873,51 @@
       studyTopicList.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
         checkbox.checked = studyAllTopics.checked;
       });
+      refreshStudySetup();
+      resetStudy();
     });
 
-    studyTopicList.addEventListener("change", updateStudyAllTopics);
+    studyTopicList.addEventListener("click", (event) => {
+      const label = event.target.closest(".study-topic-chip");
+      if (!label || event.target.matches("input")) return;
+
+      const checkbox = label.querySelector("input[type='checkbox']");
+      const checkboxes = Array.from(studyTopicList.querySelectorAll("input[type='checkbox']"));
+      const checked = checkboxes.filter((item) => item.checked);
+      event.preventDefault();
+
+      if (checkbox.checked && checked.length === 1) {
+        checkboxes.forEach((item) => {
+          item.checked = true;
+        });
+      } else {
+        checkboxes.forEach((item) => {
+          item.checked = item === checkbox;
+        });
+      }
+
+      refreshStudySetup();
+      resetStudy();
+    });
+
+    studyTopicList.addEventListener("change", () => {
+      refreshStudySetup();
+      resetStudy();
+    });
   }
+
+  studyModeInputs.forEach((input) =>
+    input.addEventListener("change", () => {
+      refreshStudySetup();
+      resetStudy();
+    })
+  );
+  [studySizeSelect, studyWeakOnly, studyMissedOnly].forEach((control) => {
+    control?.addEventListener("change", () => {
+      refreshStudySetup();
+      resetStudy();
+    });
+  });
 
   if (studyStageCard) {
     studyStageCard.addEventListener("click", () => startOrRevealStudyCard());
@@ -723,7 +941,36 @@
         event.preventDefault();
         revealStudyCard();
       }
+
+      if (selectedStudyMode() === "test" && studyRevealed && (event.key === "1" || event.key === "2")) {
+        event.preventDefault();
+        markStudyCard(event.key === "2");
+      }
     });
+
+    studyStageCard.addEventListener(
+      "touchstart",
+      (event) => {
+        const touch = event.changedTouches[0];
+        studyTouchStartX = touch.clientX;
+        studyTouchStartY = touch.clientY;
+      },
+      { passive: true }
+    );
+
+    studyStageCard.addEventListener(
+      "touchend",
+      (event) => {
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - studyTouchStartX;
+        const deltaY = touch.clientY - studyTouchStartY;
+        if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+        if (studyCards.length === 0 || selectedStudyMode() !== "review") return;
+        event.preventDefault();
+        moveStudyCard(deltaX < 0 ? 1 : -1);
+      },
+      { passive: false }
+    );
   }
 
   document.querySelectorAll(".study-card").forEach((card) => {
