@@ -14,12 +14,19 @@ tags:
 
 Advanced inference engineering is about managing tokens, memory, scheduling, and tail latency. vLLM provides a production-oriented serving engine, but operators still need to size KV cache, control prompt/output shapes, choose parallelism, and measure real traffic.
 
-## First Checks
+## Command Examples
 
 ```bash
 vllm serve <model> --help | sed -n '1,80p'
 curl -s http://localhost:8000/metrics | grep '^vllm:'
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `vllm serve <model> --help \| sed -n '1,80p'` | `GPU utilization, memory use, CUDA visibility, model list, or serving metrics.` | Separates accelerator visibility from model-serving capacity and latency. |
+| `curl -s http://localhost:8000/metrics \| grep '^vllm:'` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
 
 ## vLLM Architecture Concepts
 

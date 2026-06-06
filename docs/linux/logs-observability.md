@@ -14,7 +14,7 @@ tags:
 
 Linux administration requires knowing where evidence lives. The useful signal may be in the systemd journal, kernel ring buffer, application logs, syslog files, service status, metrics, or audit logs. Good operators collect evidence before restarting the thing that is failing.
 
-## First Checks
+## Command Examples
 
 ```bash
 journalctl -b
@@ -24,6 +24,14 @@ dmesg -T | tail -100
 ls -lh /var/log
 systemctl status systemd-journald
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `journalctl -b` | `Timestamped kernel, service, denial, OOM, device, or network warnings.` | Finds time-correlated evidence from the host. |
+| `journalctl -p warning..alert -b` | `Timestamped kernel, service, denial, OOM, device, or network warnings.` | Finds time-correlated evidence from the host. |
+| `journalctl -u ssh -b` | `Timestamped kernel, service, denial, OOM, device, or network warnings.` | Finds time-correlated evidence from the host. |
 
 ## Journal
 

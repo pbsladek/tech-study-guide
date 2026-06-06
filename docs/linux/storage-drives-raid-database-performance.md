@@ -16,7 +16,7 @@ tags:
 
 Storage design is a set of tradeoffs between latency, throughput, durability, rebuild risk, capacity, and operational recovery. A fast disk layout that loses the only copy of data is not resilient. A redundant disk layout that hides latency until a database stalls is not healthy. Databases make these tradeoffs visible because they issue sync writes, random reads, scans, compactions, checkpoints, and recovery reads under real user pressure.
 
-## First Checks
+## Command Examples
 
 ```bash
 lsblk -o NAME,TYPE,MODEL,SERIAL,ROTA,SIZE,FSTYPE,MOUNTPOINTS
@@ -26,6 +26,14 @@ iostat -xz 1
 smartctl -a /dev/sda
 nvme smart-log /dev/nvme0
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `lsblk -o NAME,TYPE,MODEL,SERIAL,ROTA,SIZE,FSTYPE,MOUNTPOINTS` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `cat /proc/mdstat` | `md0 : active raid1 ... [UU] or recovery progress.` | Shows RAID health and rebuild state. |
+| `mdadm --detail /dev/md0` | `Array level, state, active devices, failed devices, and UUID.` | Shows md RAID identity and degradation. |
 
 ## Drive Types
 
@@ -180,6 +188,24 @@ Mitigations:
 ## LVM With RAID
 
 LVM and RAID can be layered in several valid ways. The important part is knowing which layer owns redundancy and which layer owns allocation.
+
+```mermaid
+flowchart TB
+  Disks[Physical disks / cloud volumes] --> Redundancy[RAID or replicated storage]
+  Redundancy --> Encryption[Optional dm-crypt / LUKS]
+  Encryption --> Allocation[LVM volume group and logical volumes]
+  Allocation --> Filesystem[Filesystem or database volume]
+  Filesystem --> Database[Database files, WAL, indexes, temp]
+```
+
+## RAID vs LVM vs Filesystem
+
+| Layer | Owns | Does Not Own | Debug First When |
+| --- | --- | --- | --- |
+| RAID / replicated block layer | Redundancy, striping, rebuilds, degraded member handling. | Logical volume sizing, filesystem metadata, database consistency. | Members fail, rebuild stalls, latency spikes during recovery, or array is degraded. |
+| LVM / device mapper | Allocation, snapshots, thin pools, volume resizing, device mapping. | Disk-level redundancy unless using LVM RAID, filesystem repair, application recovery. | Volumes are missing, thin pool is full, mappings are wrong, or metadata was damaged. |
+| Filesystem | Inodes, directories, free space, journaling, mount options. | Lower block health, RAID rebuilds, database transaction semantics. | Mount fails, files vanish, inode/free-space pressure appears, or journal recovery is needed. |
+| Database storage layout | WAL, table/index files, temp files, checkpoints, crash recovery. | Block redundancy, filesystem metadata, physical device health. | Queries stall, sync writes slow, checkpoints spike, or recovery cannot read required files. |
 
 Common layouts:
 

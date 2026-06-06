@@ -14,7 +14,7 @@ tags:
 
 TCP tuning is mostly about queues, memory, timers, and state. The common mistake is changing a sysctl because it sounds related instead of proving which queue or state table is actually limiting traffic.
 
-## First Checks
+## Command Examples
 
 ```bash
 sysctl net.core.somaxconn
@@ -24,6 +24,14 @@ sysctl net.ipv4.tcp_fin_timeout
 ss -ltn
 cat /proc/net/sockstat
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `sysctl net.core.somaxconn` | `net.core.somaxconn = 4096.` | Shows the active kernel tunable value, not just the desired config. |
+| `sysctl net.ipv4.tcp_max_syn_backlog` | `net.core.somaxconn = 4096.` | Shows the active kernel tunable value, not just the desired config. |
+| `sysctl net.ipv4.ip_local_port_range` | `net.core.somaxconn = 4096.` | Shows the active kernel tunable value, not just the desired config. |
 
 These checks show backlog caps, handshake queue sizing, outbound port range, FIN timing, listening sockets, and aggregate socket memory/state.
 

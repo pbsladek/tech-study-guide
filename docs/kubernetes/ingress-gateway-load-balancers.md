@@ -14,7 +14,7 @@ tags:
 
 External traffic crosses several ownership boundaries before it reaches a Pod: public DNS, cloud or bare-metal load balancer, node or proxy datapath, Ingress or Gateway controller, Service, EndpointSlice, CNI, and the workload. Debugging is faster when each boundary is tested separately.
 
-## First Checks
+## Command Examples
 
 ```bash
 kubectl get ingress,gateway,httproute --all-namespaces
@@ -24,6 +24,14 @@ kubectl get svc -A --field-selector spec.type=LoadBalancer
 kubectl get endpointslice -l kubernetes.io/service-name=<service>
 curl -vk https://<host>/
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `kubectl get ingress,gateway,httproute --all-namespaces` | `Services with ClusterIPs and EndpointSlices with backend addresses.` | Connects stable frontends to the backends that should receive traffic. |
+| `kubectl describe ingress <name>` | `Services with ClusterIPs and EndpointSlices with backend addresses.` | Connects stable frontends to the backends that should receive traffic. |
+| `kubectl describe gateway <name>` | `Services with ClusterIPs and EndpointSlices with backend addresses.` | Connects stable frontends to the backends that should receive traffic. |
 
 ## Ingress
 
@@ -41,6 +49,17 @@ Ingress failure points:
 ## Gateway API
 
 Gateway API splits infrastructure ownership from route ownership. GatewayClass selects an implementation, Gateway represents an entry point, and Routes such as HTTPRoute attach application routing to Gateways.
+
+## Ingress vs Gateway API
+
+| Question | Ingress | Gateway API |
+| --- | --- | --- |
+| Primary scope | HTTP/HTTPS routing through a controller. | Extensible traffic API with separate GatewayClass, Gateway, Listener, and Route resources. |
+| Ownership model | Often app teams own Ingress and annotations. | Platform teams can own Gateways while app teams own Routes. |
+| Extension style | Controller-specific annotations are common. | Standard resource fields and typed route attachment conditions. |
+| Status clues | Ingress address, class, events, and controller logs. | Gateway, listener, and route conditions explain attachment and acceptance. |
+| Best fit | Simple HTTP routing and mature controller workflows. | Shared infrastructure, multi-team routing, richer protocol support, and clearer delegation. |
+| Common failure | Wrong class, annotations, host/path, TLS secret, or backend Service. | Route not accepted, listener mismatch, namespace attachment policy, or unresolved backend reference. |
 
 Useful mental model:
 

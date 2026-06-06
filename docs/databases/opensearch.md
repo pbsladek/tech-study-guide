@@ -17,7 +17,7 @@ OpenSearch is a distributed search engine. It stores data in indexes, splits ind
 
 For concrete cluster health, shard, allocation, and index-template examples, see [Database and Search Examples](/docs/databases/practical-examples/).
 
-## First Checks
+## Command Examples
 
 ```bash
 curl -sS https://<opensearch>:9200/_cluster/health?pretty
@@ -27,6 +27,14 @@ curl -sS https://<opensearch>:9200/_cluster/allocation/explain?pretty -H 'Conten
 curl -sS https://<opensearch>:9200/_cat/indices?v
 curl -sS https://<opensearch>:9200/_plugins/_replication/<follower-index>/_status?pretty
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `curl -sS https://<opensearch>:9200/_cluster/health?pretty` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
+| `curl -sS https://<opensearch>:9200/_cat/nodes?v` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
+| `curl -sS https://<opensearch>:9200/_cat/shards?v` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
 
 These checks separate cluster health, node roles, shard placement, allocation blockers, index state, and cross-cluster replication state. Pair them with JVM heap, disk watermarks, CPU, network, thread pools, and ingest error rates.
 

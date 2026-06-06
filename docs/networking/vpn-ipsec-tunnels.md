@@ -14,7 +14,7 @@ tags:
 
 A VPN is a controlled path through an untrusted or shared network. The hard operational parts are rarely just encryption. Operators also have to reason about identity, routes, traffic selectors, NAT traversal, MTU, firewall policy, failover, and whether both peers agree about what traffic belongs in the tunnel.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip route
@@ -25,6 +25,14 @@ ipsec statusall
 tcpdump -nn -i any udp port 500 or udp port 4500 or esp
 ping -M do -s 1372 <remote-ip>
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip route` | `Destination, gateway, interface, and selected source address.` | Shows how the host will route the target flow. |
+| `ip rule` | `0: from all lookup local; 100: from 10.0.0.0/24 lookup 100.` | Shows policy routing rules that can override the main route table. |
+| `ip xfrm state` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 Use these checks to separate routing, IPsec state, policy matching, IKE negotiation, ESP forwarding, NAT traversal, and tunnel MTU issues.
 

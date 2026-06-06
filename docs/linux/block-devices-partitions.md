@@ -14,7 +14,7 @@ tags:
 
 Storage operations start below the filesystem. Operators need to identify the right device, understand whether it is a disk, partition, virtual mapping, multipath device, LVM logical volume, or encrypted device, and avoid relying on names that can change across boots.
 
-## First Checks
+## Command Examples
 
 ```bash
 lsblk -o NAME,MAJ:MIN,SIZE,TYPE,FSTYPE,MOUNTPOINTS
@@ -23,6 +23,14 @@ udevadm info --query=all --name=/dev/sda | head
 parted -l
 cat /proc/partitions
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `YAML or text capture` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `blkid` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `udevadm info --query=all --name=/dev/sda \| head` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 ## Block Device Model
 

@@ -16,12 +16,19 @@ Fine-tuning adapts model weights to a task, domain, style, or policy. LoRA is a 
 
 Use fine-tuning when you need consistent behavior changes. Use RAG when the main problem is fresh or inspectable knowledge.
 
-## First Checks
+## Command Examples
 
 ```bash
 python -c "import torch; print(torch.__version__)"
 python -c "import transformers, peft; print(transformers.__version__); print(peft.__version__)"
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python snippet` | `A version, tensor shape, score, retrieved IDs, metric delta, or explicit error.` | Turns the example into a measurable model, data, or pipeline signal. |
+| `Python snippet` | `A version, tensor shape, score, retrieved IDs, metric delta, or explicit error.` | Turns the example into a measurable model, data, or pipeline signal. |
 
 These checks only prove library imports. Fine-tuning quality depends on data, objective, hyperparameters, and evaluation.
 

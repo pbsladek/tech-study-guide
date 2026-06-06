@@ -4,6 +4,37 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem("theme");
+          if (theme !== "light" && theme !== "dark") {
+            theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.dataset.theme = theme;
+          var sidebarState = localStorage.getItem("sidebarState");
+          document.documentElement.dataset.sidebarState = sidebarState === "closed" ? "closed" : "open";
+        } catch (error) {
+          document.documentElement.dataset.theme = "light";
+          document.documentElement.dataset.sidebarState = "open";
+        }
+      })();
+    </script>
+    <style>
+      html {
+        background: #f6f7f5;
+        color-scheme: light;
+      }
+
+      html[data-theme="dark"] {
+        background: #111413;
+        color-scheme: dark;
+      }
+
+      body {
+        background: inherit;
+      }
+    </style>
     {% seo %}
     <link rel="icon" href="{{ '/favicon.svg' | relative_url }}" type="image/svg+xml">
     <link rel="shortcut icon" href="{{ '/favicon.ico' | relative_url }}">
@@ -33,11 +64,11 @@
         </div>
 
         <nav class="study-nav" aria-label="Topics">
+          {% assign sidebar_meta_urls = "/docs/study-paths/|/docs/foundational-study-review/|/docs/glossary/|/docs/labs/" | split: "|" %}
           <a class="nav-leaf{% if page.url == '/' %} active{% endif %}" href="{{ '/' | relative_url }}">Home</a>
-          <a class="nav-leaf{% if page.url == '/tags/' %} active{% endif %}" href="{{ '/tags/' | relative_url }}">Tags</a>
-          <a class="nav-leaf{% if page.url == '/knowledge-graph/' %} active{% endif %}" href="{{ '/knowledge-graph/' | relative_url }}">Knowledge Graph</a>
 
           {% for item in site.data.study_nav %}
+            {% if sidebar_meta_urls contains item.url %}{% continue %}{% endif %}
             {% assign item_open = false %}
             {% if page.url contains item.url %}
               {% assign item_open = true %}
@@ -70,6 +101,17 @@
               <a class="nav-leaf nav-level-1{% if page.url == item.url %} active{% endif %}" href="{{ item.url | relative_url }}">{{ item.title }}</a>
             {% endif %}
           {% endfor %}
+
+          <div class="nav-section nav-meta" aria-label="Study tools">
+            <div class="nav-section-label">Study Tools</div>
+            <a class="nav-leaf{% if page.url == '/knowledge-graph/' %} active{% endif %}" href="{{ '/knowledge-graph/' | relative_url }}">Knowledge Graph</a>
+            <a class="nav-leaf{% if page.url == '/tags/' %} active{% endif %}" href="{{ '/tags/' | relative_url }}">Tags</a>
+            {% for item in site.data.study_nav %}
+              {% if sidebar_meta_urls contains item.url %}
+                <a class="nav-leaf nav-level-1{% if page.url == item.url %} active{% endif %}" href="{{ item.url | relative_url }}">{{ item.title }}</a>
+              {% endif %}
+            {% endfor %}
+          </div>
         </nav>
       </aside>
 
@@ -79,7 +121,7 @@
             <button class="icon-button mobile-nav-toggle" type="button" data-action="toggle-sidebar" aria-controls="site-sidebar" aria-label="Open navigation">
               <span></span>
             </button>
-            <button class="sidebar-collapse" type="button" data-action="collapse-sidebar" aria-label="Collapse left navigation">Nav</button>
+            <button class="sidebar-collapse" type="button" data-action="collapse-sidebar" data-sidebar-toggle aria-controls="site-sidebar" aria-expanded="true">Hide nav</button>
           </div>
 
           <div class="toolbar" aria-label="Reading controls">
@@ -117,8 +159,18 @@
           <aside class="right-rail" aria-label="Study context">
             <section>
               <h2>Page Tools</h2>
-              <button type="button" data-action="mark-complete" data-page-url="{{ page.url }}">Mark complete</button>
-              <button type="button" data-action="toggle-runbook">Runbook mode</button>
+              {% assign show_page_completion = false %}
+              {% for path in site.data.study_paths %}
+                {% for step in path.steps %}
+                  {% if step.url == page.url %}
+                    {% assign show_page_completion = true %}
+                  {% endif %}
+                {% endfor %}
+              {% endfor %}
+              {% if show_page_completion %}
+                <button type="button" data-action="mark-complete" data-page-url="{{ page.url }}" aria-pressed="false">Mark complete</button>
+                <p class="page-tool-status" data-page-complete-status>Not complete</p>
+              {% endif %}
               <button type="button" data-action="copy-page-link">Copy page link</button>
               <a href="{{ '/knowledge-graph/' | relative_url }}">Open graph</a>
               <a href="{{ '/tags/' | relative_url }}">Browse tags</a>
@@ -336,6 +388,7 @@
         </div>
       </div>
     </div>
+    <script src="{{ '/assets/js/mermaid.min.js' | relative_url }}" defer></script>
     <script src="{{ '/assets/js/study.js' | relative_url }}" defer></script>
   </body>
 </html>

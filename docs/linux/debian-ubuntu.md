@@ -14,7 +14,7 @@ tags:
 
 The study guide is Linux-first, but the default operational assumption is now Debian-family systems, especially Ubuntu Server. That matters because package tools, network configuration, service defaults, certificate stores, log locations, and firewall tooling differ by distribution. Canonical's Ubuntu Server documentation tracks the latest LTS, so always check the target release notes or manpages before relying on release-specific behavior.
 
-## First Checks
+## Command Examples
 
 ```bash
 cat /etc/os-release
@@ -24,6 +24,14 @@ systemctl --failed
 journalctl -p warning..alert -b
 ls -l /etc/netplan
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `cat /etc/os-release` | `PRETTY_NAME="Ubuntu 24.04.2 LTS".` | Identifies the distro baseline before applying package or service commands. |
+| `uname -a` | `Linux host 6.8.0-xx-generic x86_64.` | Shows kernel version and architecture for driver, eBPF, and tuning checks. |
+| `apt-cache policy` | `Package versions, installed candidate, and repository priority.` | Shows what version apt can install or upgrade to. |
 
 ## Package Management
 

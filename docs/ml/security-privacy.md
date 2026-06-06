@@ -14,12 +14,19 @@ tags:
 
 ML systems add new ways to misuse ordinary infrastructure: prompts can carry instructions, retrieved documents can poison context, tools can perform side effects, and logs can capture sensitive data. Security controls need to surround the model, not depend on the model obeying policy.
 
-## First Checks
+## Command Examples
 
 ```bash
 date -Is
 git diff --name-only
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `date -Is` | `2026-06-06T10:24:33-07:00` | Pins command output and logs to an exact incident timestamp. |
+| `git diff --name-only` | `prompts/support.yaml and evals/golden.jsonl` | Shows which prompt, eval, or policy artifacts changed in the release. |
 
 For a real system, start by listing data classes, model artifacts, tool permissions, retrieval sources, logging paths, and retention rules.
 

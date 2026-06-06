@@ -16,7 +16,7 @@ BGP is a control-plane protocol for exchanging reachability between autonomous s
 
 You need BGP knowledge when debugging internet routing, data-center fabrics, cloud interconnects, Kubernetes load balancer announcements, anycast, or route leaks.
 
-## First Checks
+## Command Examples
 
 ```bash
 show bgp summary
@@ -25,6 +25,14 @@ show route protocol bgp
 show bgp neighbors
 show bgp <prefix>
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `show bgp summary` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `show bgp ipv4 unicast` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `show route protocol bgp` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 Exact commands vary by router, FRRouting, Bird, Junos, or cloud appliance, but the questions stay the same: are sessions established, are routes received, are routes selected, and are routes exported?
 

@@ -14,7 +14,7 @@ tags:
 
 Mounts are per-namespace state. Two processes on the same host can see different mount trees, different bind mounts, different root filesystems, and different propagation behavior. This is fundamental for containers, systemd services, chroots, initramfs, and incident debugging.
 
-## First Checks
+## Command Examples
 
 ```bash
 findmnt -o TARGET,SOURCE,FSTYPE,OPTIONS,PROPAGATION
@@ -23,6 +23,14 @@ cat /proc/<pid>/mountinfo
 lsns -t mnt
 nsenter --target <pid> --mount -- findmnt
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `findmnt -o TARGET,SOURCE,FSTYPE,OPTIONS,PROPAGATION` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `readlink /proc/<pid>/ns/mnt` | `mnt:[4026532738] or net:[4026532741].` | Identifies whether two processes share the same namespace. |
+| `cat /proc/<pid>/mountinfo` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
 
 ## Mount Namespaces
 

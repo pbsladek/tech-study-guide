@@ -14,7 +14,7 @@ tags:
 
 Linux device discovery is a conversation between the kernel and userspace. The kernel detects hardware, exposes device state through sysfs, creates or requests device nodes, and can request module loading. Userspace tools such as `systemd-udevd` and `modprobe` apply policy: permissions, names, symlinks, module options, and helper actions.
 
-## First Checks
+## Command Examples
 
 ```bash
 lsmod
@@ -25,6 +25,14 @@ find /sys -name modalias -print | head
 udevadm info --query=all --name=/dev/sda | head
 dmesg -T | grep -i -E 'module|firmware|udev|driver|taint'
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `lsmod` | `Module names, sizes, and use counts.` | Shows loaded kernel modules before changing drivers. |
+| `modinfo <module>` | `Module filename, version, aliases, firmware, and parameters.` | Shows module metadata and hardware matching. |
+| `modprobe --show-depends <module>` | `Dependency list or module load errors.` | Shows what would load before changing kernel module state. |
 
 These commands separate loaded modules, module metadata, dependency resolution, kernel-visible module state, device aliases, udev properties, and kernel messages.
 

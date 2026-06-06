@@ -16,6 +16,18 @@ Istio troubleshooting is about comparing intended configuration with proxy behav
 
 ## Signals
 
+```mermaid
+flowchart LR
+  K8s[Kubernetes Services and Endpoints] --> Istiod[istiod]
+  Istio[Istio resources] --> Istiod
+  Istiod --> XDS[xDS snapshots]
+  XDS --> Envoy[Envoy sidecar / gateway / waypoint]
+  Envoy --> Logs[Access logs]
+  Envoy --> Metrics[Metrics and response flags]
+  Request[Request] --> Envoy
+  Envoy --> Upstream[Upstream workload]
+```
+
 | Signal | What It Answers |
 | --- | --- |
 | `istioctl analyze` | Is mesh config internally inconsistent or invalid? |
@@ -24,6 +36,16 @@ Istio troubleshooting is about comparing intended configuration with proxy behav
 | Access logs | What happened to individual requests at the proxy? |
 | Metrics | Where are latency, volume, errors, and saturation changing? |
 | Traces | Which service hop consumed time or returned an error? |
+
+## Intent vs Runtime State
+
+| Question | Istio/Kubernetes Intent | Envoy Runtime State |
+| --- | --- | --- |
+| Where to inspect | YAML resources, status conditions, `istioctl analyze`, Kubernetes Services and EndpointSlices. | `istioctl proxy-config`, access logs, response flags, Envoy metrics, proxy sync. |
+| What it proves | What operators asked the mesh to do. | What the proxy actually received and enforced. |
+| Common drift | Wrong host, namespace, selector, export scope, route attachment, or policy target. | Stale xDS, empty clusters, missing secrets, wrong TLS mode, or endpoint health mismatch. |
+| Best for 403 | AuthorizationPolicy, RequestAuthentication, principals, claims, namespace scope. | Access log flags, matched route, peer principal, JWT validation and enforced policy. |
+| Best for 503 | DestinationRule, subsets, PeerAuthentication, Service and EndpointSlice readiness. | Cluster TLS settings, endpoints, outlier ejection, upstream health, connection errors. |
 
 ## Core Commands
 

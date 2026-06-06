@@ -14,7 +14,7 @@ tags:
 
 ML math is mostly about representing data as numbers, measuring error, and updating parameters to reduce that error. You do not need to derive every theorem to operate ML systems, but you do need to recognize what the math controls.
 
-## First Checks
+## Command Examples
 
 ```python
 import numpy as np
@@ -24,6 +24,12 @@ b = np.array([1.0, 0.0, 1.0])
 print(float(a @ b))
 print(float((a @ b) / (np.linalg.norm(a) * np.linalg.norm(b))))
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python example` | `A numeric score, tensor shape, token IDs, retrieved IDs, or explicit error.` | Shows the example produces measurable output instead of silent success. |
 
 This computes a dot product and cosine similarity, the same basic shape behind linear models and embedding search.
 

@@ -14,7 +14,7 @@ tags:
 
 Storage incidents often start as latency before they become hard failures. Operators need to read device saturation, kernel errors, SMART/NVMe health, queue behavior, filesystem symptoms, and application latency together.
 
-## First Checks
+## Command Examples
 
 ```bash
 iostat -xz 1
@@ -24,6 +24,14 @@ nvme smart-log /dev/nvme0
 dmesg -T | grep -Ei 'I/O error|medium error|nvme|scsi|reset'
 journalctl -k -p warning..alert
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `iostat -xz 1` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `lsblk -D` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `smartctl -a /dev/sda` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
 
 ## Latency, Utilization, and Saturation
 

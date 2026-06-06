@@ -35,6 +35,16 @@ Machine learning systems turn data, model architectures, weights, training objec
 | [Advanced Agents](advanced-agents/) | Covers ReAct, planning, reflection, tool routing, multi-agent systems, durable execution, memory, sandboxing, approvals, trajectory evaluation, and failure recovery. |
 | [Multimodal ML](multimodal-ml/) | Covers vision, audio, speech-to-text, text-to-speech, vision-language models, image embeddings, OCR pipelines, multimodal RAG, and video basics. |
 | [Serving, Inference, and vLLM](serving-inference-vllm/) | Covers model serving, prefill/decode, batching, streaming, KV cache, vLLM, PagedAttention, prefix caching, speculative decoding, canaries, and inference optimization. |
+| [LLM Inference Systems](inference-systems/) | Covers model files, weights, memory, inference engines, vLLM, TensorRT-LLM, TGI, llama.cpp, SGLang, Ollama, KV cache, PagedAttention, quantization, routing, performance tests, and runbooks. |
+| [Model Memory Math](model-memory-math/) | Covers weight memory, KV-cache sizing, MHA/GQA/MQA differences, model loading, cold start, and serving capacity worksheets. |
+| [Tokenizer and Chat Template Compatibility](tokenizer-chat-template-compatibility/) | Covers tokenizer IDs, chat templates, special tokens, stop behavior, tool schemas, and migration debugging. |
+| [Inference Benchmarking](inference-benchmarking/) | Covers benchmark design, warmup, traffic mixes, TTFT, ITL, throughput, cost, quality gates, and anti-patterns. |
+| [Quantized Serving](quantized-serving/) | Covers AWQ, GPTQ, bitsandbytes, GGUF, FP8, INT8/INT4, KV-cache quantization, quality gates, and rollout checks. |
+| [Inference Engine Comparison](inference-engine-comparison/) | Covers vLLM, TensorRT-LLM, TGI, llama.cpp, SGLang, Ollama, feature matrices, and migration checks. |
+| [vLLM Operations](vllm-operations/) | Covers vLLM scheduler concepts, flags, metrics, PagedAttention, prefix caching, speculative decoding, parallelism, and incidents. |
+| [MoE Inference](moe-inference/) | Covers active vs total parameters, expert routing, expert parallelism, all-to-all communication, load balance, and serving tradeoffs. |
+| [Long-Context Serving](long-context-serving/) | Covers RoPE scaling, sliding windows, sink tokens, lost-in-the-middle behavior, prompt budgets, KV-cache growth, and evals. |
+| [Inference Runbooks](inference-runbooks/) | Covers wrong output, high TTFT, slow ITL, OOM, queue buildup, low throughput, cache pressure, and release regressions. |
 | [Advanced Inference and vLLM](advanced-inference-vllm/) | Covers PagedAttention, continuous batching, disaggregated prefill, chunked prefill, speculative decoding, prefix caching, KV-cache math, parallelism, quantized serving, LoRA serving, and autoscaling. |
 | [Observability and Incident Response](observability-incident-response/) | Covers serving metrics, traces, prompt and retrieval logging, drift, quality monitoring, feedback loops, and ML incident runbooks. |
 | [Advanced ML Observability](advanced-observability/) | Covers drift detection, data quality monitoring, online evals, feedback loops, trace schemas, prompt/retrieval/model/tool observability, safety monitoring, cost monitoring, and incident templates. |
@@ -82,13 +92,21 @@ The ML section tracks 100 concrete gaps that should be understood before operati
 | ML-GAP-073 through ML-GAP-086 | Alignment and Evaluation | Eval governance, golden sets, metric slices, release gates, preference labels, RLHF/DPO boundaries, red-team taxonomies, severity rubrics, abstention, fairness, monitoring, drift, canaries, and incidents. |
 | ML-GAP-087 through ML-GAP-100 | Explainability | Method selection, SHAP baselines, LIME perturbations, counterfactuals, saliency, attention caveats, embedding neighborhoods, probes, attribution stability, debugging, user risks, documentation, explanation drift, and evidence. |
 
-## First Checks
+## Command Examples
 
 ```bash
 python -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
 nvidia-smi
 python -c "import torch; print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu')"
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python snippet` | `A version, tensor shape, score, retrieved IDs, metric delta, or explicit error.` | Turns the example into a measurable model, data, or pipeline signal. |
+| `nvidia-smi` | `GPU utilization, memory use, CUDA visibility, model list, or serving metrics.` | Separates accelerator visibility from model-serving capacity and latency. |
+| `Python snippet` | `A version, tensor shape, score, retrieved IDs, metric delta, or explicit error.` | Turns the example into a measurable model, data, or pipeline signal. |
 
 These checks prove local PyTorch import, CUDA visibility, and GPU identity. They do not prove model correctness.
 
@@ -99,7 +117,7 @@ These checks prove local PyTorch import, CUDA visibility, and GPU identity. They
 | 101 | ML 101 Foundations, Math for ML, Classical ML. |
 | Core | Deep Learning Fundamentals, Models/Weights, PyTorch, Transformer Internals, Accelerators. |
 | LLM | LLM Training Lifecycle, Fine-Tuning and LoRA, Advanced Fine-Tuning, RAG, Advanced RAG, Agents, Advanced Agents, Multimodal ML. |
-| Production | Serving and vLLM, Advanced Inference and vLLM, Observability, Advanced Observability, Data Pipelines and Feature Stores, MLOps Systems, Prompt Operations. |
+| Production | Serving and vLLM, LLM Inference Systems, Model Memory Math, Tokenizer and Chat Template Compatibility, Inference Benchmarking, Quantized Serving, Inference Engine Comparison, vLLM Operations, MoE Inference, Long-Context Serving, Inference Runbooks, Advanced Inference and vLLM, Observability, Advanced Observability, Data Pipelines and Feature Stores, MLOps Systems, Prompt Operations. |
 | Advanced | Evaluation Mastery, ML Security Threats, Advanced Architectures, Performance Engineering, Alignment, Explainability, Responsible AI and Governance. |
 
 Learn the stages in order, but use production gates early. Data leakage, weak evals, unsafe prompts, or unbounded serving cost can invalidate a model regardless of how advanced the architecture is.

@@ -14,7 +14,7 @@ tags:
 
 Sockets and IPC are how processes communicate. A socket is also a file descriptor, so socket incidents often overlap with file descriptor limits, process ownership, namespaces, permissions, buffers, queues, and service managers.
 
-## First Checks
+## Command Examples
 
 ```bash
 ss -tulpen
@@ -24,6 +24,14 @@ ls -l /proc/<pid>/fd
 cat /proc/net/sockstat
 sysctl net.core.somaxconn
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ss -tulpen` | `Listening, established, TIME_WAIT, queues, PIDs, or socket summaries.` | Shows socket state and whether applications are listening or backpressured. |
+| `ss -xap` | `Listening, established, TIME_WAIT, queues, PIDs, or socket summaries.` | Shows socket state and whether applications are listening or backpressured. |
+| `lsof -p <pid>` | `FD, type, device, inode, and path or socket rows.` | Shows open files and sockets owned by a process. |
 
 ## Socket Families
 

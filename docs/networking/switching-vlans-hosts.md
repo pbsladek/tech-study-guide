@@ -14,7 +14,7 @@ tags:
 
 Layer 2 is where hosts become reachable on a local network. Switches learn MAC addresses, VLANs split one physical switching fabric into multiple broadcast domains, and `/etc/hosts` can override name resolution before DNS is involved. These details explain many "network" failures that never reach TCP, TLS, or Kubernetes.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip link
@@ -24,6 +24,14 @@ ip -d link show
 cat /etc/hosts
 getent hosts example.internal
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip link` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `bridge link` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `bridge vlan show` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 ## Switches
 

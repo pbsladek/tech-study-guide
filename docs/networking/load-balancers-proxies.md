@@ -13,7 +13,7 @@ tags:
 
 Load balancers and proxies are network devices, application infrastructure, and failure domains at the same time. They can fix availability problems, hide backend churn, terminate TLS, change source addresses, retry requests, and introduce their own timeout and protocol behavior.
 
-## First Checks
+## Command Examples
 
 ```bash
 curl -v https://example.com/
@@ -23,6 +23,14 @@ dig example.com A
 ss -tan state established
 tcpdump -nn -i any host 198.51.100.10
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `curl -v https://example.com/` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
+| `curl -vk --resolve example.com:443:198.51.100.10 https://example.com/` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
+| `YAML or text capture` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 ## L4 Versus L7
 

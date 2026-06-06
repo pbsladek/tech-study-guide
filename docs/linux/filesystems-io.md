@@ -14,7 +14,7 @@ tags:
 
 Filesystems are where application abstractions meet storage reality. The full stack includes VFS objects, inodes, dentries, page cache, block devices, device mapper, filesystem journals, IO schedulers, and hardware queues.
 
-## First Checks
+## Command Examples
 
 ```bash
 findmnt
@@ -24,6 +24,14 @@ lsblk -f
 iostat -xz 1
 journalctl -k -g 'I/O error|EXT4|XFS|blk|nvme|scsi'
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `findmnt` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `df -h` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `df -i` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
 
 ## VFS Model
 

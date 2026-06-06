@@ -16,7 +16,7 @@ tags:
 
 Modern SSO is a trust system. One system authenticates the user, another system consumes a signed assertion or token, and an application decides what the user can do. Most incidents come from mixing up authentication, authorization, token type, audience, redirect endpoint, or trust metadata.
 
-## First Checks
+## Command Examples
 
 ```bash
 curl -sS https://<idp-domain>/.well-known/openid-configuration
@@ -24,6 +24,14 @@ curl -sS https://<idp-domain>/.well-known/jwks.json
 openssl x509 -in <saml-signing-cert.pem> -noout -subject -issuer -dates -fingerprint -sha256
 python3 -m json.tool <token-payload.json>
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `curl -sS https://<idp-domain>/.well-known/openid-configuration` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
+| `curl -sS https://<idp-domain>/.well-known/jwks.json` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
+| `openssl x509 -in <saml-signing-cert.pem> -noout -subject -issuer -dates -fingerprint -sha256` | `Certificate subject, issuer, SANs, expiry, protocol, and verify result.` | Proves certificate identity, chain, and TLS negotiation details. |
 
 ## Authentication vs Authorization
 

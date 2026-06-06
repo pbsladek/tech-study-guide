@@ -14,7 +14,7 @@ tags:
 
 Network performance on Linux is a pipeline problem. A packet moves through a NIC queue, interrupt handling, NAPI polling, softirq work, protocol processing, socket buffers, qdisc, and finally application code or the wire. A bottleneck can sit at any layer, so useful troubleshooting separates link errors, packet drops, CPU placement, queueing, retransmits, and application backpressure.
 
-## First Checks
+## Command Examples
 
 ```bash
 sar -n DEV,TCP,ETCP 1
@@ -24,6 +24,14 @@ ethtool -S <interface>
 cat /proc/net/softnet_stat
 mpstat -P ALL 1
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `sar -n DEV,TCP,ETCP 1` | Per-interface throughput plus TCP retransmit counters. | Correlates traffic rate with TCP error symptoms. |
+| `cat /proc/net/softnet_stat` | Hex counters where dropped or squeezed columns increase. | Detects packet processing backlog pressure in softirq. |
+| `mpstat -P ALL 1` | One CPU high in `%soft` while others are low. | Shows receive processing imbalance or flow concentration. |
 
 Use these commands to separate interface drops, TCP retransmits, socket pressure, softnet backlog drops, and CPU imbalance. One busy CPU doing most softirq work while other CPUs are idle usually means receive processing is not spread well, or a small number of flows dominate.
 

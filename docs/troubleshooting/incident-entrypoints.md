@@ -14,7 +14,7 @@ tags:
 
 Start with the symptom the caller sees, then move toward the layer that can prove or disprove it. These entry points link back to the deeper pages, but keep the first ten minutes of an incident concrete.
 
-## First Checks
+## Command Examples
 
 ```bash
 date -Is
@@ -32,6 +32,14 @@ kubectl get pod,svc,endpointslice,ingress,gateway -A -o wide
 kubectl get events -A --sort-by=.lastTimestamp | tail -50
 kubectl exec deploy/client -- curl -v "$URL"
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `curl -v --connect-timeout 3 --max-time 15 "$URL"` | Connection timing, TLS details, response headers, or timeout. | Anchors the user-visible symptom in one reproducible request. |
+| `journalctl -k --since -10min -g 'TCP|conntrack|DROP|REJECT|oom|reset'` | Kernel log lines for drops, conntrack, resets, or OOM kills. | Finds host-level evidence that dashboards often miss. |
+| `kubectl get events -A --sort-by=.lastTimestamp | tail -50` | Recent scheduling, readiness, pull, probe, or endpoint events. | Adds cluster control-plane context to the same incident window. |
 
 ## Symptom Map
 

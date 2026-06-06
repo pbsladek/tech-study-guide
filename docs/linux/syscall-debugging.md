@@ -16,7 +16,7 @@ System calls are where application intent crosses into the kernel. When logs say
 
 Use syscall debugging when application logs are vague, code-level tracing is unavailable, or you need to distinguish application behavior from kernel or environment behavior.
 
-## First Checks
+## Command Examples
 
 ```bash
 strace -f -p <pid>
@@ -28,6 +28,14 @@ strace -c -f <command>
 strace -f -e status=failed <command>
 cat /proc/<pid>/syscall
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `strace -f -p <pid>` | `openat(), connect(), read(), write(), errno, and syscall latency lines.` | Shows the syscall where a process blocks or fails. |
+| `strace -ff -o /tmp/trace.log <command>` | `openat(), connect(), read(), write(), errno, and syscall latency lines.` | Shows the syscall where a process blocks or fails. |
+| `strace -f -e trace=file,network -p <pid>` | `openat(), connect(), read(), write(), errno, and syscall latency lines.` | Shows the syscall where a process blocks or fails. |
 
 `strace` uses `ptrace`, so it can perturb timing and may be blocked by permissions, seccomp, containers, or `kernel.yama.ptrace_scope`.
 

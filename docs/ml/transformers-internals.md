@@ -14,12 +14,18 @@ tags:
 
 Transformers are sequence models built around attention, residual streams, normalization, and feed-forward blocks. LLMs are usually decoder-only transformers trained to predict the next token.
 
-## First Checks
+## Command Examples
 
 ```python
 tokens = ["The", " cat", " sat"]
 print(list(enumerate(tokens)))
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python example` | `A numeric score, tensor shape, token IDs, retrieved IDs, or explicit error.` | Shows the example produces measurable output instead of silent success. |
 
 Before interpreting model behavior, know what the tokenizer actually produced.
 

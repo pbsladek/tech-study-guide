@@ -13,7 +13,7 @@ tags:
 
 Services decouple clients from changing Pods. The Service object defines a stable frontend; EndpointSlices describe the current backend endpoints. The datapath is then implemented by kube-proxy or a replacement such as an eBPF-based CNI datapath.
 
-## First Checks
+## Command Examples
 
 ```bash
 kubectl get svc <service> -o wide
@@ -23,6 +23,25 @@ kubectl get pods -l <selector> -o wide
 kubectl describe pod <pod>
 kubectl get events --sort-by=.lastTimestamp
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `kubectl get svc <service> -o wide` | `TYPE ClusterIP`, `CLUSTER-IP 10.96.12.34`, and ports. | Confirms the virtual Service address and port contract clients use. |
+| `kubectl get endpointslice -l kubernetes.io/service-name=<service>` | Endpoint addresses with `READY true`. | Proves whether the Service has routable backends. |
+| `kubectl get pods -l <selector> -o wide` | Matching Pods with readiness and Pod IPs. | Verifies the Service selector actually finds healthy Pods. |
+
+## Service vs EndpointSlice
+
+| Question | Service | EndpointSlice |
+| --- | --- | --- |
+| Primary role | Stable frontend name, virtual IP, and port contract. | Current backend endpoint inventory for a Service. |
+| Owned by | User, controller, Helm chart, operator, or platform automation. | EndpointSlice controller or custom controller for selectorless Services. |
+| Changes when | Service type, selector, ports, traffic policy, or load balancer behavior changes. | Pods become ready/unready, terminate, move nodes, or change IPs. |
+| Debug if empty | Selector mismatch, no Pods, wrong namespace, or selectorless Service without manual endpoints. | Pod readiness, endpoint conditions, controller watch health, address family, or stale slices. |
+| Data-plane impact | kube-proxy/CNI watches Service frontend rules. | kube-proxy/CNI watches backend addresses and conditions. |
+| Common misconception | A ClusterIP means traffic has usable backends. | Every listed endpoint is always ready for normal traffic. |
 
 ## Service Object
 

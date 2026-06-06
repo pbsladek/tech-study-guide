@@ -14,7 +14,7 @@ tags:
 
 Zero-downtime behavior is mostly a contract between clients, load balancers, proxies, applications, orchestrators, and DNS. Linux keepalive settings, proxy idle timers, Kubernetes readiness, connection pool behavior, and retry policy all participate.
 
-## First Checks
+## Command Examples
 
 ```bash
 curl -v --connect-timeout 3 --max-time 15 https://api.example.com/health
@@ -23,6 +23,14 @@ sysctl net.ipv4.tcp_keepalive_time
 kubectl get deploy,pod,endpointslice -A -o wide
 kubectl rollout status deploy/api
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `curl -v --connect-timeout 3 --max-time 15 https://api.example.com/health` | Connection timing, HTTP status, and TLS/proxy details. | Separates connect, TLS, proxy, and application response delays. |
+| `ss -tan state established '( dport = :443 or sport = :443 )'` | Established sockets with local and remote tuples. | Shows whether old connections are still pinned during draining. |
+| `kubectl rollout status deploy/api` | `deployment "api" successfully rolled out` or waiting status. | Confirms whether rollout state matches traffic symptoms. |
 
 ## Timeout Budget
 

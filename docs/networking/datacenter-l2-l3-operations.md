@@ -14,7 +14,7 @@ tags:
 
 Host operators do not need to be fabric engineers, but they need enough L2/L3 vocabulary to collect useful evidence and avoid misdiagnosing a network fault as an application fault. A "fabric issue" can mean a failed link member, stale neighbor state, asymmetric ECMP, route withdrawal, ARP suppression bug, bad VLAN trunk, or control-plane churn.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip -br link
@@ -25,6 +25,14 @@ ethtool <interface>
 ethtool -S <interface>
 cat /proc/net/bonding/bond0 2>/dev/null
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip -s link` | RX/TX packet counts plus `errors`, `dropped`, and `overruns`. | Shows interface-level loss or counter growth. |
+| `bridge fdb show` | MAC addresses learned on bridge ports. | Confirms L2 learning and where frames will forward. |
+| `cat /proc/net/bonding/bond0` | Active slave, MII status, and link failure counts. | Detects bond member churn or an unexpected active path. |
 
 Collect interface counters before restarting services. Carrier changes, RX/TX errors, dropped frames, bond member churn, and neighbor flaps are often the only host-visible evidence of a lower-layer event.
 

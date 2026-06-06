@@ -17,7 +17,7 @@ eBPF lets Linux run verified programs inside kernel-controlled hooks. For operat
 
 Use eBPF when normal counters show where to look but not why the behavior is happening. Use logs, metrics, `strace`, `perf`, and packet capture first when they already answer the question with less risk.
 
-## First Checks
+## Command Examples
 
 ```bash
 uname -r
@@ -26,6 +26,14 @@ bpftool prog show
 bpftool map show
 bpftrace -l 'tracepoint:syscalls:sys_enter_*' | head
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `uname -r` | `Linux host 6.8.0-xx-generic x86_64.` | Shows kernel version and architecture for driver, eBPF, and tuning checks. |
+| `bpftool feature probe` | `Supported eBPF features, loaded programs, maps, and attach points.` | Shows whether tracing or datapath eBPF is available and active. |
+| `bpftool prog show` | `Supported eBPF features, loaded programs, maps, and attach points.` | Shows whether tracing or datapath eBPF is available and active. |
 
 Confirm kernel support, available helpers, loaded programs, and traceable events before writing a probe. Production systems may restrict BPF through capabilities, lockdown mode, LSM policy, containers, or managed-node policy.
 

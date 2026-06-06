@@ -16,7 +16,7 @@ tags:
 
 Containers are isolated processes, not tiny full computers. On Linux, container runtimes combine kernel features such as namespaces, cgroups, capabilities, seccomp, filesystem mounts, and networking to make one or more processes see a constrained view of the host. Virtual machines isolate a whole guest operating system behind virtual hardware and a hypervisor.
 
-## First Checks
+## Command Examples
 
 ```bash
 docker info
@@ -32,6 +32,14 @@ ip link show type bridge
 bridge link
 nft list ruleset
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `cat /proc/<pid>/cgroup` | `0::/system.slice/docker-<id>.scope` or container cgroup paths. | Shows which cgroup owns the process and its resource accounting boundary. |
+| `readlink /proc/<pid>/ns/*` | Namespace IDs such as `net:[4026532741]` and `mnt:[4026532738]`. | Proves which namespaces differ from the host or another process. |
+| `docker network inspect bridge` | Bridge subnet, gateway, containers, and options. | Connects container IPs to the host bridge and NAT path. |
 
 ## VM vs Container
 

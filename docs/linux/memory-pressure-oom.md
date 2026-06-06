@@ -17,7 +17,7 @@ Linux memory incidents are usually not "free memory is low." The kernel uses mem
 
 The operational question is whether reclaim, compaction, swapping, cgroup limits, Pressure Stall Information, or the OOM killer are affecting workloads.
 
-## First Checks
+## Command Examples
 
 ```bash
 free -h
@@ -27,6 +27,14 @@ vmstat 1
 ps -eo pid,ppid,comm,rss,vsz,%mem --sort=-rss | head
 journalctl -k -g 'Out of memory|Killed process|oom-kill'
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `free -h` | `Mem: 31Gi used 2.1Gi free 18Gi buff/cache`. | Separates free memory from reclaimable page cache. |
+| `cat /proc/pressure/memory` | `some avg10=4.20` and `full avg10=0.35`. | Shows whether tasks are stalled on memory pressure. |
+| `journalctl -k -g 'Out of memory|Killed process|oom-kill'` | `Killed process 1234 (java) total-vm:... anon-rss:...`. | Confirms whether the OOM killer acted and which process lost. |
 
 Start with system pressure, then separate process RSS, kernel memory, page cache, swap activity, and cgroup limits.
 
@@ -110,7 +118,7 @@ Do not assume every `OOMKilled` is a node outage. The first split is host bounda
 
 Language runtimes reserve and report memory differently, so a single RSS number does not explain the whole failure.
 
-| Runtime Shape | What Uses Memory | Common Surprise | First Checks |
+| Runtime Shape | What Uses Memory | Common Surprise | Command Evidence |
 | --- | --- | --- | --- |
 | Java service | Java heap, metaspace, thread stacks, direct buffers, JIT/code cache, mmap files, native libraries. | `-Xmx` is not the container limit; native memory can push RSS beyond heap. | `jcmd <pid> VM.native_memory summary`, GC logs, `-XX:MaxRAMPercentage`, cgroup limit. |
 | Go service | Go heap, goroutine stacks, spans, caches, mmap, Cgo/native allocations. | Go may hold memory for reuse after GC, so RSS can stay high after heap drops. | `GODEBUG=gctrace=1`, pprof heap, `runtime.MemStats`, cgroup memory. |

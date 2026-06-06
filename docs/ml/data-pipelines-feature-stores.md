@@ -14,13 +14,21 @@ tags:
 
 Data pipelines define what the model can learn and what it can see at inference time. A strong model trained on leaky, stale, mislabeled, or irreproducible data becomes a fragile system.
 
-## First Checks
+## Command Examples
 
 ```bash
 date -Is
 ls -lh data/
 find data -maxdepth 2 -type f | sort | head
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `date -Is` | `2026-06-06T10:24:33-07:00` | Pins command output and logs to an exact incident timestamp. |
+| `ls -lh data/` | `File names, sizes, owners, permissions, and modification times.` | Confirms the expected artifacts exist with usable ownership and freshness. |
+| `find data -maxdepth 2 -type f \\| sort \\| head` | `Sorted file paths such as data/train.parquet and data/validation.parquet.` | Shows which files the pipeline or prompt loader will actually consume. |
 
 In production, replace filesystem checks with source inventory, lineage, data contracts, and dataset version manifests.
 

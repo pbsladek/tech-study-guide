@@ -14,7 +14,7 @@ tags:
 
 Mounts connect filesystems to paths. Persistent mount configuration is simple until a boot hangs because a disk is missing, a UUID changed, a network filesystem is unavailable, or a container sees a different mount namespace than the host.
 
-## First Checks
+## Command Examples
 
 ```bash
 findmnt
@@ -23,6 +23,14 @@ cat /etc/fstab
 systemctl list-units --type=mount
 mount -a -v
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `findmnt` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `findmnt --verify` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `cat /etc/fstab` | `UUID=... /data xfs defaults,nofail 0 2.` | Shows persistent mount intent and risky boot dependencies. |
 
 ## Mount Model
 

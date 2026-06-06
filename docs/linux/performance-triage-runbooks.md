@@ -16,7 +16,7 @@ Performance triage starts by naming the bottleneck. "The server is slow" is not 
 
 These runbooks are meant for the first 10 minutes of an incident.
 
-## First Checks
+## Command Examples
 
 ```bash
 uptime
@@ -26,6 +26,14 @@ iostat -xz 1
 pidstat -durh 1
 cat /proc/pressure/cpu /proc/pressure/memory /proc/pressure/io
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `uptime` | `load average: 8.42, 7.91, 6.03.` | Shows whether runnable or blocked work is piling up. |
+| `vmstat 1` | `Memory totals, PSI stalls, swap activity, process RSS, or OOM evidence.` | Separates real pressure from cached memory and per-process growth. |
+| `mpstat -P ALL 1` | `Per-interface, per-CPU, softirq, retransmit, or driver counters.` | Locates performance pressure in CPU, NIC, queue, or protocol layers. |
 
 Capture before restarting. Restarts often erase the evidence that explains the incident.
 

@@ -15,7 +15,7 @@ tags:
 
 Linux GPU incidents cross several layers at once: PCIe enumeration, kernel modules, firmware, display management, compute runtimes, device-node permissions, userspace libraries, containers, and application frameworks. Do not treat "the driver" as one file. A working GPU stack is a matched set of kernel and userspace pieces.
 
-## First Checks
+## Command Examples
 
 ```bash
 lspci -nnk | grep -A4 -E 'VGA|3D|Display'
@@ -25,6 +25,14 @@ dmesg -T | grep -Ei 'drm|amdgpu|nvidia|nouveau|xid|firmware'
 cat /proc/driver/nvidia/version 2>/dev/null
 nvidia-smi 2>/dev/null
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `lspci -nnk \\| grep -A4 -E 'VGA\\|3D\\|Display'` | `GPU PCI IDs and bound kernel driver names.` | Confirms hardware presence and driver binding. |
+| `lsmod \\| grep -E 'amdgpu\\|radeon\\|nvidia\\|nouveau'` | `Loaded modules such as nvidia, amdgpu, nouveau, or overlay.` | Shows which kernel driver stack is active. |
+| `ls -l /dev/dri /dev/nvidia* 2>/dev/null` | `File names, sizes, owners, permissions, and modification times.` | Confirms the expected artifacts exist with usable ownership and freshness. |
 
 These commands answer the first operational questions: is the PCI device visible, which kernel module bound to it, which device nodes exist, whether firmware or reset errors appeared in kernel logs, and whether NVIDIA userspace can talk to the loaded NVIDIA kernel driver.
 

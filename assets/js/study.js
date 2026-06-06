@@ -2,6 +2,7 @@
   const root = document.documentElement;
   const shell = document.querySelector(".app-shell");
   const storage = window.localStorage;
+  const sidebarToggle = document.querySelector("[data-sidebar-toggle]");
   const baseUrl = document.body.dataset.baseurl || "";
   const pageProgressKey = "pageProgress";
   const studyStatsKey = "studyStats";
@@ -80,6 +81,21 @@
     storage.setItem("textSize", size);
   }
 
+  function setSidebarState(state) {
+    const selected = state === "closed" ? "closed" : "open";
+    root.dataset.sidebarState = selected;
+    if (shell) {
+      shell.dataset.sidebarState = selected;
+    }
+    storage.setItem("sidebarState", selected);
+
+    if (sidebarToggle) {
+      const isOpen = selected !== "closed";
+      sidebarToggle.textContent = isOpen ? "Hide nav" : "Show nav";
+      sidebarToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    }
+  }
+
   function titleize(value) {
     return value
       .split(/[-_]/)
@@ -152,8 +168,14 @@
     document.querySelectorAll("[data-action='mark-complete']").forEach((button) => {
       const complete = isPageComplete(button.dataset.pageUrl);
       button.classList.toggle("page-complete", complete);
-      button.textContent = complete ? "Complete" : "Mark complete";
+      button.textContent = complete ? "Completed" : "Mark complete";
       button.setAttribute("aria-pressed", complete ? "true" : "false");
+    });
+
+    document.querySelectorAll("[data-page-complete-status]").forEach((status) => {
+      const pageUrl = status.closest(".right-rail")?.querySelector("[data-action='mark-complete']")?.dataset.pageUrl;
+      const complete = isPageComplete(pageUrl || window.location.pathname);
+      status.textContent = complete ? "Saved in study progress" : "Not complete";
     });
   }
 
@@ -229,6 +251,245 @@
       });
       wrapper.prepend(button);
     });
+  }
+
+  function previousHeading(element) {
+    let current = element.previousElementSibling;
+    while (current) {
+      if (/^H[1-3]$/.test(current.tagName)) {
+        return current.textContent.trim();
+      }
+      current = current.previousElementSibling;
+    }
+    return document.querySelector(".content-card h1")?.textContent.trim() || "Diagram";
+  }
+
+  function ensureDiagramModal() {
+    let modal = document.querySelector("#diagram-modal");
+    if (modal) return modal;
+
+    modal = document.createElement("div");
+    modal.className = "diagram-modal";
+    modal.id = "diagram-modal";
+    modal.hidden = true;
+    modal.innerHTML = `
+      <div class="diagram-modal-panel" role="dialog" aria-modal="true" aria-labelledby="diagram-modal-title">
+        <div class="diagram-modal-header">
+          <div>
+            <span>Diagram</span>
+            <h2 id="diagram-modal-title">Expanded diagram</h2>
+          </div>
+          <button type="button" data-action="close-diagram" aria-label="Close expanded diagram">Close</button>
+        </div>
+        <div class="diagram-modal-viewport">
+          <div class="diagram-modal-canvas"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  function cloneSvgWithUniqueIds(svg, suffix) {
+    const clone = svg.cloneNode(true);
+    const idMap = new Map();
+
+    clone.querySelectorAll("[id]").forEach((node) => {
+      const oldId = node.id;
+      const newId = `${oldId}-${suffix}`;
+      idMap.set(oldId, newId);
+      node.id = newId;
+    });
+
+    if (idMap.size === 0) return clone;
+
+    clone.querySelectorAll("*").forEach((node) => {
+      Array.from(node.attributes || []).forEach((attr) => {
+        let value = attr.value;
+        idMap.forEach((newId, oldId) => {
+          value = value
+            .replaceAll(`url(#${oldId})`, `url(#${newId})`)
+            .replaceAll(`#${oldId}`, `#${newId}`);
+        });
+        if (value !== attr.value) {
+          node.setAttribute(attr.name, value);
+        }
+      });
+    });
+
+    return clone;
+  }
+
+  function openDiagramModal(frame) {
+    const svg = frame?.querySelector("svg");
+    if (!frame || !svg) return;
+
+    const modal = ensureDiagramModal();
+    const title = frame.dataset.diagramTitle || "Expanded diagram";
+    const canvas = modal.querySelector(".diagram-modal-canvas");
+    const heading = modal.querySelector("#diagram-modal-title");
+    const clone = cloneSvgWithUniqueIds(svg, `expanded-${frame.dataset.mermaidFrame || Date.now()}`);
+
+    heading.textContent = title;
+    canvas.innerHTML = "";
+    clone.removeAttribute("width");
+    clone.removeAttribute("height");
+    clone.style.width = svg.style.width || `${Math.max(svg.getBoundingClientRect().width, 960)}px`;
+    clone.style.minWidth = svg.style.minWidth || "860px";
+    clone.style.maxWidth = "none";
+    clone.style.height = "auto";
+    clone.style.minHeight = svg.style.minHeight || "180px";
+    canvas.appendChild(clone);
+
+    modal.hidden = false;
+    document.body.classList.add("diagram-modal-open");
+    modal.querySelector("[data-action='close-diagram']")?.focus();
+  }
+
+  function closeDiagramModal() {
+    const modal = document.querySelector("#diagram-modal");
+    if (!modal || modal.hidden) return;
+
+    modal.hidden = true;
+    modal.querySelector(".diagram-modal-canvas").innerHTML = "";
+    document.body.classList.remove("diagram-modal-open");
+  }
+
+  function renderMermaidDiagrams() {
+    const mermaidBlocks = Array.from(document.querySelectorAll(".content-card pre > code.language-mermaid"));
+    if (mermaidBlocks.length === 0) return;
+
+    mermaidBlocks.forEach((code, index) => {
+      const pre = code.parentElement;
+      const source = code.textContent.trim();
+      const frame = document.createElement("figure");
+      const tools = document.createElement("div");
+      const expandButton = document.createElement("button");
+      const viewport = document.createElement("div");
+      const diagram = document.createElement("div");
+      const firstLine = source.split("\n")[0]?.trim().toLowerCase() || "diagram";
+      const kind = firstLine.startsWith("sequence") ? "sequence" : firstLine.startsWith("flowchart") || firstLine.startsWith("graph") ? "flowchart" : "diagram";
+      const title = previousHeading(pre);
+
+      frame.className = "mermaid-frame";
+      frame.dataset.mermaidFrame = String(index + 1);
+      frame.dataset.diagramKind = kind;
+      frame.dataset.diagramLayout = "pending";
+      frame.dataset.diagramTitle = title;
+      tools.className = "mermaid-tools";
+      expandButton.type = "button";
+      expandButton.dataset.action = "expand-diagram";
+      expandButton.textContent = "Expand diagram";
+      expandButton.setAttribute("aria-label", `Expand diagram: ${title}`);
+      tools.appendChild(expandButton);
+      viewport.className = "mermaid-viewport";
+      diagram.className = "mermaid";
+      diagram.textContent = source;
+      viewport.appendChild(diagram);
+      frame.appendChild(tools);
+      frame.appendChild(viewport);
+      pre.replaceWith(frame);
+    });
+
+    if (!window.mermaid) {
+      document.querySelectorAll(".mermaid-frame").forEach((frame) => {
+        frame.classList.add("mermaid-error");
+      });
+      return;
+    }
+
+    const mermaidTheme = {
+      background: "transparent",
+      primaryColor: getComputedStyle(root).getPropertyValue("--surface").trim(),
+      primaryTextColor: getComputedStyle(root).getPropertyValue("--text").trim(),
+      primaryBorderColor: getComputedStyle(root).getPropertyValue("--accent").trim(),
+      lineColor: getComputedStyle(root).getPropertyValue("--muted").trim(),
+      secondaryColor: getComputedStyle(root).getPropertyValue("--surface-muted").trim(),
+      tertiaryColor: getComputedStyle(root).getPropertyValue("--accent-soft").trim(),
+      clusterBkg: getComputedStyle(root).getPropertyValue("--surface-muted").trim(),
+      clusterBorder: getComputedStyle(root).getPropertyValue("--border").trim(),
+      edgeLabelBackground: getComputedStyle(root).getPropertyValue("--surface").trim(),
+      fontFamily: getComputedStyle(root).getPropertyValue("--font-body").trim() || "system-ui",
+      fontSize: "17px"
+    };
+
+    function diagramViewBox(svg) {
+      const attr = svg.getAttribute("viewBox")?.split(/\s+/).map(Number) || [];
+      if (attr.length === 4 && attr.every(Number.isFinite)) {
+        return { width: attr[2], height: attr[3] };
+      }
+      return {
+        width: Number(svg.getAttribute("width")) || svg.getBoundingClientRect().width || 0,
+        height: Number(svg.getAttribute("height")) || svg.getBoundingClientRect().height || 0
+      };
+    }
+
+    function normalizeMermaidDiagram(frame) {
+      const viewport = frame.querySelector(".mermaid-viewport");
+      const svg = frame.querySelector("svg");
+      if (!viewport || !svg) return;
+
+      const viewBox = diagramViewBox(svg);
+      const viewportWidth = viewport.clientWidth || frame.clientWidth || 0;
+      const kind = frame.dataset.diagramKind || "diagram";
+      const minimumWidth = kind === "sequence" ? 1040 : 860;
+      const maximumWidth = kind === "sequence" ? 2400 : 1900;
+      const naturalWidth = Math.max(viewBox.width, minimumWidth);
+      const targetWidth = Math.round(Math.min(naturalWidth, maximumWidth));
+      const targetHeight = viewBox.width > 0 ? Math.round((targetWidth / viewBox.width) * viewBox.height) : Math.round(viewBox.height);
+
+      svg.removeAttribute("width");
+      svg.removeAttribute("height");
+      svg.style.width = `${targetWidth}px`;
+      svg.style.minWidth = `${minimumWidth}px`;
+      svg.style.maxWidth = "none";
+      svg.style.height = "auto";
+      svg.style.minHeight = `${Math.max(targetHeight, kind === "sequence" ? 180 : 140)}px`;
+      frame.dataset.diagramLayout = targetWidth > viewportWidth + 8 ? "scroll" : "fit";
+      frame.dataset.diagramReady = "true";
+    }
+
+    window.mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "base",
+      themeVariables: mermaidTheme,
+      flowchart: {
+        htmlLabels: true,
+        curve: "basis",
+        padding: 18,
+        nodeSpacing: 56,
+        rankSpacing: 68,
+        wrappingWidth: 180
+      },
+      sequence: {
+        mirrorActors: false,
+        actorMargin: 64,
+        boxMargin: 14,
+        boxTextMargin: 8,
+        messageMargin: 42,
+        noteMargin: 12,
+        width: 170,
+        height: 56
+      }
+    });
+
+    window.mermaid
+      .run({ querySelector: ".mermaid-frame .mermaid" })
+      .then(() => {
+        document.querySelectorAll(".mermaid-frame").forEach((frame) => {
+          normalizeMermaidDiagram(frame);
+          if ("ResizeObserver" in window) {
+            const observer = new ResizeObserver(() => normalizeMermaidDiagram(frame));
+            observer.observe(frame.querySelector(".mermaid-viewport") || frame);
+          }
+        });
+      })
+      .catch(() => {
+        document.querySelectorAll(".mermaid-frame").forEach((frame) => {
+          frame.classList.add("mermaid-error");
+        });
+      });
   }
 
   function cardId(card) {
@@ -778,6 +1039,11 @@
     const action = event.target.closest("[data-action]")?.dataset.action;
     const searchTag = event.target.closest("[data-search-tag]")?.dataset.searchTag;
 
+    if (event.target.matches("#diagram-modal")) {
+      closeDiagramModal();
+      return;
+    }
+
     if (searchTag) {
       activeSearchTag = activeSearchTag === searchTag ? "" : searchTag;
       document.querySelectorAll("[data-search-tag]").forEach((button) => {
@@ -807,11 +1073,6 @@
       storage.setItem("readerMode", document.body.classList.contains("reader-mode") ? "on" : "off");
     }
 
-    if (action === "toggle-runbook") {
-      document.body.classList.toggle("runbook-mode");
-      storage.setItem("runbookMode", document.body.classList.contains("runbook-mode") ? "on" : "off");
-    }
-
     if (action === "mark-complete") {
       togglePageComplete(event.target.closest("[data-page-url]")?.dataset.pageUrl || window.location.pathname);
     }
@@ -826,6 +1087,14 @@
 
     if (action === "close-study") {
       closeStudy();
+    }
+
+    if (action === "expand-diagram") {
+      openDiagramModal(event.target.closest(".mermaid-frame"));
+    }
+
+    if (action === "close-diagram") {
+      closeDiagramModal();
     }
 
     if (action === "reset-study") {
@@ -852,7 +1121,7 @@
     }
 
     if (action === "collapse-sidebar" && shell) {
-      shell.dataset.sidebarState = shell.dataset.sidebarState === "closed" ? "open" : "closed";
+      setSidebarState(shell.dataset.sidebarState === "closed" ? "open" : "closed");
     }
 
     if (action === "toggle-sidebar" && shell) {
@@ -860,13 +1129,17 @@
     }
   });
 
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeDiagramModal();
+    }
+  });
+
   if (storage.getItem("readerMode") === "on") {
     document.body.classList.add("reader-mode");
   }
 
-  if (storage.getItem("runbookMode") === "on") {
-    document.body.classList.add("runbook-mode");
-  }
+  setSidebarState(storage.getItem("sidebarState") || shell?.dataset.sidebarState || root.dataset.sidebarState || "open");
 
   if (studyAllTopics && studyTopicList) {
     studyAllTopics.addEventListener("change", () => {
@@ -1049,5 +1322,6 @@
   updateCompleteButtons();
   renderPathProgress();
   renderPageToc();
+  renderMermaidDiagrams();
   addCopyButtons();
 })();

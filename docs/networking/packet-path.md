@@ -13,7 +13,7 @@ tags:
 
 A packet is not just "sent to the network." On a Linux host it crosses sockets, routing tables, policy rules, neighbor tables, firewall hooks, connection tracking, queuing disciplines, NIC drivers, and hardware queues.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip addr
@@ -23,6 +23,14 @@ ip neigh
 ss -tuna
 tcpdump -nn -i any host 203.0.113.10
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip route get 203.0.113.10` | `203.0.113.10 via 10.0.0.1 dev eth0 src 10.0.0.5`. | Shows egress interface, gateway, and chosen source address. |
+| `ip neigh` | `10.0.0.1 dev eth0 lladdr 00:11:22:33:44:55 REACHABLE`. | Confirms the next-hop L2 address is known and fresh. |
+| `tcpdump -nn -i any host 203.0.113.10` | SYNs, SYN-ACKs, RSTs, ICMP, or no packets. | Shows whether packets leave, return, or die before capture. |
 
 ## Outbound Flow
 

@@ -15,7 +15,7 @@ tags:
 
 Backups are only useful when they can be restored. File transfer commands such as `rsync` and `scp` move bytes, but backup operations need consistency, retention, verification, access control, logging, and restore drills. Treat every backup path as a production data path.
 
-## First Checks
+## Command Examples
 
 ```bash
 rsync --version
@@ -24,6 +24,14 @@ scp -v file.txt user@host:/tmp/
 ssh user@host 'hostname; df -h; umask'
 findmnt -no SOURCE,TARGET,FSTYPE,OPTIONS /srv/app
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `rsync --version` | `rsync version, protocol version, capabilities, and checksum support.` | Confirms transfer tool behavior before backup design. |
+| `YAML or text capture` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `YAML or text capture` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 These checks confirm tool versions, dry-run behavior, SSH connectivity, remote filesystem state, and the source mount you are about to copy.
 

@@ -14,7 +14,7 @@ tags:
 
 PyTorch is a tensor library plus an automatic differentiation system and neural-network module ecosystem. Most training code is a loop over batches: run the model, compute loss, backpropagate gradients, update weights, and evaluate.
 
-## First Checks
+## Command Examples
 
 ```bash
 python - <<'PY'
@@ -25,6 +25,12 @@ x = torch.randn(4, 8)
 print(x.mean().item())
 PY
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python snippet` | PyTorch version, `True` or `False` for CUDA, and a numeric tensor mean. | Proves the framework imports, reports accelerator visibility, and executes tensor operations. |
 
 ## Core Objects
 

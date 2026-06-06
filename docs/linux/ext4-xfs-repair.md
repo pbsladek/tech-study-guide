@@ -14,7 +14,7 @@ tags:
 
 ext4 and XFS are common production Linux filesystems. Operators need to know how they grow, how they fail, how repair tools differ, and when to stop writing before turning a recoverable incident into data loss.
 
-## First Checks
+## Command Examples
 
 ```bash
 df -hT
@@ -24,6 +24,14 @@ sudo xfs_info /mountpoint
 sudo tune2fs -l /dev/sdX1 | head
 journalctl -k -g 'EXT4|XFS|I/O error|readonly'
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `df -hT` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `df -i` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
+| `lsblk -f` | `Device names, filesystems, mountpoints, latency, errors, or health fields.` | Connects storage symptoms to device and filesystem evidence. |
 
 ## ext4 and XFS Differences
 

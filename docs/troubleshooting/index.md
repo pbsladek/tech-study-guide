@@ -16,7 +16,7 @@ Troubleshooting is evidence management under time pressure. Error handling is de
 
 For a repeatable incident evidence capture script, see [Troubleshooting Examples](/docs/troubleshooting/practical-examples/).
 
-## First Checks
+## Command Examples
 
 ```bash
 date -Is
@@ -27,6 +27,14 @@ kubectl get events --all-namespaces --sort-by=.lastTimestamp
 curl -v https://example.com/
 dig example.com
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `date -Is` | `2026-06-06T10:24:33-07:00` | Pins command output and logs to an exact incident timestamp. |
+| `hostnamectl` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
+| `systemctl --failed` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
 
 This first pass answers four questions: what time is it on this system, what host or cluster am I on, what is already reporting failure, and does the symptom reproduce at DNS, TCP, TLS, HTTP, or service level?
 

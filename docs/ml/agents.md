@@ -14,7 +14,7 @@ tags:
 
 An agent is a system that uses a model to decide actions over time, often calling tools, reading state, writing state, and observing results. The model call is only one component. The system boundary includes tool schemas, permissions, memory, retry behavior, approvals, and rollback.
 
-## First Checks
+## Command Examples
 
 ```bash
 python - <<'PY'
@@ -22,6 +22,12 @@ tool = {"name": "search_docs", "input_schema": {"type": "object"}}
 print(tool["name"])
 PY
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python snippet` | `search_docs`. | Confirms the tool name and schema are explicit before the agent is allowed to call it. |
 
 The important check is whether every tool has a narrow schema, clear permission boundary, idempotency story, and observable audit trail.
 

@@ -14,7 +14,7 @@ tags:
 
 Alignment is the work of making model behavior match intended objectives, constraints, and user expectations. Evaluation is how you prove that behavior. For production systems, alignment is not a one-time training step; it is a lifecycle of data, policy, tests, monitoring, and rollback.
 
-## First Checks
+## Command Examples
 
 ```bash
 python - <<'PY'
@@ -22,6 +22,12 @@ eval_case = {"input": "user request", "expected": "policy-compliant answer"}
 print(eval_case.keys())
 PY
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python snippet` | `dict_keys(['input', 'expected'])`. | Confirms each eval case has a user input and expected behavior before scoring model output. |
 
 Start with a written behavior policy and eval cases before changing prompts or weights.
 

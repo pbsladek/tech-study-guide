@@ -14,7 +14,7 @@ tags:
 
 Time and host identity are easy to ignore until they break authentication, certificates, logs, distributed databases, backup ordering, or incident timelines. Operators should know how Linux represents local time, synchronized time, hostname, machine identity, and DNS identity.
 
-## First Checks
+## Command Examples
 
 ```bash
 timedatectl
@@ -24,6 +24,14 @@ date -Is
 hostnamectl
 cat /etc/hostname
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `timedatectl` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
+| `systemctl status systemd-timesyncd` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
+| `journalctl -u systemd-timesyncd -b` | `Timestamped kernel, service, denial, OOM, device, or network warnings.` | Finds time-correlated evidence from the host. |
 
 ## Time
 

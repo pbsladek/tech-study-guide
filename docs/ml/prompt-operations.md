@@ -16,12 +16,19 @@ Prompts are production code. They define task framing, tool policy, response for
 
 Prompt templates should be treated as named, versioned artifacts instead of anonymous strings hidden in application code.
 
-## First Checks
+## Command Examples
 
 ```bash
 find prompts -type f | sort
 git diff -- prompts/
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `find prompts -type f \\| sort` | `Sorted file paths such as data/train.parquet and data/validation.parquet.` | Shows which files the pipeline or prompt loader will actually consume. |
+| `git diff -- prompts/` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 If prompts live in code or a database, export the exact active prompt bundle before debugging.
 

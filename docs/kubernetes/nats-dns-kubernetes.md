@@ -14,7 +14,7 @@ tags:
 
 NATS is simple on the wire, but clustered NATS depends heavily on the names it gives to clients and peers. In Kubernetes, those names usually come from Service DNS, StatefulSet identity, and headless Services. When DNS, advertised addresses, TLS names, or NetworkPolicy do not match, NATS can look healthy from one Pod and unreachable from another.
 
-## First Checks
+## Command Examples
 
 ```bash
 kubectl -n <namespace> get statefulset,svc,endpointslice,pod -l app.kubernetes.io/name=nats
@@ -25,6 +25,14 @@ kubectl -n <namespace> exec -it <debug-pod> -- nslookup <nats-0>.<nats-headless-
 kubectl -n <namespace> exec -it <debug-pod> -- nslookup -type=SRV _nats._tcp.<nats-headless-service>.<namespace>.svc.cluster.local
 kubectl -n <namespace> logs statefulset/<nats-statefulset> --all-containers
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `kubectl -n <namespace> get statefulset,svc,endpointslice,pod -l app.kubernetes.io/name=nats` | `Services with ClusterIPs and EndpointSlices with backend addresses.` | Connects stable frontends to the backends that should receive traffic. |
+| `kubectl -n <namespace> get svc <nats-service> <nats-headless-service> -o wide` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `kubectl -n <namespace> get endpointslice -l kubernetes.io/service-name=<nats-headless-service>` | `Services with ClusterIPs and EndpointSlices with backend addresses.` | Connects stable frontends to the backends that should receive traffic. |
 
 ## The Two DNS Jobs
 

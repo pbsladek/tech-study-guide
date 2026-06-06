@@ -17,7 +17,7 @@ Cloud networking wraps familiar routing, firewalling, NAT, and load balancing in
 
 The biggest debugging trap is assuming the instance route table is the only route table.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip addr
@@ -26,6 +26,14 @@ curl -sS ifconfig.me
 traceroute 203.0.113.10
 dig api.example.com
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip route` | `default via 10.0.1.1 dev eth0` and subnet routes. | Shows the guest route table before provider-level inspection. |
+| `curl -sS ifconfig.me` | `198.51.100.44`. | Reveals the public egress identity seen by external services. |
+| `dig api.example.com` | `api.example.com. 60 IN A 203.0.113.10`. | Confirms the name resolves to the address you are tracing. |
 
 Then inspect the provider objects for the affected interface, subnet, route table, security policy, NAT, and load balancer. Host-local commands prove the guest view; cloud APIs prove the fabric view.
 

@@ -14,7 +14,7 @@ tags:
 
 A firewall is policy in the packet path. On Linux, that policy usually uses netfilter in the kernel, with nftables or iptables as user-facing tools. Operators need to understand hooks, chains, rule order, connection tracking, NAT, and the difference between local host traffic and forwarded traffic.
 
-## First Checks
+## Command Examples
 
 ```bash
 nft list ruleset
@@ -24,6 +24,14 @@ conntrack -S
 conntrack -L | head
 journalctl -k -g 'DROP|REJECT|nft|iptables|conntrack'
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `nft list ruleset` | `Rules, chains, counters, verdicts, and NAT transforms.` | Shows active packet policy in the kernel. |
+| `iptables-save` | `Rules, chains, counters, verdicts, and NAT transforms.` | Shows active packet policy in the kernel. |
+| `ip6tables-save` | `Tables, chains, matches, counters, and ACCEPT/DROP rules.` | Shows firewall policy as loaded in the packet filter. |
 
 Run these before changing policy. The active ruleset, counters, conntrack state, and kernel logs are the evidence.
 

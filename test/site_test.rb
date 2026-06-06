@@ -902,14 +902,21 @@ class SiteTest < Minitest::Test
 
     assert_includes html, 'class="site-sidebar"'
     assert_includes html, 'class="study-nav"'
+    assert_includes html, 'class="nav-section nav-meta"'
+    assert_includes html, "Study Tools"
     assert_includes html, "<summary>"
     assert_includes html, 'href="/docs/databases/postgres/"'
     assert_includes html, 'data-action="collapse-sidebar"'
+    assert_includes html, 'data-sidebar-toggle'
+    assert_includes html, 'aria-controls="site-sidebar"'
+    assert_includes html, ">Hide nav</button>"
     assert_includes html, 'data-action="toggle-sidebar"'
     assert_includes html, 'id="mode-toggle"'
     assert_includes html, 'data-action="toggle-reader"'
     assert_includes html, 'data-action="mark-complete"'
-    assert_includes html, 'data-action="toggle-runbook"'
+    assert_includes html, 'data-page-complete-status'
+    refute_includes html, 'data-action="toggle-runbook"'
+    refute_includes html, "Highlight runbook steps"
     assert_includes html, 'data-action="copy-page-link"'
     assert_includes html, 'data-action="open-study"'
     assert_includes html, 'id="study-mode-toggle"'
@@ -920,6 +927,22 @@ class SiteTest < Minitest::Test
     assert_includes html, 'class="nav-neighbors"'
     assert_includes html, 'id="study-weak-only"'
     assert_includes html, 'id="study-missed-only"'
+    assert_includes html, 'assets/js/mermaid.min.js'
+    assert_includes html, 'localStorage.getItem("theme")'
+    assert_includes html, 'localStorage.getItem("sidebarState")'
+    assert_operator html.index('localStorage.getItem("theme")'), :<, html.index('assets/css/study.css')
+    assert_includes html, 'html[data-theme="dark"]'
+    assert_includes html, 'document.documentElement.dataset.sidebarState'
+
+    study_tools = html.index("Study Tools")
+    refute_nil study_tools
+    assert_operator html.index("<summary>Troubleshooting</summary>"), :<, study_tools
+    assert_operator html.index(">Knowledge Graph</a>", study_tools), :>, study_tools
+    assert_operator html.index(">Tags</a>", study_tools), :>, study_tools
+    assert_operator html.index(">Cross-Topic Study Paths</a>", study_tools), :>, study_tools
+    assert_operator html.index(">Foundational Study Review</a>", study_tools), :>, study_tools
+    assert_operator html.index(">Glossary</a>", study_tools), :>, study_tools
+    assert_operator html.index(">Scenario Labs</a>", study_tools), :>, study_tools
   end
 
   def test_ceph_and_istio_have_expanded_subpage_navigation
@@ -984,8 +1007,8 @@ class SiteTest < Minitest::Test
     assert_includes graph, "Request Path"
     assert_includes graph, "Cross-Layer Incident Runbooks"
     assert_includes graph, "Incident Entry Points"
-    assert_includes graph, "Cross-Topic Study Paths"
-    assert_includes graph, "Glossary"
+    refute_includes graph, 'data-graph-cluster="cross-topic-study-paths"'
+    refute_includes graph, 'data-graph-cluster="glossary"'
     assert_includes graph, "Datacenter L2/L3 Operations"
     assert_includes graph, "Resilience, Timeouts, and Draining"
     assert_includes graph, "Zero-Trust Networking"
@@ -1230,6 +1253,8 @@ class SiteTest < Minitest::Test
     assert_includes postgres_ops["content"], "managed HA"
     assert_includes postgres_ops["content"], "replication slots"
     assert_includes postgres_ops["content"], "HA Failover"
+    assert_includes postgres_ops["content"], "Detect primary failure"
+    assert_includes postgres_ops["content"], "Validate writes, WAL archive, backups"
     assert_includes postgres_ops["content"], "Split brain"
     assert_includes postgres_ops["content"], "Logical replication model"
     assert_includes postgres_ops["content"], "Logical failover"
@@ -1442,6 +1467,8 @@ class SiteTest < Minitest::Test
     assert_includes storage_drives_raid_db["content"], "RAID 0+1"
     assert_includes storage_drives_raid_db["content"], "write penalty"
     assert_includes storage_drives_raid_db["content"], "LVM With RAID"
+    assert_includes storage_drives_raid_db["content"], "RAID vs LVM vs Filesystem"
+    assert_includes storage_drives_raid_db["content"], "Physical disks / cloud volumes"
     assert_includes storage_drives_raid_db["content"], "Disk Failure Recovery"
     assert_includes storage_drives_raid_db["content"], "RAID Failure Modes"
     assert_includes storage_drives_raid_db["content"], "PostgreSQL Storage Mapping"
@@ -1666,12 +1693,14 @@ class SiteTest < Minitest::Test
     assert_includes k8s_external_dns["content"], "owner ID"
     assert_includes k8s_external_dns["content"], "external-dns.alpha.kubernetes.io/hostname"
     assert_includes k8s_services["content"], "EndpointSlices"
+    assert_includes k8s_services["content"], "Service vs EndpointSlice"
     assert_includes k8s_pod_networking["content"], "CNI"
     assert_includes k8s_network_policy["content"], "default-deny"
     assert_includes k8s_network_policy["content"], "Lab Scenarios"
     assert_includes k8s_network_policy["content"], "namespaceSelector"
     assert_includes k8s_network_policy["content"], "Ingress plus egress isolation test"
     assert_includes k8s_ingress_gateway["content"], "Gateway API"
+    assert_includes k8s_ingress_gateway["content"], "Ingress vs Gateway API"
     assert_includes identity["content"], "Identity Provider"
     assert_includes identity["content"], "authentication"
     assert_includes identity["content"], "authorization"
@@ -1708,6 +1737,8 @@ class SiteTest < Minitest::Test
     assert_includes istio_zero_downtime["content"], "Gateway Upgrades"
     assert_includes istio_zero_downtime["content"], "ztunnel"
     assert_includes istio_observability["content"], "response flags"
+    assert_includes istio_observability["content"], "Intent vs Runtime State"
+    assert_includes istio_observability["content"], "xDS snapshots"
     assert_operator index.length, :>=, 70
   end
 
@@ -1727,9 +1758,11 @@ class SiteTest < Minitest::Test
     assert_includes graph, "Kubernetes"
     assert_includes graph, "Troubleshooting"
     assert_includes graph, "Incident Entry Points"
-    assert_includes graph, "Foundational Study Review"
-    assert_includes graph, "Cross-Topic Study Paths"
-    assert_includes graph, "Glossary"
+    refute_includes graph, 'data-graph-cluster="foundational-study-review"'
+    refute_includes graph, 'data-graph-cluster="cross-topic-study-paths"'
+    refute_includes graph, 'data-graph-cluster="scenario-labs"'
+    refute_includes graph, 'data-graph-cluster="glossary"'
+    refute_includes graph, 'data-graph-edge>Overview</a>'
     assert_includes graph, "DNS and CoreDNS"
     assert_includes graph, "NATS, DNS, and Kubernetes"
     assert_includes graph, "ExternalDNS"
@@ -1796,35 +1829,55 @@ class SiteTest < Minitest::Test
     assert_includes graph, "Explainability"
   end
 
-  def test_study_paths_labs_and_quality_pages_render
+  def test_study_paths_and_labs_pages_render
     study_paths = read_site("docs/study-paths/index.html")
     labs = read_site("docs/labs/index.html")
-    quality = read_site("docs/quality/index.html")
 
     assert_includes study_paths, 'class="path-card"'
     assert_includes study_paths, 'data-path-card'
     assert_includes study_paths, 'data-path-progress-fill'
     assert_includes study_paths, 'data-path-step-url="/docs/ml/serving-inference-vllm/"'
+    assert_includes study_paths, 'data-path-step-url="/docs/ml/inference-systems/"'
+    assert_includes study_paths, 'data-path-step-url="/docs/ml/model-memory-math/"'
+    assert_includes study_paths, 'data-path-step-url="/docs/ml/inference-benchmarking/"'
+    assert_includes study_paths, 'data-path-step-url="/docs/ml/inference-runbooks/"'
+    refute_includes study_paths, 'data-action="mark-complete"'
+    refute_includes study_paths, 'data-page-complete-status'
     assert_includes study_paths, "Production ML from 101 to Advanced Systems"
     assert_includes study_paths, "PostgreSQL Reliability and Zero Downtime"
 
     assert_includes labs, 'class="lab-card"'
     assert_includes labs, 'data-lab-card="kubernetes-dns-outage"'
+    assert_includes labs, 'data-lab-card="ceph-degraded-pgs"'
+    assert_includes labs, 'data-lab-card="istio-mtls-policy-breakage"'
+    assert_includes labs, 'data-lab-card="nat-exhaustion-api-errors"'
+    assert_includes labs, 'data-lab-card="tls-cert-expiry-edge"'
+    assert_includes labs, 'data-lab-card="opensearch-shard-pressure"'
+    assert_includes labs, 'data-lab-card="rag-quality-regression"'
+    refute_includes labs, 'class="lab-columns"'
     assert_includes labs, "Symptoms"
     assert_includes labs, "Evidence"
-    assert_includes labs, "Checks"
+    assert_includes labs, "Command Examples"
+    assert_includes labs, "Example output"
+    assert_includes labs, "What it does:"
+    assert_includes labs, 'class="lab-command-example"'
+    refute_includes labs, 'class="lab-checks"'
     assert_includes labs, "Answer:"
     assert_includes labs, "vLLM Inference Latency Spike"
-
-    assert_includes quality, "Content Quality Dashboard"
-    assert_includes quality, "Coverage Snapshot"
-    assert_includes quality, "Pages Missing References"
-    assert_includes quality, "Pages Missing Study Cards"
-    assert_includes quality, 'class="quality-panel"'
+    assert_includes labs, "Ceph Degraded PGs After OSD Loss"
+    assert_includes labs, "Istio mTLS Policy Breakage"
+    assert_includes labs, "NAT Exhaustion and API Errors"
+    assert_includes labs, "TLS Certificate Expiry at the Edge"
+    assert_includes labs, "OpenSearch Shard Pressure"
+    assert_includes labs, "RAG Quality Regression"
 
     embedded_lab = read_site("docs/ml/serving-inference-vllm/index.html")
     assert_includes embedded_lab, "Scenario Lab"
     assert_includes embedded_lab, "vLLM Inference Latency Spike"
+
+    embedded_ceph_lab = read_site("docs/ceph/operations-recovery/index.html")
+    assert_includes embedded_ceph_lab, "Scenario Lab"
+    assert_includes embedded_ceph_lab, "Ceph Degraded PGs After OSD Loss"
   end
 
   def test_machine_learning_section_search_nav_and_content
@@ -1833,7 +1886,7 @@ class SiteTest < Minitest::Test
     refute_nil ml_nav
 
     expected_pages = {
-      "Machine Learning" => ["docs/ml/index.html", ["ML 101 Foundations", "Math for ML", "Classical ML", "Transformer Internals", "Advanced Inference and vLLM", "Responsible AI and Governance"]],
+      "Machine Learning" => ["docs/ml/index.html", ["ML 101 Foundations", "Math for ML", "Classical ML", "Transformer Internals", "LLM Inference Systems", "Model Memory Math", "Inference Benchmarking", "Inference Runbooks", "Advanced Inference and vLLM", "Responsible AI and Governance"]],
       "ML 101 Foundations" => ["docs/ml/ml-101-foundations/index.html", ["When Not To Use ML", "Overfitting", "Practical Lab"]],
       "Math for ML" => ["docs/ml/math-for-ml/index.html", ["Cosine Similarity", "Gradient Descent", "Attention Intuition"]],
       "Classical ML" => ["docs/ml/classical-ml/index.html", ["LogisticRegression", "Gradient boosting", "Tabular Workflow"]],
@@ -1850,7 +1903,17 @@ class SiteTest < Minitest::Test
       "ML Agents and Tool Use" => ["docs/ml/agents/index.html", ["tool", "idempotency", "Guardrails", "trajectories", "Agent safety test cases"]],
       "Advanced Agents" => ["docs/ml/advanced-agents/index.html", ["Durable execution", "Trajectory Review", "Approval"]],
       "Multimodal ML" => ["docs/ml/multimodal-ml/index.html", ["OCR Pipeline", "Multimodal RAG", "Document QA Evidence"]],
-      "ML Serving, Inference, and vLLM" => ["docs/ml/serving-inference-vllm/index.html", ["prefill", "decode", "KV cache", "PagedAttention", "vLLM Tuning Matrix", "speculative decoding"]],
+      "ML Serving, Inference, and vLLM" => ["docs/ml/serving-inference-vllm/index.html", ["Plain Inference vs vLLM Inference", "Prefill vs Decode", "same LLM generation work", "KV-Cache Deep Dive", "bytes_per_value", "memory-bandwidth-sensitive", "application response caching", "PagedAttention Deep Dive", "block table", "Non-contiguous storage", "Copy-on-write", "prefill", "decode", "KV cache", "PagedAttention", "vLLM Tuning Matrix", "speculative decoding"]],
+      "LLM Inference Systems" => ["docs/ml/inference-systems/index.html", ["Engine Choice Matrix", "TensorRT-LLM", "Hugging Face TGI", "llama.cpp", "SGLang", "Ollama", "API Contracts, Streaming, and Cancellation", "KV Cache Essentials", "PagedAttention Essentials", "Security and Tenant Isolation", "Performance Test Matrix", "Debugging Runbooks", "Quantization for Serving"]],
+      "Model Memory Math" => ["docs/ml/model-memory-math/index.html", ["Weights vs KV Cache vs Activations", "Model artifact", "Weight Memory", "KV-Cache Examples", "Capacity Worksheet", "GQA", "INT4 weights still OOM"]],
+      "Tokenizer and Chat Template Compatibility" => ["docs/ml/tokenizer-chat-template-compatibility/index.html", ["Compatibility Boundary", "Token ID diff", "special tokens", "stop sequence mismatch"]],
+      "Inference Benchmarking" => ["docs/ml/inference-benchmarking/index.html", ["Benchmark Design", "TTFT p50", "ITL p50", "Benchmark Report", "Anti-Patterns"]],
+      "Quantized Serving" => ["docs/ml/quantized-serving/index.html", ["AWQ", "GPTQ", "KV-cache quantization", "Quality Gates", "Rollout Flow"]],
+      "Inference Engine Comparison" => ["docs/ml/inference-engine-comparison/index.html", ["Feature Matrix", "TensorRT-LLM", "llama.cpp", "SGLang", "Migration Plan"]],
+      "vLLM Operations" => ["docs/ml/vllm-operations/index.html", ["Important Flags", "PagedAttention", "Prefix caching", "vLLM Runbook"]],
+      "MoE Inference" => ["docs/ml/moe-inference/index.html", ["active parameters", "Expert parallelism", "all-to-all", "load imbalance"]],
+      "Long-Context Serving" => ["docs/ml/long-context-serving/index.html", ["RoPE scaling", "Sliding-window attention", "lost-in-the-middle", "Long-Context Eval Design"]],
+      "Inference Runbooks" => ["docs/ml/inference-runbooks/index.html", ["Symptom Split", "High TTFT", "Slow Inter-Token Latency", "Release Regression"]],
       "Advanced Inference and vLLM" => ["docs/ml/advanced-inference-vllm/index.html", ["Disaggregated prefill", "KV-Cache Memory Math", "speculative decoding"]],
       "ML Observability and Incident Response" => ["docs/ml/observability-incident-response/index.html", ["drift", "Prompt and retrieval logging", "Incident Runbook", "Quality Monitoring"]],
       "Advanced ML Observability" => ["docs/ml/advanced-observability/index.html", ["Trace Schema", "Online Evaluation", "Incident Review Template"]],
@@ -2053,6 +2116,16 @@ class SiteTest < Minitest::Test
       "docs/ml/advanced-agents/index.html",
       "docs/ml/multimodal-ml/index.html",
       "docs/ml/serving-inference-vllm/index.html",
+      "docs/ml/inference-systems/index.html",
+      "docs/ml/model-memory-math/index.html",
+      "docs/ml/tokenizer-chat-template-compatibility/index.html",
+      "docs/ml/inference-benchmarking/index.html",
+      "docs/ml/quantized-serving/index.html",
+      "docs/ml/inference-engine-comparison/index.html",
+      "docs/ml/vllm-operations/index.html",
+      "docs/ml/moe-inference/index.html",
+      "docs/ml/long-context-serving/index.html",
+      "docs/ml/inference-runbooks/index.html",
       "docs/ml/advanced-inference-vllm/index.html",
       "docs/ml/observability-incident-response/index.html",
       "docs/ml/advanced-observability/index.html",
@@ -2224,7 +2297,9 @@ class SiteTest < Minitest::Test
       html = read_site(relative_path)
       text = text_content(html)
 
-      assert_match(/First Checks|First Evidence/, text, "Expected first checks/evidence in #{relative_path}")
+      assert_includes text, "Command Examples", "Expected command examples in #{relative_path}"
+      assert_includes text, "Example output", "Expected example output in #{relative_path}"
+      assert_includes text, "What it does", "Expected command purpose text in #{relative_path}"
       assert_includes html, 'class="study-card-grid"', "Expected study cards in #{relative_path}"
       assert_includes text, "References", "Expected references in #{relative_path}"
       assert_operator html.scan('class="language-').length, :>=, 1, "Expected at least one practical code example in #{relative_path}"
@@ -2258,8 +2333,12 @@ class SiteTest < Minitest::Test
       "docs/networking/resilience-timeouts-draining/index.html" => ["flowchart LR", "Timeout-Budget Calculator", "Load Balancer Draining"],
       "docs/kubernetes/storage-upgrades/index.html" => ["version-callout", "runbook-panel", "flowchart LR", "Post-Upgrade Validation"],
       "docs/databases/postgres/cloudnativepg/index.html" => ["version-callout", "runbook-panel", "flowchart LR", "Operator Upgrades"],
+      "docs/databases/postgres/operations-ha/index.html" => ["flowchart LR", "Detect primary failure", "Validate writes, WAL archive, backups"],
       "docs/databases/postgres/zero-downtime-upgrades/index.html" => ["version-callout", "runbook-panel", "flowchart LR", "Blue/Green Logical Replication Runbook"],
       "docs/ceph/operations-recovery/index.html" => ["runbook-panel", "flowchart LR", "Recovery and Backfill"],
+      "docs/istio/observability-troubleshooting/index.html" => ["flowchart LR", "xDS snapshots", "Intent vs Runtime State"],
+      "docs/linux/storage-drives-raid-database-performance/index.html" => ["flowchart TB", "RAID vs LVM vs Filesystem", "Physical disks / cloud volumes"],
+      "docs/ml/model-memory-math/index.html" => ["flowchart LR", "Weights vs KV Cache vs Activations", "Model artifact"],
       "docs/istio/zero-downtime-upgrades/index.html" => ["runbook-panel", "flowchart LR", "Gateway Upgrades"]
     }.each do |relative_path, expected_terms|
       html = read_site(relative_path)
@@ -3124,9 +3203,26 @@ class SiteTest < Minitest::Test
 
     assert_includes script, "toggle-theme"
     assert_includes script, "toggle-reader"
-    assert_includes script, "toggle-runbook"
+    refute_includes script, "toggle-runbook"
+    refute_includes script, "setRunbookMode"
+    assert_includes script, "setSidebarState"
+    assert_includes script, "sidebarState"
+    assert_includes script, "Show nav"
+    assert_includes script, "Hide nav"
     assert_includes script, "mark-complete"
+    assert_includes script, "Saved in study progress"
     assert_includes script, "copy-page-link"
+    assert_includes script, "renderMermaidDiagrams"
+    assert_includes script, "normalizeMermaidDiagram"
+    assert_includes script, "openDiagramModal"
+    assert_includes script, "closeDiagramModal"
+    assert_includes script, "expand-diagram"
+    assert_includes script, "diagram-modal"
+    assert_includes script, "pre > code.language-mermaid"
+    assert_includes script, ".run({ querySelector"
+    assert_includes script, "themeVariables"
+    assert_includes script, "diagramKind"
+    assert_includes script, "ResizeObserver"
     assert_includes script, "collapse-sidebar"
     assert_includes script, "toggle-sidebar"
     assert_includes script, "open-study"
@@ -3149,13 +3245,26 @@ class SiteTest < Minitest::Test
     assert_includes css, "@media (max-width: 980px)"
     assert_includes css, "@media (max-width: 640px)"
     assert_includes css, ".reader-mode"
-    assert_includes css, ".runbook-mode"
+    assert_includes css, "html[data-sidebar-state=\"closed\"] .app-shell"
+    assert_includes css, "html[data-sidebar-state=\"closed\"] .site-sidebar"
+    refute_includes css, ".runbook-mode"
     assert_includes css, ".page-toc"
     assert_includes css, ".copy-code-button"
     assert_includes css, ".path-card"
     assert_includes css, ".lab-card"
-    assert_includes css, ".quality-panel"
+    assert_includes css, ".lab-command-examples"
+    assert_includes css, ".lab-command-example"
     assert_includes css, ".graph-controls"
+    assert_includes css, ".mermaid-frame"
+    assert_includes css, ".mermaid-viewport"
+    assert_includes css, ".mermaid-tools"
+    assert_includes css, ".diagram-modal"
+    assert_includes css, ".diagram-modal-viewport"
+    assert_includes css, ".diagram-modal-canvas"
+    assert_includes css, ".mermaid-frame svg"
+    assert_includes css, "data-diagram-layout=\"scroll\""
+    assert_includes css, "justify-content: flex-start"
+    assert_includes css, "font-size: 17px"
     assert_includes css, "--reader-size"
     assert_includes css, "data-theme=\"dark\""
   end

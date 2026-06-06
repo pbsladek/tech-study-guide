@@ -1,5 +1,47 @@
 const { expect, test } = require("@playwright/test");
 
+async function expectReadableDiagram(page, index = 0) {
+  const frame = page.locator(".mermaid-frame").nth(index);
+  await expect(frame.locator("svg")).toBeVisible();
+  await page.waitForFunction((diagramIndex) => {
+    const frameElement = document.querySelectorAll(".mermaid-frame")[diagramIndex];
+    const svg = frameElement?.querySelector("svg");
+    return frameElement?.dataset.diagramReady === "true" && svg && svg.getBoundingClientRect().height >= 120;
+  }, index);
+
+  const metrics = await frame.evaluate((frameElement) => {
+    const viewport = frameElement.querySelector(".mermaid-viewport");
+    const svg = frameElement.querySelector("svg");
+    const viewportBox = viewport.getBoundingClientRect();
+    const svgBox = svg.getBoundingClientRect();
+    const textSizes = Array.from(svg.querySelectorAll("text, .nodeLabel, .edgeLabel, .messageText, .actor"))
+      .map((node) => Number.parseFloat(getComputedStyle(node).fontSize))
+      .filter(Number.isFinite);
+
+    return {
+      layout: frameElement.dataset.diagramLayout,
+      ready: frameElement.dataset.diagramReady,
+      clientWidth: viewport.clientWidth,
+      scrollWidth: viewport.scrollWidth,
+      svgWidth: svgBox.width,
+      svgHeight: svgBox.height,
+      leftDelta: svgBox.left - viewportBox.left,
+      minFontSize: Math.min(...textSizes)
+    };
+  });
+
+  expect(metrics.ready).toBe("true");
+  expect(["fit", "scroll"]).toContain(metrics.layout);
+  expect(metrics.svgWidth).toBeGreaterThanOrEqual(760);
+  expect(metrics.svgHeight).toBeGreaterThanOrEqual(120);
+  expect(metrics.leftDelta).toBeGreaterThanOrEqual(-1);
+  expect(metrics.minFontSize).toBeGreaterThanOrEqual(14);
+
+  if (metrics.layout === "scroll") {
+    expect(metrics.scrollWidth).toBeGreaterThan(metrics.clientWidth);
+  }
+}
+
 test("home page, navigation, and search work", async ({ page, isMobile }) => {
   const searchIndex = page.waitForResponse(/search-index\.json/);
   await page.goto("/");
@@ -32,6 +74,106 @@ test("reader, theme, and typography controls update the page", async ({ page }) 
 
   await page.locator("#text-size-control").fill("115");
   await expect(page.locator("html")).toHaveCSS("--reader-size", "115%");
+});
+
+test("saved dark theme applies before navigation paint and survives nav clicks", async ({ page, isMobile }) => {
+  test.skip(isMobile, "desktop sidebar coverage");
+
+  await page.addInitScript(() => {
+    window.localStorage.setItem("theme", "dark");
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveCSS("background-color", "rgb(17, 20, 19)");
+
+  await page.getByLabel("Topics").locator("summary", { hasText: /^Ceph$/ }).click();
+  await page.getByRole("link", { name: "Rook-Ceph" }).click();
+  await expect(page).toHaveURL(/\/docs\/ceph\/rook-ceph\/$/);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveCSS("background-color", "rgb(17, 20, 19)");
+});
+
+test("saved light theme applies before navigation paint and survives nav clicks", async ({ page, isMobile }) => {
+  test.skip(isMobile, "desktop sidebar coverage");
+
+  await page.addInitScript(() => {
+    window.localStorage.setItem("theme", "light");
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("html")).toHaveCSS("background-color", "rgb(246, 247, 245)");
+
+  await page.getByLabel("Topics").locator("summary", { hasText: /^Ceph$/ }).click();
+  await page.getByRole("link", { name: "Operations and Recovery" }).click();
+  await expect(page).toHaveURL(/\/docs\/ceph\/operations-recovery\/$/);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("html")).toHaveCSS("background-color", "rgb(246, 247, 245)");
+});
+
+test("desktop left navigation can be hidden, restored, and persisted", async ({ page, isMobile }) => {
+  test.skip(isMobile, "desktop-only sidebar coverage");
+
+  await page.goto("/docs/networking/");
+  await expect(page.getByRole("button", { name: "Hide nav" })).toBeVisible();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-sidebar-state", "open");
+
+  await page.getByRole("button", { name: "Hide nav" }).click();
+  await expect(page.getByRole("button", { name: "Show nav" })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-sidebar-state", "closed");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-sidebar-state", "closed");
+  await expect(page.locator(".app-shell")).toHaveCSS("grid-template-columns", /^0px /);
+
+  await page.goto("/docs/linux/");
+  await expect(page.locator("html")).toHaveAttribute("data-sidebar-state", "closed");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-sidebar-state", "closed");
+  await expect(page.getByRole("button", { name: "Show nav" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Show nav" }).click();
+  await expect(page.getByRole("button", { name: "Hide nav" })).toBeVisible();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-sidebar-state", "open");
+});
+
+test("diagrams expand into a scrollable popout", async ({ page, isMobile }) => {
+  await page.goto("/docs/kubernetes/dns-coredns/");
+  await expectReadableDiagram(page);
+
+  await page.locator(".mermaid-frame").first().getByRole("button", { name: /Expand diagram/i }).click();
+  const modal = page.locator("#diagram-modal");
+  await expect(modal.getByRole("dialog")).toBeVisible();
+  await expect(modal.locator(".diagram-modal-canvas svg")).toBeVisible();
+
+  const modalMetrics = await modal.evaluate((modalElement) => {
+    const viewport = modalElement.querySelector(".diagram-modal-viewport");
+    const svg = modalElement.querySelector("svg");
+    const viewportBox = viewport.getBoundingClientRect();
+    const svgBox = svg.getBoundingClientRect();
+    return {
+      viewportWidth: viewport.clientWidth,
+      viewportHeight: viewport.clientHeight,
+      scrollWidth: viewport.scrollWidth,
+      scrollHeight: viewport.scrollHeight,
+      svgWidth: svgBox.width,
+      svgHeight: svgBox.height,
+      leftDelta: svgBox.left - viewportBox.left
+    };
+  });
+
+  expect(modalMetrics.svgWidth).toBeGreaterThanOrEqual(760);
+  expect(modalMetrics.svgHeight).toBeGreaterThanOrEqual(120);
+  expect(modalMetrics.leftDelta).toBeGreaterThanOrEqual(-1);
+  if (isMobile) {
+    expect(modalMetrics.scrollWidth).toBeGreaterThan(modalMetrics.viewportWidth);
+  }
+
+  await modal.getByRole("button", { name: /Close expanded diagram|Close/i }).click();
+  await expect(modal).toBeHidden();
+
+  await page.locator(".mermaid-frame").first().getByRole("button", { name: /Expand diagram/i }).click();
+  await expect(modal.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(modal).toBeHidden();
 });
 
 test("study mode can start from the card, use arrow keys, score, and reset", async ({ page }) => {
@@ -142,7 +284,9 @@ test("topic pages for current coverage render important content", async ({ page 
   await page.goto("/docs/istio/observability-troubleshooting/");
   await expect(page.locator("#istio-observability-and-troubleshooting")).toBeVisible();
   await expect(article.getByText("proxy-status").first()).toBeVisible();
+  await expect(article.getByText("Intent vs Runtime State").first()).toBeVisible();
   await expect(article.getByText("response flags").first()).toBeVisible();
+  await expectReadableDiagram(page);
 
   await page.goto("/docs/foundational-study-review/");
   await expect(page.locator("#foundational-study-review")).toBeVisible();
@@ -201,14 +345,18 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("Cross-Layer Incident Response").first()).toBeVisible();
   await expect(article.getByText("Production ML from 101 to Advanced Systems").first()).toBeVisible();
   await expect(article.locator("[data-path-card]").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mark complete" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Highlight runbook steps" })).toHaveCount(0);
 
   await page.goto("/docs/labs/");
   await expect(article.getByText("Kubernetes DNS Outage").first()).toBeVisible();
   await expect(article.getByText("vLLM Inference Latency Spike").first()).toBeVisible();
-
-  await page.goto("/docs/quality/");
-  await expect(article.getByText("Content Quality Dashboard").first()).toBeVisible();
-  await expect(article.getByText("Pages Missing References").first()).toBeVisible();
+  await expect(article.getByText("Ceph Degraded PGs After OSD Loss").first()).toBeVisible();
+  await expect(article.getByText("Istio mTLS Policy Breakage").first()).toBeVisible();
+  await expect(article.getByText("NAT Exhaustion and API Errors").first()).toBeVisible();
+  await expect(article.getByText("TLS Certificate Expiry at the Edge").first()).toBeVisible();
+  await expect(article.getByText("OpenSearch Shard Pressure").first()).toBeVisible();
+  await expect(article.getByText("RAG Quality Regression").first()).toBeVisible();
 
   await page.goto("/docs/glossary/");
   await expect(article.getByText("memory.high").first()).toBeVisible();
@@ -325,6 +473,10 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByRole("link", { name: "Fine-Tuning and LoRA" })).toBeVisible();
   await expect(article.getByRole("link", { name: "Retrieval-Augmented Generation" })).toBeVisible();
   await expect(article.getByRole("link", { name: "Serving, Inference, and vLLM" })).toBeVisible();
+  await expect(article.getByRole("link", { name: "LLM Inference Systems" })).toBeVisible();
+  await expect(article.getByRole("link", { name: "Model Memory Math" })).toBeVisible();
+  await expect(article.getByRole("link", { name: "Inference Benchmarking" })).toBeVisible();
+  await expect(article.getByRole("link", { name: "Inference Runbooks" })).toBeVisible();
   await expect(article.getByRole("link", { name: "Advanced Inference and vLLM" })).toBeVisible();
   await expect(article.getByRole("link", { name: "Prompt Operations" })).toBeVisible();
 
@@ -360,6 +512,7 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(page.locator("#retrieval-augmented-generation")).toBeVisible();
   await expect(article.getByText("chunking").first()).toBeVisible();
   await expect(article.getByText("reranking").first()).toBeVisible();
+  await expect(article.getByText("RAG Quality Regression").first()).toBeVisible();
 
   await page.goto("/docs/ml/agents/");
   await expect(page.locator("#ml-agents-and-tool-use")).toBeVisible();
@@ -368,9 +521,61 @@ test("topic pages for current coverage render important content", async ({ page 
 
   await page.goto("/docs/ml/serving-inference-vllm/");
   await expect(page.locator("#ml-serving-inference-and-vllm")).toBeVisible();
+  await expect(article.getByText("Plain Inference vs vLLM Inference").first()).toBeVisible();
+  await expect(article.getByText("Prefill vs Decode").first()).toBeVisible();
+  await expect(article.getByText("KV-Cache Deep Dive").first()).toBeVisible();
+  await expect(article.getByText("PagedAttention Deep Dive").first()).toBeVisible();
   await expect(article.getByText("PagedAttention").first()).toBeVisible();
   await expect(article.getByText("vLLM Tuning Matrix").first()).toBeVisible();
   await expect(article.getByText("speculative decoding").first()).toBeVisible();
+  await expectReadableDiagram(page);
+
+  await page.goto("/docs/ml/inference-systems/");
+  await expect(page.locator("#llm-inference-systems")).toBeVisible();
+  await expect(article.getByText("Engine Choice Matrix").first()).toBeVisible();
+  await expect(article.getByText("API Contracts, Streaming, and Cancellation").first()).toBeVisible();
+  await expect(article.getByText("KV Cache Essentials").first()).toBeVisible();
+  await expect(article.getByText("Security and Tenant Isolation").first()).toBeVisible();
+  await expect(article.getByText("Performance Test Matrix").first()).toBeVisible();
+
+  await page.goto("/docs/ml/model-memory-math/");
+  await expect(page.locator("#model-memory-math")).toBeVisible();
+  await expect(article.getByText("Weights vs KV Cache vs Activations").first()).toBeVisible();
+  await expect(article.getByText("KV-Cache Examples").first()).toBeVisible();
+  await expect(article.getByText("Capacity Worksheet").first()).toBeVisible();
+  await expectReadableDiagram(page);
+
+  await page.goto("/docs/ml/tokenizer-chat-template-compatibility/");
+  await expect(page.locator("#tokenizer-and-chat-template-compatibility")).toBeVisible();
+  await expect(article.getByText("Compatibility Boundary").first()).toBeVisible();
+
+  await page.goto("/docs/ml/inference-benchmarking/");
+  await expect(page.locator("#inference-benchmarking")).toBeVisible();
+  await expect(article.getByText("Benchmark Design").first()).toBeVisible();
+
+  await page.goto("/docs/ml/quantized-serving/");
+  await expect(page.locator("#quantized-serving")).toBeVisible();
+  await expect(article.getByText("Quality Gates").first()).toBeVisible();
+
+  await page.goto("/docs/ml/inference-engine-comparison/");
+  await expect(page.locator("#inference-engine-comparison")).toBeVisible();
+  await expect(article.getByText("Feature Matrix").first()).toBeVisible();
+
+  await page.goto("/docs/ml/vllm-operations/");
+  await expect(page.locator("#vllm-operations")).toBeVisible();
+  await expect(article.getByText("Important Flags").first()).toBeVisible();
+
+  await page.goto("/docs/ml/moe-inference/");
+  await expect(page.locator("#moe-inference")).toBeVisible();
+  await expect(article.getByText("Expert parallelism").first()).toBeVisible();
+
+  await page.goto("/docs/ml/long-context-serving/");
+  await expect(page.locator("#long-context-serving")).toBeVisible();
+  await expect(article.getByText("Long-Context Eval Design").first()).toBeVisible();
+
+  await page.goto("/docs/ml/inference-runbooks/");
+  await expect(page.locator("#inference-runbooks")).toBeVisible();
+  await expect(article.getByText("Symptom Split").first()).toBeVisible();
 
   await page.goto("/docs/ml/advanced-inference-vllm/");
   await expect(page.locator("#advanced-inference-and-vllm")).toBeVisible();
@@ -446,6 +651,12 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(page.locator("#kubernetes-dns-and-coredns")).toBeVisible();
   await expect(article.getByText("ndots").first()).toBeVisible();
   await expect(article.getByText("Corefile").first()).toBeVisible();
+  await expect(page.locator("pre > code.language-mermaid")).toHaveCount(0);
+  await expectReadableDiagram(page);
+  const diagramHeadingBox = await page.locator("#dns-resolution-diagram").boundingBox();
+  const diagramFrameBox = await page.locator(".mermaid-frame").nth(1).boundingBox();
+  expect(Math.abs(diagramFrameBox.x - diagramHeadingBox.x)).toBeLessThan(2);
+  await expectReadableDiagram(page, 1);
 
   await page.goto("/docs/kubernetes/nats-dns-kubernetes/");
   await expect(page.locator("#nats-dns-and-kubernetes-networking")).toBeVisible();
@@ -459,6 +670,14 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(page.locator("#kubernetes-externaldns")).toBeVisible();
   await expect(article.getByText("TXT registry").first()).toBeVisible();
   await expect(article.getByText("external-dns.alpha.kubernetes.io/hostname").first()).toBeVisible();
+
+  await page.goto("/docs/kubernetes/services-endpointslices/");
+  await expect(page.locator("#kubernetes-services-and-endpointslices")).toBeVisible();
+  await expect(article.getByText("Service vs EndpointSlice").first()).toBeVisible();
+
+  await page.goto("/docs/kubernetes/ingress-gateway-load-balancers/");
+  await expect(page.locator("#kubernetes-ingress-gateway-and-load-balancers")).toBeVisible();
+  await expect(article.getByText("Ingress vs Gateway API").first()).toBeVisible();
 
   await page.goto("/docs/kubernetes/network-policy/");
   await expect(page.locator("#kubernetes-networkpolicy")).toBeVisible();
@@ -499,6 +718,8 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(page.locator("#postgresql-operations-ha-replication-and-recovery")).toBeVisible();
   await expect(article.getByText("replication slots").first()).toBeVisible();
   await expect(article.getByText("HA Failover").first()).toBeVisible();
+  await expect(article.getByText("Detect primary failure").first()).toBeVisible();
+  await expectReadableDiagram(page);
   await expect(article.getByText("Sharding").first()).toBeVisible();
   await expect(article.getByText("shard key").first()).toBeVisible();
   await expect(article.getByText("pg_verifybackup").first()).toBeVisible();
@@ -536,6 +757,7 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("replica shard").first()).toBeVisible();
   await expect(article.getByText("allocation awareness").first()).toBeVisible();
   await expect(article.getByText("Snapshots and Recovery").first()).toBeVisible();
+  await expect(article.getByText("OpenSearch Shard Pressure").first()).toBeVisible();
 
   await page.goto("/docs/dns/domain-controllers/");
   await expect(page.locator("#domain-controllers-and-directory-dns")).toBeVisible();
@@ -553,6 +775,8 @@ test("topic pages for current coverage render important content", async ({ page 
   await expect(article.getByText("RAID 0+1").first()).toBeVisible();
   await expect(article.getByText("RAID Failure Modes").first()).toBeVisible();
   await expect(article.getByText("LVM With RAID").first()).toBeVisible();
+  await expect(article.getByText("RAID vs LVM vs Filesystem").first()).toBeVisible();
+  await expectReadableDiagram(page);
   await expect(article.getByText("Disk Failure Recovery").first()).toBeVisible();
   await expect(article.getByText("PostgreSQL Storage Mapping").first()).toBeVisible();
   await expect(article.getByText("Elasticsearch Storage Mapping").first()).toBeVisible();
@@ -627,6 +851,7 @@ test("topic pages for current coverage render important content", async ({ page 
   await page.goto("/docs/ceph/operations-recovery/");
   await expect(page.locator("#ceph-operations-and-recovery")).toBeVisible();
   await expect(article.getByText("Recovery and Backfill").first()).toBeVisible();
+  await expect(article.getByText("Ceph Degraded PGs After OSD Loss").first()).toBeVisible();
   await expect(article.getByText("noout").first()).toBeVisible();
 
   await page.goto("/docs/ceph/performance-capacity/");
@@ -690,15 +915,18 @@ test("page tools, graph filters, and code copy controls render", async ({ page }
   await expect(page.locator("#page-toc")).toBeVisible();
   await expect(page.locator(".copy-code-button").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Mark complete" })).toBeVisible();
+  await expect(page.getByText("Not complete")).toBeVisible();
 
-  await page.getByRole("button", { name: "Runbook mode" }).click();
-  await expect(page.locator("body")).toHaveClass(/runbook-mode/);
+  await expect(page.getByRole("button", { name: "Highlight runbook steps" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Mark complete" }).click();
-  await expect(page.getByRole("button", { name: "Complete" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Completed" })).toBeVisible();
+  await expect(page.getByText("Saved in study progress")).toBeVisible();
 
   await page.goto("/knowledge-graph/");
   await expect(page.locator("#graph-filter")).toBeVisible();
+  await expect(page.locator("[data-graph-node]").filter({ hasText: "Cross-Topic Study Paths" })).toHaveCount(0);
+  await expect(page.locator(".graph-clusters [data-graph-cluster='glossary']")).toHaveCount(0);
   await page.locator("#graph-filter").fill("postgres");
   await expect(page.locator("[data-graph-node]").filter({ hasText: "Databases" })).toBeVisible();
   await page.locator("#graph-filter").fill("");

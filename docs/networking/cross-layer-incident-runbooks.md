@@ -14,7 +14,7 @@ tags:
 
 Production network incidents rarely stay inside one layer. An HTTP 504 can be an overloaded app, a stale EndpointSlice, a proxy timeout, a DNS answer pointing at the wrong load balancer, a conntrack table at capacity, or a Pod-to-node datapath issue. The job is to preserve evidence and walk from symptom to boundary, not to tune the first knob that looks familiar.
 
-## First Evidence
+## Command Examples
 
 Capture the exact source, destination name, resolved address, port, protocol, timestamp, and error string before changing state.
 
@@ -35,6 +35,14 @@ kubectl get events -A --sort-by=.lastTimestamp | tail -50
 kubectl -n kube-system get pods -o wide
 kubectl -n kube-system logs deployment/coredns --since=10m
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `date -Is` | `2026-06-06T10:24:33-07:00`. | Pins evidence to a timestamp before logs rotate or retries change state. |
+| `curl -v --connect-timeout 3 --max-time 10 https://api.example.com/health` | Connect, TLS, and HTTP status timing. | Places the symptom at the client, edge, proxy, or application boundary. |
+| `kubectl -n kube-system logs deployment/coredns --since=10m` | CoreDNS query errors, SERVFAILs, or normal answers. | Checks whether DNS is part of the incident window. |
 
 ## HTTP 504
 

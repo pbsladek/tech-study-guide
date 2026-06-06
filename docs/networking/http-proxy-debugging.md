@@ -15,7 +15,7 @@ tags:
 
 HTTP failures can sit above a healthy TCP and TLS path. Debugging requires separating DNS, TCP, TLS, proxy selection, request headers, routing, application status, connection reuse, protocol version, and timeout behavior.
 
-## First Checks
+## Command Examples
 
 ```bash
 curl -v https://api.example.com/healthz
@@ -24,6 +24,14 @@ curl -v --http1.1 https://api.example.com/
 curl -v --http2 https://api.example.com/
 env | grep -i proxy
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `curl -v https://api.example.com/healthz` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
+| `curl -vk --resolve api.example.com:443:203.0.113.10 https://api.example.com/healthz` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
+| `curl -v --http1.1 https://api.example.com/` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
 
 `curl -v` exposes DNS choice, TCP connection, TLS handshake, ALPN, request headers, response headers, redirects, and connection reuse.
 

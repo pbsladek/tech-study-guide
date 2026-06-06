@@ -13,7 +13,7 @@ tags:
 
 Linux networking is both OS internals and production infrastructure. Containers, Kubernetes, firewalls, service meshes, and load balancers all depend on sockets, namespaces, routes, neighbor tables, netfilter, conntrack, qdisc, and NIC queues.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip addr
@@ -26,6 +26,14 @@ cat /proc/net/softnet_stat
 ip link show type bridge
 bridge link
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip addr` | `Interfaces, addresses, link state, counters, drops, and errors.` | Shows local interface state before blaming remote systems. |
+| `ip route` | `Destination, gateway, interface, and selected source address.` | Shows how the host will route the target flow. |
+| `ip rule` | `0: from all lookup local; 100: from 10.0.0.0/24 lookup 100.` | Shows policy routing rules that can override the main route table. |
 
 ## Sockets
 

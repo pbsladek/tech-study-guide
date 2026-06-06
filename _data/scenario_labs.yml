@@ -11,10 +11,24 @@
     - "Compare `/etc/resolv.conf` inside a Pod with the node resolver."
     - Check CoreDNS logs, metrics, endpoints, and EndpointSlice watch errors.
     - "Run `dig +search +showsearch` to expose `ndots` expansion."
-  checks:
-    - "kubectl -n kube-system logs deploy/coredns --tail=100"
-    - "kubectl -n kube-system get endpointslice,endpoints,svc -l k8s-app=kube-dns"
-    - "kubectl exec deploy/debug -- dig kubernetes.default.svc.cluster.local"
+  command_examples:
+    - command: "kubectl -n kube-system logs deploy/coredns --tail=100"
+      output: |
+        [ERROR] plugin/errors: 2 kubernetes.default.svc.cluster.local. A: read udp 10.244.1.8:39948->10.96.0.10:53: i/o timeout
+        [INFO] 10.244.2.17:43321 - 44812 "A IN kubernetes.default.svc.cluster.local. udp 54 false 512" NOERROR
+      does: Shows whether CoreDNS is returning normal answers, timing out upstream, failing Kubernetes API watches, or logging plugin-level errors.
+    - command: "kubectl -n kube-system get endpointslice,endpoints,svc -l k8s-app=kube-dns"
+      output: |
+        NAME                              ADDRESSTYPE   PORTS   ENDPOINTS
+        endpointslice.discovery.k8s.io/kube-dns-abc12   IPv4          53      10.244.1.8,10.244.2.9
+        NAME                 TYPE        CLUSTER-IP    PORT(S)
+        service/kube-dns     ClusterIP   10.96.0.10    53/UDP,53/TCP
+      does: Confirms the DNS Service has ready CoreDNS endpoints and exposes both UDP and TCP port 53.
+    - command: "kubectl exec deploy/debug -- dig kubernetes.default.svc.cluster.local"
+      output: |
+        ;; status: NOERROR
+        kubernetes.default.svc.cluster.local. 30 IN A 10.96.0.1
+      does: Tests name resolution from the same Pod network path that application Pods use.
   answer: Prove whether the failure is stub resolver search expansion, CoreDNS health, upstream recursion, NetworkPolicy, or API watch state before changing the Corefile.
 
 - id: postgres-failover-pooling
@@ -30,10 +44,22 @@
     - "Compare `pg_is_in_recovery()` across endpoints."
     - "Inspect PgBouncer `SHOW POOLS` and `SHOW SERVERS`."
     - Check application DNS TTL and connection retry behavior.
-  checks:
-    - "psql -c \"select pg_is_in_recovery(), now() - pg_last_xact_replay_timestamp()\""
-    - "psql -p 6432 pgbouncer -c \"show pools\""
-    - "psql -p 6432 pgbouncer -c \"reconnect\""
+  command_examples:
+    - command: "psql -c \"select pg_is_in_recovery(), now() - pg_last_xact_replay_timestamp()\""
+      output: |
+        pg_is_in_recovery | ?column?
+        -------------------+----------
+        f                 |
+      does: Identifies whether the endpoint is the writable primary and whether replay lag is relevant.
+    - command: "psql -p 6432 pgbouncer -c \"show pools\""
+      output: |
+        database | user | cl_active | cl_waiting | sv_active | sv_idle
+        app      | app  | 120       | 18         | 20        | 0
+      does: Shows whether clients are stuck behind PgBouncer pools or mapped to stale server connections.
+    - command: "psql -p 6432 pgbouncer -c \"reconnect\""
+      output: |
+        RECONNECT
+      does: Forces PgBouncer to drop old server connections after promotion or endpoint changes.
   answer: Treat database promotion, pool reconnection, DNS/service routing, and application retry budgets as one cutover sequence.
 
 - id: linux-boot-recovery
@@ -49,10 +75,22 @@
     - "Read `journalctl -xb` from the failed boot."
     - "Compare `/etc/fstab` UUIDs with `blkid`."
     - Check initramfs contents and kernel command line.
-  checks:
-    - "journalctl -xb -p warning"
-    - "blkid"
-    - "systemctl --failed"
+  command_examples:
+    - command: "journalctl -xb -p warning"
+      output: |
+        systemd[1]: dev-disk-by\x2duuid-...device: Job timed out.
+        systemd[1]: Dependency failed for /data.
+      does: Finds the failed unit, mount, device, or boot dependency from the current emergency boot.
+    - command: "blkid"
+      output: |
+        /dev/nvme0n1p2: UUID="9f7c..." TYPE="ext4"
+        /dev/nvme1n1p1: UUID="2ad4..." TYPE="xfs"
+      does: Compares real block-device UUIDs and filesystem types against `/etc/fstab` and boot configuration.
+    - command: "systemctl --failed"
+      output: |
+        UNIT             LOAD   ACTIVE SUB    DESCRIPTION
+        data.mount       loaded failed failed /data
+      does: Lists failed systemd units so repair starts from the blocking dependency instead of guessing.
   answer: Restore boot by proving the failing unit or mount, disabling the bad dependency, rebuilding initramfs when needed, and keeping the recovery shell read/write only for the minimum repair.
 
 - id: vllm-inference-latency
@@ -68,8 +106,217 @@
     - Compare prompt length, output length, and batch shape histograms.
     - Track KV-cache utilization, prefill/decode split, and scheduler queue time.
     - Check whether speculative decoding or tensor parallel settings changed.
-  checks:
-    - "nvidia-smi dmon"
-    - "curl -sS http://localhost:8000/metrics | grep vllm"
-    - "kubectl top pod -l app=vllm"
+  command_examples:
+    - command: "nvidia-smi dmon"
+      output: |
+        # gpu   sm  mem  enc  dec  mclk  pclk
+        # Idx    %    %    %    %   MHz   MHz
+          0     72   88    0    0  1593  1410
+      does: Separates GPU compute pressure from memory-bandwidth pressure during prefill and decode.
+    - command: "curl -sS http://localhost:8000/metrics | grep vllm"
+      output: |
+        vllm:num_requests_waiting{model_name="llama"} 14
+        vllm:gpu_cache_usage_perc{model_name="llama"} 0.91
+        vllm:time_to_first_token_seconds_bucket{le="1.0"} 248
+      does: Shows queue depth, KV-cache pressure, and token-latency signals from the serving engine.
+    - command: "kubectl top pod -l app=vllm"
+      output: |
+        NAME            CPU(cores)   MEMORY(bytes)
+        vllm-0          920m         38Gi
+      does: Confirms whether Kubernetes-visible CPU and memory pressure line up with model-server symptoms.
   answer: Separate queueing, prefill saturation, decode throughput, KV-cache eviction, and model parallelism before scaling replicas or changing batch limits.
+
+- id: ceph-degraded-pgs
+  title: Ceph Degraded PGs After OSD Loss
+  topic: Ceph
+  url: /docs/ceph/operations-recovery/
+  summary: A drive failure leaves placement groups degraded while client latency rises during recovery.
+  symptoms:
+    - "`ceph -s` shows `active+degraded` or `active+undersized` placement groups."
+    - One OSD is down or flapping and recovery traffic increases.
+    - Application writes are slower but still mostly succeeding.
+  evidence:
+    - "Capture `ceph health detail`, `ceph osd tree`, and `ceph pg dump_stuck` before changing flags."
+    - Check whether any OSD or CRUSH subtree is nearfull, backfillfull, or full.
+    - Compare client latency with recovery and backfill activity.
+  command_examples:
+    - command: "ceph -s && ceph health detail"
+      output: |
+        health: HEALTH_WARN
+        64 pgs degraded
+        osd.12 is down
+      does: Establishes the cluster health state and the specific warnings driving recovery work.
+    - command: "ceph osd tree && ceph osd df tree"
+      output: |
+        ID  CLASS WEIGHT  TYPE NAME       STATUS REWEIGHT
+        12  hdd   7.276   osd.12         down   1.00000
+        ID  REWEIGHT SIZE  USE  AVAIL %USE
+        12  1.00000  7.3T  0B   7.3T  0.00
+      does: Locates the failed OSD and checks whether capacity or CRUSH placement will constrain recovery.
+    - command: "ceph pg dump_stuck && ceph -w"
+      output: |
+        ok
+        2026-06-06T10:14:12 64 pgs active+degraded; recovery io 120 MiB/s
+      does: Watches whether placement groups are making progress toward `active+clean` or staying stuck.
+  answer: "Restore redundancy without creating extra churn: identify the failed domain, replace or restart only the bad OSD, avoid broad forgotten flags, and watch recovery to active+clean."
+
+- id: istio-mtls-policy-breakage
+  title: Istio mTLS Policy Breakage
+  topic: Istio
+  url: /docs/istio/security-mtls-policy/
+  summary: A service-to-service call starts returning proxy-generated 503 or 403 after a policy rollout.
+  symptoms:
+    - Client Pods can resolve the Service, but requests fail at the proxy.
+    - Access logs show mTLS, authorization, or upstream health response flags.
+    - Direct app logs do not show the failed request reaching the handler.
+  evidence:
+    - Compare PeerAuthentication, DestinationRule, AuthorizationPolicy, and RequestAuthentication scope.
+    - Inspect Envoy clusters, routes, endpoints, and secrets for the source or gateway proxy.
+    - Check workload identities and namespace labels before changing policy.
+  command_examples:
+    - command: "istioctl analyze --all-namespaces"
+      output: |
+        Warning [IST0101] (VirtualService payments.payments) Referenced host not found: payments-api
+      does: Finds mesh configuration conflicts before inspecting individual Envoy proxies.
+    - command: "istioctl proxy-config clusters <pod> -n <namespace>"
+      output: |
+        SERVICE FQDN                  PORT     SUBSET     DIRECTION     TYPE
+        payments-api.payments.svc     8443     -          outbound      EDS
+      does: Shows whether the proxy received an outbound cluster for the target workload and port.
+    - command: "istioctl proxy-config secret <pod> -n <namespace>"
+      output: |
+        RESOURCE NAME     TYPE           STATUS     VALID CERT     SERIAL NUMBER
+        default           Cert Chain     ACTIVE     true           1a2b3c
+      does: Verifies that the sidecar has active mTLS certificates and can participate in the mesh identity path.
+  answer: Treat YAML as intent and proxy config as enforcement; prove whether the break is TLS mode, identity, authorization, endpoint readiness, or route attachment before relaxing policy.
+
+- id: nat-exhaustion-api-errors
+  title: NAT Exhaustion and API Errors
+  topic: Networking
+  url: /docs/networking/nat-gateways/
+  summary: Outbound calls to third-party APIs fail intermittently during a traffic spike.
+  symptoms:
+    - Error rates rise for outbound dependencies while internal service traffic remains healthy.
+    - Connection attempts time out or fail with resets during peak concurrency.
+    - One NAT gateway, firewall, or node egress path carries most of the traffic.
+  evidence:
+    - Compare active connections, conntrack usage, SNAT port use, and upstream destination fan-out.
+    - Check whether retries multiply outbound concurrency.
+    - Correlate failures with one source node, subnet, gateway, or external IP.
+  command_examples:
+    - command: "conntrack -S"
+      output: |
+        entries 1048211
+        searched 23041017
+        insert_failed 482
+      does: Shows whether the host or gateway is failing to allocate new connection-tracking entries.
+    - command: "ss -tan state established,time-wait | wc -l"
+      output: |
+        58234
+      does: Estimates active and recently closed TCP connection pressure that can consume SNAT ports.
+    - command: "tcpdump -nn host <upstream-ip> and tcp"
+      output: |
+        10.0.12.15.53412 > 198.51.100.20.443: Flags [S]
+        10.0.12.15.53412 > 198.51.100.20.443: Flags [S], retransmission
+      does: Distinguishes dropped SYNs, resets, and successful handshakes on the egress path.
+  answer: Separate upstream failure from egress exhaustion by proving SNAT port, conntrack, retry, and destination distribution before scaling clients or blaming the API provider.
+
+- id: tls-cert-expiry-edge
+  title: TLS Certificate Expiry at the Edge
+  topic: Networking
+  url: /docs/networking/certificates-https/
+  summary: Browsers reject a public endpoint while internal health checks still pass.
+  symptoms:
+    - Users see certificate expired, wrong host, or incomplete-chain errors.
+    - TCP connectivity works and HTTP health checks may remain green.
+    - A recent load balancer, ingress, or gateway change touched TLS termination.
+  evidence:
+    - Inspect the certificate chain from the same SNI and address users hit.
+    - Compare DNS, load balancer listener, gateway secret, and backend certificate boundaries.
+    - Check whether automation renewed a secret but the serving proxy did not reload it.
+  command_examples:
+    - command: "openssl s_client -connect <host>:443 -servername <host> -showcerts </dev/null"
+      output: |
+        subject=CN=www.example.com
+        issuer=C=US,O=Example CA
+        notAfter=Jun  7 12:00:00 2026 GMT
+        Verify return code: 0 (ok)
+      does: Inspects the public certificate chain served for the exact SNI users hit.
+    - command: "curl -vkI https://<host>/"
+      output: |
+        * SSL connection using TLSv1.3
+        * subjectAltName: host "www.example.com" matched cert's "www.example.com"
+        HTTP/2 200
+      does: Confirms TLS negotiation, hostname validation, and the edge HTTP response in one request.
+    - command: "kubectl get secret <tls-secret> -o yaml"
+      output: |
+        type: kubernetes.io/tls
+        data:
+          tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t...
+      does: Confirms the Kubernetes Secret exists and contains TLS material, before checking whether a proxy reloaded it.
+  answer: Prove the exact TLS endpoint and SNI first; then rotate or reload the certificate at that layer and verify the public chain, SANs, expiry, and route behavior.
+
+- id: opensearch-shard-pressure
+  title: OpenSearch Shard Pressure
+  topic: Databases
+  url: /docs/databases/opensearch/
+  summary: Search latency and indexing errors rise after shard count and disk use grow.
+  symptoms:
+    - Cluster health is yellow or red, or relocation never finishes.
+    - JVM pressure, disk watermarks, or pending tasks increase.
+    - Search p95 latency rises while some nodes are much hotter than others.
+  evidence:
+    - Compare shard allocation, disk watermarks, heap pressure, rejected threadpool tasks, and hot nodes.
+    - Check index count, shard size, replica count, and recent rollover behavior.
+    - Separate query load, indexing pressure, relocation, and disk-full risk.
+  command_examples:
+    - command: "curl -s localhost:9200/_cluster/health?pretty"
+      output: |
+        {
+          "status" : "yellow",
+          "active_shards_percent_as_number" : 94.2,
+          "number_of_pending_tasks" : 37
+        }
+      does: Establishes cluster health, pending tasks, and whether shard availability is degraded.
+    - command: "curl -s localhost:9200/_cat/shards?v"
+      output: |
+        index    shard prirep state      docs  store ip          node
+        logs-01  2     r      UNASSIGNED
+        logs-01  2     p      STARTED    12m   42gb  10.0.1.12  os-node-1
+      does: Shows which shards are unassigned, relocating, or concentrated on hot nodes.
+    - command: "curl -s localhost:9200/_cat/allocation?v"
+      output: |
+        shards disk.indices disk.used disk.avail disk.percent host       node
+        318    1.9tb        2.7tb     110gb      96           10.0.1.12  os-node-1
+      does: Connects shard placement to disk watermarks and node imbalance.
+  answer: Do not add random shards under pressure; first prove whether the bottleneck is disk watermark, heap, allocation, query load, indexing load, or shard-count overhead.
+
+- id: rag-quality-regression
+  title: RAG Quality Regression
+  topic: Machine Learning
+  url: /docs/ml/rag/
+  summary: Answers become less grounded after a retriever, embedding, or prompt change.
+  symptoms:
+    - The model still responds fluently but cites irrelevant or stale context.
+    - Retrieval scores look plausible while user task success drops.
+    - A prompt, chunking, embedding model, or reranker deployment changed recently.
+  evidence:
+    - Compare query text, retrieved chunk IDs, scores, reranker order, and final prompt context.
+    - Replay a fixed evaluation set across old and new retriever pipelines.
+    - Check whether chunking, metadata filters, or tenant boundaries changed.
+  command_examples:
+    - command: "grep -R \"retrieved_chunk_ids\" logs/"
+      output: |
+        request_id=42 query="renew cert" retrieved_chunk_ids=["tls-17","tls-22"] scores=[0.82,0.79]
+      does: Confirms which chunks were retrieved for failing answers and whether the IDs changed after release.
+    - command: "python evals/rag_replay.py --before old.jsonl --after new.jsonl"
+      output: |
+        query_set=golden_2026_06
+        recall@5: 0.82 -> 0.61
+        grounded_answer_rate: 0.74 -> 0.58
+      does: Replays fixed examples to separate retrieval regression from generation noise.
+    - command: "curl -sS http://localhost:8000/search?q='<query>'"
+      output: |
+        {"results":[{"chunk_id":"tls-17","score":0.82,"title":"TLS renewal runbook"}]}
+      does: Checks the live retrieval endpoint without running the full answer-generation path.
+  answer: "Treat RAG quality as a pipeline incident: isolate retrieval recall, reranking, prompt assembly, generation config, and citation policy before changing the model."

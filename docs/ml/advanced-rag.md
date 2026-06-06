@@ -14,7 +14,7 @@ tags:
 
 Advanced RAG is a retrieval system, ranking system, prompt assembly system, and verification system. The generator is only the last stage.
 
-## First Checks
+## Command Examples
 
 ```text
 For one bad answer, capture:
@@ -27,6 +27,12 @@ For one bad answer, capture:
   citations
   expected source
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Captured fields` | `Named fields with concrete values: IDs, scores, tokens, routes, states, timestamps, or errors.` | Turns a capture template into evidence you can compare across runs. |
 
 ## Advanced Patterns
 

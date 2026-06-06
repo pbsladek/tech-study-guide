@@ -39,11 +39,17 @@ This glossary is tuned for search. Each entry is short and points to the deeper 
 | Path MTU Discovery | Method for discovering the smallest MTU along a path using ICMP feedback. | [ICMP, MTU, and Path Testing](/docs/networking/icmp-mtu-path-testing/) |
 | LACP | Link aggregation control protocol for bundling physical links. | [Datacenter L2/L3 Operations](/docs/networking/datacenter-l2-l3-operations/) |
 
-## First Checks
+## Command Examples
 
 ```bash
 rg -n "conntrack|EndpointSlice|memory.high|ALPN|VXLAN" docs
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `rg -n "conntrack\|EndpointSlice\|memory.high\|ALPN\|VXLAN" docs` | `Services with ClusterIPs and EndpointSlices with backend addresses.` | Connects stable frontends to the backends that should receive traffic. |
 
 Use glossary terms as search anchors, then follow the linked operational page for commands and runbooks.
 

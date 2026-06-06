@@ -9,6 +9,7 @@ layout: default
 </header>
 
 <section class="graph-controls" aria-label="Knowledge graph filters">
+  {% assign graph_excluded_urls = "/docs/foundational-study-review/|/docs/study-paths/|/docs/labs/|/docs/glossary/" | split: "|" %}
   <label>
     Filter graph
     <input id="graph-filter" type="search" placeholder="Filter topics, pages, or clusters">
@@ -16,6 +17,7 @@ layout: default
   <div class="graph-clusters">
     <button type="button" data-graph-cluster="" aria-pressed="true">All</button>
     {% for item in site.data.study_nav %}
+      {% if graph_excluded_urls contains item.url %}{% continue %}{% endif %}
       <button type="button" data-graph-cluster="{{ item.title | slugify }}" aria-pressed="false">{{ item.title }}</button>
     {% endfor %}
   </div>
@@ -23,14 +25,17 @@ layout: default
 
 <section class="graph-board" aria-label="Knowledge graph">
   {% for item in site.data.study_nav %}
+    {% if graph_excluded_urls contains item.url %}{% continue %}{% endif %}
     <article class="graph-node" data-graph-node data-graph-cluster="{{ item.title | slugify }}" data-graph-title="{{ item.title | downcase }}">
       <a class="graph-title" href="{{ item.url | relative_url }}">{{ item.title }}</a>
       {% if item.children %}
         <div class="graph-edges">
           {% for child in item.children %}
+            {% if graph_excluded_urls contains child.url or child.url == item.url %}{% continue %}{% endif %}
             <a href="{{ child.url | relative_url }}" data-graph-edge>{{ child.title }}</a>
             {% if child.children %}
               {% for grandchild in child.children %}
+                {% if graph_excluded_urls contains grandchild.url or grandchild.url == child.url or grandchild.url == item.url %}{% continue %}{% endif %}
                 <a href="{{ grandchild.url | relative_url }}" data-graph-edge>{{ grandchild.title }}</a>
               {% endfor %}
             {% endif %}

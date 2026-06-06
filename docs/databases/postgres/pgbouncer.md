@@ -16,7 +16,7 @@ PgBouncer is a lightweight PostgreSQL connection pooler. Applications connect to
 
 The main reason PgBouncer exists is that PostgreSQL's classic connection model uses one backend process per client connection. Too many database backends consume memory, increase context switching, amplify lock and cache pressure, and make failover harder. PgBouncer lets the system accept many client sockets while limiting the number of active PostgreSQL server connections.
 
-## First Checks
+## Command Examples
 
 ```bash
 psql "postgresql://<user>@<pgbouncer-host>:6432/pgbouncer" -c "SHOW POOLS;"
@@ -26,6 +26,14 @@ psql "postgresql://<user>@<pgbouncer-host>:6432/pgbouncer" -c "SHOW SERVERS;"
 psql "postgresql://<user>@<pgbouncer-host>:6432/pgbouncer" -c "SHOW DATABASES;"
 psql "postgresql://<user>@<pgbouncer-host>:6432/pgbouncer" -c "SHOW CONFIG;"
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `psql "postgresql://<user>@<pgbouncer-host>:6432/pgbouncer" -c "SHOW POOLS;"` | `Rows with role, lag, sessions, waits, pools, or replication state.` | Shows database state and pooler behavior from SQL evidence. |
+| `psql "postgresql://<user>@<pgbouncer-host>:6432/pgbouncer" -c "SHOW STATS;"` | `Rows with role, lag, sessions, waits, pools, or replication state.` | Shows database state and pooler behavior from SQL evidence. |
+| `psql "postgresql://<user>@<pgbouncer-host>:6432/pgbouncer" -c "SHOW CLIENTS;"` | `Rows with role, lag, sessions, waits, pools, or replication state.` | Shows database state and pooler behavior from SQL evidence. |
 
 These commands use PgBouncer's admin console database named `pgbouncer`. They show whether clients are waiting, how many server connections exist, which databases and users have pools, and whether the running configuration matches the intended one.
 

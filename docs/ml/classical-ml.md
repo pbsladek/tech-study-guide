@@ -14,7 +14,7 @@ tags:
 
 Classical ML remains important because many production problems are tabular, small-data, latency-sensitive, or need strong interpretability. Gradient boosted trees or logistic regression can beat deep learning when features are structured and data volume is moderate.
 
-## First Checks
+## Command Examples
 
 ```python
 from sklearn.datasets import load_iris
@@ -26,6 +26,12 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=7)
 model = LogisticRegression(max_iter=1000).fit(X_train, y_train)
 print(model.score(X_test, y_test))
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python example` | A score such as `0.97`. | Demonstrates a complete train/test split and baseline classifier score. |
 
 ## Model Families
 

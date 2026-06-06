@@ -14,11 +14,17 @@ tags:
 
 Advanced fine-tuning is less about running a trainer and more about preserving behavior while changing a narrow capability. The hard problems are dataset mixture, template compatibility, forgetting, safety regression, and serving artifacts.
 
-## First Checks
+## Command Examples
 
 ```bash
 python -c "import transformers, peft; print(transformers.__version__); print(peft.__version__)"
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python snippet` | `A version, tensor shape, score, retrieved IDs, metric delta, or explicit error.` | Turns the example into a measurable model, data, or pipeline signal. |
 
 ## Method Selection
 

@@ -1,3 +1,91 @@
+- title: Ceph
+  url: /docs/ceph/
+  icon: fas fa-layer-group
+  children:
+    - title: Overview
+      url: /docs/ceph/
+    - title: Rook-Ceph
+      url: /docs/ceph/rook-ceph/
+    - title: RADOS, CRUSH, and Placement
+      url: /docs/ceph/rados-crush-placement/
+    - title: Block, File, and Object Interfaces
+      url: /docs/ceph/block-file-object/
+    - title: Operations and Recovery
+      url: /docs/ceph/operations-recovery/
+    - title: Performance and Capacity
+      url: /docs/ceph/performance-capacity/
+- title: Cross-Topic Study Paths
+  url: /docs/study-paths/
+  icon: fas fa-route
+- title: Databases
+  url: /docs/databases/
+  icon: fas fa-database
+  children:
+    - title: Overview
+      url: /docs/databases/
+    - title: PostgreSQL
+      url: /docs/databases/postgres/
+      children:
+        - title: Overview
+          url: /docs/databases/postgres/
+        - title: PostgreSQL Operations and HA
+          url: /docs/databases/postgres/operations-ha/
+        - title: PostgreSQL Zero-Downtime Upgrades
+          url: /docs/databases/postgres/zero-downtime-upgrades/
+        - title: PgBouncer
+          url: /docs/databases/postgres/pgbouncer/
+        - title: CloudNativePG
+          url: /docs/databases/postgres/cloudnativepg/
+    - title: OpenSearch
+      url: /docs/databases/opensearch/
+- title: DNS
+  url: /docs/dns/
+  icon: fas fa-globe
+  children:
+    - title: Overview
+      url: /docs/dns/
+    - title: Resolution and Caching
+      url: /docs/dns/resolution-caching/
+    - title: Authoritative Zones
+      url: /docs/dns/authoritative-zones/
+    - title: DNSSEC and Privacy
+      url: /docs/dns/dnssec-privacy/
+    - title: Records, Responses, and Transport
+      url: /docs/dns/records-transport-operations/
+    - title: Domain Controllers
+      url: /docs/dns/domain-controllers/
+- title: Foundational Study Review
+  url: /docs/foundational-study-review/
+  icon: fas fa-map
+- title: Glossary
+  url: /docs/glossary/
+  icon: fas fa-book
+- title: Identity and Access
+  url: /docs/identity/
+  icon: fas fa-id-card
+  children:
+    - title: Overview
+      url: /docs/identity/
+    - title: IdP, SAML, JWT, OAuth, and OIDC
+      url: /docs/identity/auth-protocols/
+- title: Istio
+  url: /docs/istio/
+  icon: fas fa-diagram-project
+  children:
+    - title: Overview
+      url: /docs/istio/
+    - title: Service Mesh
+      url: /docs/istio/service-mesh/
+    - title: Traffic Management
+      url: /docs/istio/traffic-management/
+    - title: Security, mTLS, and Policy
+      url: /docs/istio/security-mtls-policy/
+    - title: Gateways, Ingress, and Egress
+      url: /docs/istio/gateways-ingress-egress/
+    - title: Zero Downtime Upgrades
+      url: /docs/istio/zero-downtime-upgrades/
+    - title: Observability and Troubleshooting
+      url: /docs/istio/observability-troubleshooting/
 - title: Kubernetes
   url: /docs/kubernetes/
   icon: fas fa-cubes
@@ -26,29 +114,6 @@
       url: /docs/kubernetes/storage-upgrades/
     - title: Troubleshooting
       url: /docs/kubernetes/troubleshooting/
-- title: Troubleshooting
-  url: /docs/troubleshooting/
-  icon: fas fa-exclamation-triangle
-  children:
-    - title: Overview
-      url: /docs/troubleshooting/
-    - title: Incident Entry Points
-      url: /docs/troubleshooting/incident-entrypoints/
-- title: Foundational Study Review
-  url: /docs/foundational-study-review/
-  icon: fas fa-map
-- title: Cross-Topic Study Paths
-  url: /docs/study-paths/
-  icon: fas fa-route
-- title: Scenario Labs
-  url: /docs/labs/
-  icon: fas fa-flask
-- title: Site Quality
-  url: /docs/quality/
-  icon: fas fa-chart-line
-- title: Glossary
-  url: /docs/glossary/
-  icon: fas fa-book
 - title: Linux
   url: /docs/linux/
   icon: fas fa-terminal
@@ -127,30 +192,97 @@
       url: /docs/linux/systemd-socket-network-services/
     - title: resolv.conf
       url: /docs/linux/resolv-conf/
-- title: DNS
-  url: /docs/dns/
-  icon: fas fa-globe
+- title: Machine Learning
+  url: /docs/ml/
+  icon: fas fa-brain
   children:
     - title: Overview
-      url: /docs/dns/
-    - title: Resolution and Caching
-      url: /docs/dns/resolution-caching/
-    - title: Authoritative Zones
-      url: /docs/dns/authoritative-zones/
-    - title: DNSSEC and Privacy
-      url: /docs/dns/dnssec-privacy/
-    - title: Records, Responses, and Transport
-      url: /docs/dns/records-transport-operations/
-    - title: Domain Controllers
-      url: /docs/dns/domain-controllers/
-- title: Identity and Access
-  url: /docs/identity/
-  icon: fas fa-id-card
-  children:
-    - title: Overview
-      url: /docs/identity/
-    - title: IdP, SAML, JWT, OAuth, and OIDC
-      url: /docs/identity/auth-protocols/
+      url: /docs/ml/
+    - title: ML 101 Foundations
+      url: /docs/ml/ml-101-foundations/
+    - title: Math for ML
+      url: /docs/ml/math-for-ml/
+    - title: Classical ML
+      url: /docs/ml/classical-ml/
+    - title: Deep Learning Fundamentals
+      url: /docs/ml/deep-learning-fundamentals/
+    - title: Models, Types, and Weights
+      url: /docs/ml/models-weights/
+    - title: Transformer Internals
+      url: /docs/ml/transformers-internals/
+    - title: LLM Training Lifecycle
+      url: /docs/ml/llm-training-lifecycle/
+    - title: GPU and TPU Accelerators
+      url: /docs/ml/accelerators-gpu-tpu/
+    - title: PyTorch Fundamentals
+      url: /docs/ml/pytorch-fundamentals/
+    - title: Fine-Tuning and LoRA
+      url: /docs/ml/finetuning-lora/
+    - title: Advanced Fine-Tuning
+      url: /docs/ml/advanced-finetuning/
+    - title: Retrieval-Augmented Generation
+      url: /docs/ml/rag/
+    - title: Advanced RAG
+      url: /docs/ml/advanced-rag/
+    - title: Agents and Tool Use
+      url: /docs/ml/agents/
+    - title: Advanced Agents
+      url: /docs/ml/advanced-agents/
+    - title: Multimodal ML
+      url: /docs/ml/multimodal-ml/
+    - title: Serving, Inference, and vLLM
+      url: /docs/ml/serving-inference-vllm/
+    - title: LLM Inference Systems
+      url: /docs/ml/inference-systems/
+    - title: Model Memory Math
+      url: /docs/ml/model-memory-math/
+    - title: Tokenizer and Chat Template Compatibility
+      url: /docs/ml/tokenizer-chat-template-compatibility/
+    - title: Inference Benchmarking
+      url: /docs/ml/inference-benchmarking/
+    - title: Quantized Serving
+      url: /docs/ml/quantized-serving/
+    - title: Inference Engine Comparison
+      url: /docs/ml/inference-engine-comparison/
+    - title: vLLM Operations
+      url: /docs/ml/vllm-operations/
+    - title: MoE Inference
+      url: /docs/ml/moe-inference/
+    - title: Long-Context Serving
+      url: /docs/ml/long-context-serving/
+    - title: Inference Runbooks
+      url: /docs/ml/inference-runbooks/
+    - title: Advanced Inference and vLLM
+      url: /docs/ml/advanced-inference-vllm/
+    - title: Observability and Incident Response
+      url: /docs/ml/observability-incident-response/
+    - title: Advanced ML Observability
+      url: /docs/ml/advanced-observability/
+    - title: Data Pipelines and Feature Stores
+      url: /docs/ml/data-pipelines-feature-stores/
+    - title: MLOps Systems
+      url: /docs/ml/mlops-systems/
+    - title: Evaluation and CI/CD
+      url: /docs/ml/evaluation-ci-cd/
+    - title: Evaluation Mastery
+      url: /docs/ml/evaluation-mastery/
+    - title: Security and Privacy
+      url: /docs/ml/security-privacy/
+    - title: ML Security Threats
+      url: /docs/ml/ml-security-threats/
+    - title: Prompt Operations
+      url: /docs/ml/prompt-operations/
+    - title: Advanced ML Architectures
+      url: /docs/ml/advanced-architectures/
+    - title: ML Performance Engineering
+      url: /docs/ml/performance-engineering/
+    - title: Alignment and Evaluation
+      url: /docs/ml/alignment-evaluation/
+    - title: Explainability
+      url: /docs/ml/explainability/
+    - title: Responsible AI and Governance
+      url: /docs/ml/responsible-ai-governance/
+
 - title: Networking
   url: /docs/networking/
   icon: fas fa-network-wired
@@ -209,128 +341,14 @@
       url: /docs/networking/zero-trust-networking/
     - title: TCP, TLS, and HTTP
       url: /docs/networking/tcp-tls-http/
-- title: Istio
-  url: /docs/istio/
-  icon: fas fa-diagram-project
+- title: Scenario Labs
+  url: /docs/labs/
+  icon: fas fa-flask
+- title: Troubleshooting
+  url: /docs/troubleshooting/
+  icon: fas fa-exclamation-triangle
   children:
     - title: Overview
-      url: /docs/istio/
-    - title: Service Mesh
-      url: /docs/istio/service-mesh/
-    - title: Traffic Management
-      url: /docs/istio/traffic-management/
-    - title: Security, mTLS, and Policy
-      url: /docs/istio/security-mtls-policy/
-    - title: Gateways, Ingress, and Egress
-      url: /docs/istio/gateways-ingress-egress/
-    - title: Zero Downtime Upgrades
-      url: /docs/istio/zero-downtime-upgrades/
-    - title: Observability and Troubleshooting
-      url: /docs/istio/observability-troubleshooting/
-- title: Ceph
-  url: /docs/ceph/
-  icon: fas fa-layer-group
-  children:
-    - title: Overview
-      url: /docs/ceph/
-    - title: Rook-Ceph
-      url: /docs/ceph/rook-ceph/
-    - title: RADOS, CRUSH, and Placement
-      url: /docs/ceph/rados-crush-placement/
-    - title: Block, File, and Object Interfaces
-      url: /docs/ceph/block-file-object/
-    - title: Operations and Recovery
-      url: /docs/ceph/operations-recovery/
-    - title: Performance and Capacity
-      url: /docs/ceph/performance-capacity/
-- title: Databases
-  url: /docs/databases/
-  icon: fas fa-database
-  children:
-    - title: Overview
-      url: /docs/databases/
-    - title: PostgreSQL
-      url: /docs/databases/postgres/
-      children:
-        - title: Overview
-          url: /docs/databases/postgres/
-        - title: PostgreSQL Operations and HA
-          url: /docs/databases/postgres/operations-ha/
-        - title: PostgreSQL Zero-Downtime Upgrades
-          url: /docs/databases/postgres/zero-downtime-upgrades/
-        - title: PgBouncer
-          url: /docs/databases/postgres/pgbouncer/
-        - title: CloudNativePG
-          url: /docs/databases/postgres/cloudnativepg/
-    - title: OpenSearch
-      url: /docs/databases/opensearch/
-- title: Machine Learning
-  url: /docs/ml/
-  icon: fas fa-brain
-  children:
-    - title: Overview
-      url: /docs/ml/
-    - title: ML 101 Foundations
-      url: /docs/ml/ml-101-foundations/
-    - title: Math for ML
-      url: /docs/ml/math-for-ml/
-    - title: Classical ML
-      url: /docs/ml/classical-ml/
-    - title: Deep Learning Fundamentals
-      url: /docs/ml/deep-learning-fundamentals/
-    - title: Models, Types, and Weights
-      url: /docs/ml/models-weights/
-    - title: Transformer Internals
-      url: /docs/ml/transformers-internals/
-    - title: LLM Training Lifecycle
-      url: /docs/ml/llm-training-lifecycle/
-    - title: GPU and TPU Accelerators
-      url: /docs/ml/accelerators-gpu-tpu/
-    - title: PyTorch Fundamentals
-      url: /docs/ml/pytorch-fundamentals/
-    - title: Fine-Tuning and LoRA
-      url: /docs/ml/finetuning-lora/
-    - title: Advanced Fine-Tuning
-      url: /docs/ml/advanced-finetuning/
-    - title: Retrieval-Augmented Generation
-      url: /docs/ml/rag/
-    - title: Advanced RAG
-      url: /docs/ml/advanced-rag/
-    - title: Agents and Tool Use
-      url: /docs/ml/agents/
-    - title: Advanced Agents
-      url: /docs/ml/advanced-agents/
-    - title: Multimodal ML
-      url: /docs/ml/multimodal-ml/
-    - title: Serving, Inference, and vLLM
-      url: /docs/ml/serving-inference-vllm/
-    - title: Advanced Inference and vLLM
-      url: /docs/ml/advanced-inference-vllm/
-    - title: Observability and Incident Response
-      url: /docs/ml/observability-incident-response/
-    - title: Advanced ML Observability
-      url: /docs/ml/advanced-observability/
-    - title: Data Pipelines and Feature Stores
-      url: /docs/ml/data-pipelines-feature-stores/
-    - title: MLOps Systems
-      url: /docs/ml/mlops-systems/
-    - title: Evaluation and CI/CD
-      url: /docs/ml/evaluation-ci-cd/
-    - title: Evaluation Mastery
-      url: /docs/ml/evaluation-mastery/
-    - title: Security and Privacy
-      url: /docs/ml/security-privacy/
-    - title: ML Security Threats
-      url: /docs/ml/ml-security-threats/
-    - title: Prompt Operations
-      url: /docs/ml/prompt-operations/
-    - title: Advanced ML Architectures
-      url: /docs/ml/advanced-architectures/
-    - title: ML Performance Engineering
-      url: /docs/ml/performance-engineering/
-    - title: Alignment and Evaluation
-      url: /docs/ml/alignment-evaluation/
-    - title: Explainability
-      url: /docs/ml/explainability/
-    - title: Responsible AI and Governance
-      url: /docs/ml/responsible-ai-governance/
+      url: /docs/troubleshooting/
+    - title: Incident Entry Points
+      url: /docs/troubleshooting/incident-entrypoints/

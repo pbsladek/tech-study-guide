@@ -14,7 +14,7 @@ tags:
 
 SSH is the main remote administration path for Linux servers. Operators need to understand both sides: the client connection attempt and the server policy in `sshd_config`, drop-in snippets, PAM, keys, account state, firewalls, and logs.
 
-## First Checks
+## Command Examples
 
 ```bash
 sudo systemctl status ssh
@@ -23,6 +23,14 @@ grep -R '^[^#]' /etc/ssh/sshd_config /etc/ssh/sshd_config.d 2>/dev/null
 journalctl -u ssh -b
 ssh -vvv user@example.com
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `sudo systemctl status ssh` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
+| `sudo sshd -T` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `grep -R '^[^#]' /etc/ssh/sshd_config /etc/ssh/sshd_config.d 2>/dev/null` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 On Ubuntu, the systemd service is commonly named `ssh`, even though the daemon binary is `sshd`.
 

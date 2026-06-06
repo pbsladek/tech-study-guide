@@ -14,7 +14,7 @@ tags:
 
 These paths are designed for repeated practice. Each path crosses multiple topic boundaries because real incidents rarely respect the guide's navigation tree.
 
-Use the page completion control in the right rail as you finish each topic. The path cards below calculate progress locally in the browser so you can repeat the same path without changing the repository.
+Use the page completion control on individual topic pages as you finish each step. The path cards below calculate progress locally in the browser so you can repeat the same path without changing the repository.
 
 {% include study-path-list.html %}
 

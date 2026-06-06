@@ -14,7 +14,7 @@ tags:
 
 Deep learning stacks differentiable layers so a model can learn representations from raw or lightly processed data. The same core mechanics appear in vision, speech, recommendation, language, and multimodal systems.
 
-## First Checks
+## Command Examples
 
 ```python
 import torch
@@ -24,6 +24,12 @@ model = nn.Sequential(nn.Linear(8, 16), nn.ReLU(), nn.Linear(16, 2))
 x = torch.randn(4, 8)
 print(model(x).shape)
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python example` | `A numeric score, tensor shape, token IDs, retrieved IDs, or explicit error.` | Shows the example produces measurable output instead of silent success. |
 
 ## Core Building Blocks
 

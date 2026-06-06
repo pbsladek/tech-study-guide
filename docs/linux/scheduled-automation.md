@@ -14,7 +14,7 @@ tags:
 
 Scheduled work is how maintenance actually happens: backups, certificate renewals, cleanup, reports, sync jobs, and recurring checks. The hard part is not writing a command; it is making the job safe, observable, idempotent, and predictable.
 
-## First Checks
+## Command Examples
 
 ```bash
 systemctl list-timers --all
@@ -23,6 +23,14 @@ sudo ls -l /etc/cron.d /etc/cron.daily /var/spool/cron/crontabs
 systemctl status cron
 journalctl -u cron -b
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `systemctl list-timers --all` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
+| `crontab -l` | `Scheduled entries such as 0 * * * * /usr/local/bin/job.` | Shows user-level scheduled automation. |
+| `sudo ls -l /etc/cron.d /etc/cron.daily /var/spool/cron/crontabs` | `File names, sizes, owners, permissions, and modification times.` | Confirms the expected artifacts exist with usable ownership and freshness. |
 
 ## Cronjobs
 

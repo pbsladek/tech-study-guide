@@ -14,7 +14,7 @@ tags:
 
 A model is a parameterized function. Training adjusts its weights so the function maps inputs to useful outputs. The architecture defines the shape of computation; the weights are learned numbers inside that shape.
 
-## First Checks
+## Command Examples
 
 ```bash
 python - <<'PY'
@@ -23,6 +23,12 @@ print(torch.__version__)
 print(torch.randn(2, 3).shape)
 PY
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python snippet` | `2.6.0` and `torch.Size([2, 3])`. | Proves the tensor library imports and can create tensors with the expected shape. |
 
 This only proves the tensor library works. Model behavior depends on the architecture, weights, tokenizer or preprocessing, and inference settings.
 

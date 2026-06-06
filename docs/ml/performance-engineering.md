@@ -14,12 +14,19 @@ tags:
 
 ML performance work starts with measurement. Guessing often optimizes the wrong layer: Python overhead, input pipeline, GPU kernels, memory bandwidth, collective communication, queueing, or model quality constraints.
 
-## First Checks
+## Command Examples
 
 ```bash
 nvidia-smi dmon
 python -m torch.utils.bottleneck train.py
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `nvidia-smi dmon` | `GPU utilization, memory use, CUDA visibility, model list, or serving metrics.` | Separates accelerator visibility from model-serving capacity and latency. |
+| `python -m torch.utils.bottleneck train.py` | `GPU utilization, memory use, CUDA visibility, model list, or serving metrics.` | Separates accelerator visibility from model-serving capacity and latency. |
 
 ## Bottleneck Map
 

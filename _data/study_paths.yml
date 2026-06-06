@@ -61,6 +61,14 @@
       url: /docs/ml/agents/
     - title: Serving, Inference, and vLLM
       url: /docs/ml/serving-inference-vllm/
+    - title: LLM Inference Systems
+      url: /docs/ml/inference-systems/
+    - title: Model Memory Math
+      url: /docs/ml/model-memory-math/
+    - title: Inference Benchmarking
+      url: /docs/ml/inference-benchmarking/
+    - title: Inference Runbooks
+      url: /docs/ml/inference-runbooks/
     - title: Evaluation and CI/CD
       url: /docs/ml/evaluation-ci-cd/
     - title: ML Security Threats

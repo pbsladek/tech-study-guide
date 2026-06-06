@@ -14,7 +14,7 @@ tags:
 
 Kubernetes DNS is service discovery for Pods. CoreDNS watches the Kubernetes API and answers names for Services and, in selected cases, Pods. Most application-to-application traffic starts with this layer, so DNS failures often look like service, network, or application outages.
 
-## First Checks
+## Command Examples
 
 ```bash
 kubectl -n kube-system get deploy,svc,endpointslice -l k8s-app=kube-dns
@@ -23,6 +23,14 @@ kubectl exec -it <pod> -- cat /etc/resolv.conf
 kubectl exec -it <pod> -- nslookup kubernetes.default.svc.cluster.local
 kubectl -n kube-system get configmap coredns -o yaml
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `kubectl -n kube-system get deploy,svc,endpointslice -l k8s-app=kube-dns` | `deployment.apps/coredns 2/2` and EndpointSlices with Pod IPs on port `53`. | Proves the DNS Service has ready CoreDNS backends. |
+| `kubectl exec -it <pod> -- cat /etc/resolv.conf` | `nameserver 10.96.0.10`, `search default.svc.cluster.local ...`, `options ndots:5`. | Shows the resolver config the application actually uses. |
+| `kubectl exec -it <pod> -- nslookup kubernetes.default.svc.cluster.local` | `Name: kubernetes.default.svc.cluster.local` and `Address: 10.96.0.1`. | Confirms cluster DNS resolution from the Pod network path. |
 
 ## Names Kubernetes Publishes
 

@@ -14,7 +14,7 @@ tags:
 
 IPv6 is not just IPv4 with longer addresses. Hosts learn routers through Router Advertisements, use Neighbor Discovery instead of ARP, always have link-local addresses, often use SLAAC, and may run dual-stack with IPv4. Many incidents come from assuming IPv4 operational habits apply unchanged.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip -6 addr
@@ -24,6 +24,14 @@ resolvectl query example.com AAAA
 ping -6 2001:4860:4860::8888
 tracepath6 example.com
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip -6 addr` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `ip -6 route` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `ip -6 neigh` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 Check IPv6 separately from IPv4. A dual-stack application may prefer IPv6, fall back to IPv4, or fail slowly depending on resolver and client behavior.
 

@@ -14,13 +14,21 @@ tags:
 
 ML accelerators make tensor operations fast by running many numeric operations in parallel. They are excellent at dense matrix multiplication, convolutions, attention kernels, and batched workloads. They are poor at work dominated by Python overhead, serial control flow, slow input pipelines, or host-device copies.
 
-## First Checks
+## Command Examples
 
 ```bash
 nvidia-smi
 python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.device_count())"
 python -c "import torch; print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu')"
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `nvidia-smi` | `GPU utilization, memory use, CUDA visibility, model list, or serving metrics.` | Separates accelerator visibility from model-serving capacity and latency. |
+| `Python snippet` | `A version, tensor shape, score, retrieved IDs, metric delta, or explicit error.` | Turns the example into a measurable model, data, or pipeline signal. |
+| `Python snippet` | `A version, tensor shape, score, retrieved IDs, metric delta, or explicit error.` | Turns the example into a measurable model, data, or pipeline signal. |
 
 For TPUs, the equivalent checks depend on the cloud/runtime, but the same question applies: can the framework see the accelerator, compile the graph, and feed it fast enough?
 

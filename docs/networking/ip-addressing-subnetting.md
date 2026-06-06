@@ -13,7 +13,7 @@ tags:
 
 IP addressing is the shared vocabulary of routing, firewalls, Kubernetes Services, cloud VPCs, VPNs, and load balancers. Operators need to read CIDR notation quickly, identify local versus remote destinations, and understand why the selected source address matters.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip addr show
@@ -23,6 +23,14 @@ ip -6 route show
 ip -6 neigh show
 getent ahosts example.com
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip addr show` | `Interfaces, addresses, link state, counters, drops, and errors.` | Shows local interface state before blaming remote systems. |
+| `ip route show` | `Destination, gateway, interface, and selected source address.` | Shows how the host will route the target flow. |
+| `ip route get 198.51.100.10` | `Destination, gateway, interface, and selected source address.` | Shows how the host will route the target flow. |
 
 ## CIDR and Prefixes
 

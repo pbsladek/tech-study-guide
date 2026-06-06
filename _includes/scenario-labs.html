@@ -9,30 +9,30 @@
           <h2>{{ lab.title }}</h2>
           <p>{{ lab.summary }}</p>
         </div>
-        <div class="lab-columns">
-          <div>
-            <h3>Symptoms</h3>
-            <ul>
-              {% for symptom in lab.symptoms %}
-                <li>{{ symptom | markdownify | remove: '<p>' | remove: '</p>' }}</li>
-              {% endfor %}
-            </ul>
-          </div>
-          <div>
-            <h3>Evidence</h3>
-            <ul>
-              {% for item in lab.evidence %}
-                <li>{{ item | markdownify | remove: '<p>' | remove: '</p>' }}</li>
-              {% endfor %}
-            </ul>
-          </div>
-        </div>
-        <h3>Checks</h3>
-        <ul class="lab-checks">
-          {% for check in lab.checks %}
-            <li><code>{{ check }}</code></li>
+        <h3>Symptoms</h3>
+        <ul>
+          {% for symptom in lab.symptoms %}
+            <li>{{ symptom | markdownify | remove: '<p>' | remove: '</p>' }}</li>
           {% endfor %}
         </ul>
+        <h3>Evidence</h3>
+        <ul>
+          {% for item in lab.evidence %}
+            <li>{{ item | markdownify | remove: '<p>' | remove: '</p>' }}</li>
+          {% endfor %}
+        </ul>
+        <h3>Command Examples</h3>
+        <div class="lab-command-examples">
+          {% for example in lab.command_examples %}
+            <article class="lab-command-example">
+              <p class="lab-command-label">Command</p>
+              <pre><code>{{ example.command }}</code></pre>
+              <p class="lab-command-label">Example output</p>
+              <pre><code>{{ example.output }}</code></pre>
+              <p><strong>What it does:</strong> {{ example.does }}</p>
+            </article>
+          {% endfor %}
+        </div>
         <p class="lab-answer"><strong>Answer:</strong> {{ lab.answer }}</p>
         <a href="{{ lab.url | relative_url }}">Open related topic</a>
       </section>

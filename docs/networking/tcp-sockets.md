@@ -14,7 +14,7 @@ tags:
 
 Sockets are the application-facing API. TCP is the transport protocol that turns packets into a reliable ordered byte stream. To debug full-stack failures, you need to know the difference between a listening socket, a connected socket, a kernel queue, a retransmission, a timeout, and an application read or write stall.
 
-## First Checks
+## Command Examples
 
 ```bash
 ss -ltnp
@@ -24,6 +24,14 @@ sysctl net.ipv4.ip_local_port_range
 sysctl net.core.somaxconn
 cat /proc/net/sockstat
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ss -ltnp` | `Listening, established, TIME_WAIT, queues, PIDs, or socket summaries.` | Shows socket state and whether applications are listening or backpressured. |
+| `ss -tan state established` | `Listening, established, TIME_WAIT, queues, PIDs, or socket summaries.` | Shows socket state and whether applications are listening or backpressured. |
+| `ss -ti dst 203.0.113.10` | `Listening, established, TIME_WAIT, queues, PIDs, or socket summaries.` | Shows socket state and whether applications are listening or backpressured. |
 
 ## Socket Lifecycle
 

@@ -14,7 +14,7 @@ tags:
 
 Retrieval-Augmented Generation combines a retrieval system with a generative model. The retriever finds relevant source material, and the model uses that context to answer. RAG is a systems pattern, not a single model feature.
 
-## First Checks
+## Command Examples
 
 ```bash
 python - <<'PY'
@@ -22,6 +22,12 @@ docs = ["postgres upgrades", "kubernetes storage", "ceph recovery"]
 print(len(docs))
 PY
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python snippet` | `3`. | Confirms the corpus slice being tested has the expected document count before retrieval. |
 
 The real checks are corpus quality, chunking, embeddings, embedding model fit, retrieval metrics, prompt assembly, and answer evaluation.
 

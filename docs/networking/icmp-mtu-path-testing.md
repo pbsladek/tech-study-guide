@@ -13,7 +13,7 @@ tags:
 
 ICMP is control-plane feedback for IP. It is also the basis for familiar tools such as ping and traceroute. Blocking all ICMP can hide useful diagnostics and break Path MTU Discovery, especially through tunnels and overlays.
 
-## First Checks
+## Command Examples
 
 ```bash
 ping -c 4 198.51.100.10
@@ -23,6 +23,14 @@ traceroute 198.51.100.10
 ip link show
 tcpdump -nn -i any icmp or icmp6
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ping -c 4 198.51.100.10` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `ping -M do -s 1472 198.51.100.10` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `tracepath 198.51.100.10` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 ## What ICMP Does
 

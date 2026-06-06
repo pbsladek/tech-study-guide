@@ -13,7 +13,7 @@ tags:
 
 Kubernetes troubleshooting is a graph walk. Start from the user's symptom, then move through the API object, controller, Pod, node, network, storage, and external dependency that must all agree before the workload works.
 
-## First Checks
+## Command Examples
 
 ```bash
 kubectl get nodes
@@ -23,6 +23,14 @@ kubectl get deployment,statefulset,daemonset,job,cronjob --all-namespaces
 kubectl get svc,endpointslice,ingress,networkpolicy --all-namespaces
 kubectl get pv,pvc,storageclass --all-namespaces
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `kubectl get nodes` | `node-a Ready ... INTERNAL-IP 10.0.1.10` | Shows node readiness, addresses, versions, and placement context. |
+| `kubectl get pods --all-namespaces -o wide` | `Pods with STATUS, READY, IP, NODE, and recent restarts.` | Maps symptoms to namespaces, Pod IPs, nodes, and readiness state. |
+| `kubectl get events --sort-by=.lastTimestamp` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 Read these from most specific to most general:
 
@@ -34,7 +42,7 @@ Read these from most specific to most general:
 
 ## Common Paths
 
-| Symptom | First Checks | Common Causes |
+| Symptom | Command Evidence | Common Causes |
 | --- | --- | --- |
 | Pod stuck `Pending` | `kubectl describe pod`, events, scheduler messages, PVC status. | Node capacity, taints, tolerations, node affinity, unbound PVC, missing RuntimeClass. |
 | `CrashLoopBackOff` | Previous logs, current logs, exit code, command, env, mounts, probes. | Bad config, missing secret, wrong command, dependency unavailable, liveness probe killing startup. |

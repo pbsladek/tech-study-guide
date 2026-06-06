@@ -15,7 +15,7 @@ tags:
 
 DHCP is where Layer 2, Layer 3, routing, DNS, and security policy meet during host startup. A client with no IP address must discover configuration on the local link. Switches decide which broadcast domain the request lives in, routers decide whether relay is needed, and the DHCP server returns the address, lease, gateway, DNS, and other options the host will use.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip addr
@@ -26,6 +26,14 @@ tcpdump -ni <interface> 'udp port 67 or udp port 68'
 dhclient -v -r <interface> 2>/dev/null || true
 dhclient -v <interface> 2>/dev/null || true
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip addr` | `Interfaces, addresses, link state, counters, drops, and errors.` | Shows local interface state before blaming remote systems. |
+| `ip route` | `Destination, gateway, interface, and selected source address.` | Shows how the host will route the target flow. |
+| `resolvectl status 2>/dev/null \|\| cat /etc/resolv.conf` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
 
 Use these from the affected client or a span/mirror point on the same VLAN. DHCP is broadcast-heavy at first, so captures from the wrong VLAN or routed side can miss the actual failure.
 

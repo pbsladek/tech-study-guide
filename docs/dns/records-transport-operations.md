@@ -13,7 +13,7 @@ tags:
 
 DNS operations are not only A records and TTLs. Operators need to recognize response codes, understand when DNS uses UDP or TCP, know why EDNS changes packet size behavior, and separate record-data problems from resolver, firewall, and transport problems.
 
-## First Checks
+## Command Examples
 
 ```bash
 dig example.com A
@@ -24,6 +24,14 @@ dig +bufsize=1232 example.com DNSKEY
 dig +tcp example.com DNSKEY
 dig -x 203.0.113.10
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `dig example.com A` | `A/AAAA answers, TTLs, resolver status, SERVFAIL, NXDOMAIN, or timeout.` | Proves name-resolution behavior at the caller. |
+| `dig example.com AAAA` | `A/AAAA answers, TTLs, resolver status, SERVFAIL, NXDOMAIN, or timeout.` | Proves name-resolution behavior at the caller. |
+| `dig example.com MX` | `A/AAAA answers, TTLs, resolver status, SERVFAIL, NXDOMAIN, or timeout.` | Proves name-resolution behavior at the caller. |
 
 ## Records Operators Should Recognize
 

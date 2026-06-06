@@ -13,7 +13,7 @@ tags:
 
 Kubernetes defines the network model; the CNI plugin implements it. Operators need to know where the Kubernetes API ends and the datapath begins, because Pod-to-Pod failures often live in CNI routes, encapsulation, host firewall rules, cloud routing, MTU, or node agents.
 
-## First Checks
+## Command Examples
 
 ```bash
 kubectl get nodes -o wide
@@ -23,6 +23,14 @@ kubectl -n kube-system get pods -o wide
 kubectl exec -it <pod> -- ip addr
 kubectl exec -it <pod> -- ip route
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `kubectl get pods -A -o wide` | Pod IPs such as `10.244.2.17` and node names such as `worker-2`. | Ties a failing Pod to its overlay address and node. |
+| `kubectl describe node <node>` | PodCIDR, conditions, taints, and recent node events. | Shows whether node-level CNI allocation or readiness is suspect. |
+| `kubectl exec -it <pod> -- ip route` | `default via 10.244.2.1 dev eth0` and Pod CIDR routes. | Confirms the route table inside the Pod namespace. |
 
 ## Kubernetes Network Model
 

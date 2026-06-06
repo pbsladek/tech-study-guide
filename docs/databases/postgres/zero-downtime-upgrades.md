@@ -23,7 +23,7 @@ This page was reviewed against current PostgreSQL 18 documentation and CloudNati
   <strong>Version-sensitive:</strong> PostgreSQL major-version behavior, CNPG major-upgrade support, logical replication features, and extension compatibility must be checked for the exact source and target versions.
 </aside>
 
-## First Checks
+## Command Examples
 
 ```bash
 kubectl get clusters.postgresql.cnpg.io,pods,pvc,svc -A
@@ -36,6 +36,14 @@ psql -d <database> -c "SELECT slot_name, active, restart_lsn, wal_status, safe_w
 psql -d <database> -c "SELECT subname, subenabled, subfailover FROM pg_subscription;"
 psql -d <database> -c "SELECT schemaname, sequencename, last_value FROM pg_sequences ORDER BY 1, 2 LIMIT 20;"
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `kubectl get clusters.postgresql.cnpg.io,pods,pvc,svc -A` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `kubectl cnpg status <cluster> -n <namespace>` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `kubectl get pdb -A` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
 
 These checks identify the operator view, Kubernetes disruption constraints, current PostgreSQL version, replication health, slot retention risk, subscription state, and sequence state before an upgrade plan touches production.
 

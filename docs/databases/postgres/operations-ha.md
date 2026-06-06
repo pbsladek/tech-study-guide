@@ -15,7 +15,7 @@ tags:
 
 PostgreSQL availability is built from database mechanics plus an external management layer. PostgreSQL knows how to write WAL, stream WAL, recover from WAL, serve hot standbys, and promote a standby. A production HA system also needs leader election, fencing, connection routing, backup orchestration, monitoring, restore testing, and human-safe failover procedures.
 
-## First Checks
+## Command Examples
 
 ```bash
 psql -d <database> -c "SELECT pid, state, wait_event_type, wait_event, now() - query_start AS age, query FROM pg_stat_activity ORDER BY query_start NULLS LAST LIMIT 20;"
@@ -27,6 +27,14 @@ psql -d <database> -c "SELECT wal_records, wal_fpi, wal_bytes FROM pg_stat_wal;"
 psql -d <database> -c "SELECT pg_is_in_recovery(), pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn(), now() - pg_last_xact_replay_timestamp() AS replay_delay;"
 psql -d <database> -c "SELECT subname, subenabled, subfailover FROM pg_subscription;"
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `psql -d <database> -c "SELECT pid, state, wait_event_type, wait_event, now() - query_start AS age, query FROM pg_stat_activity ORDER BY query_start NULLS LAST LIMIT 20;"` | `Rows with role, lag, sessions, waits, pools, or replication state.` | Shows database state and pooler behavior from SQL evidence. |
+| `psql -d <database> -c "SELECT * FROM pg_stat_replication;"` | `Rows with role, lag, sessions, waits, pools, or replication state.` | Shows database state and pooler behavior from SQL evidence. |
+| `psql -d <database> -c "SELECT slot_name, active, restart_lsn, wal_status FROM pg_replication_slots;"` | `Rows with role, lag, sessions, waits, pools, or replication state.` | Shows database state and pooler behavior from SQL evidence. |
 
 These checks separate live sessions, standby state, WAL retention, archive health, checkpoint pressure, and WAL generation. Pair them with host metrics for CPU, memory, IO, filesystem fullness, and cgroup limits.
 
@@ -58,6 +66,16 @@ Synchronous replication is not one setting with one meaning. `synchronous_commit
 ## HA Failover
 
 Failover is a state transition, not just a command. The system must decide that the old primary is no longer allowed to accept writes, promote exactly one standby, route clients to it, and make the remaining replicas follow the new timeline.
+
+```mermaid
+flowchart LR
+  Detect[Detect primary failure] --> Fence[Fence old primary]
+  Fence --> Choose[Choose promotion candidate]
+  Choose --> Promote[Promote standby]
+  Promote --> Route[Move writer route]
+  Route --> Repoint[Repoint or rebuild replicas]
+  Repoint --> Validate[Validate writes, WAL archive, backups]
+```
 
 Failover sequence:
 
@@ -262,7 +280,7 @@ Frequent requested checkpoints can mean `max_wal_size` is too low for the write 
 
 High PostgreSQL CPU is usually one of these shapes:
 
-| Symptom | Likely Cause | First Evidence |
+| Symptom | Likely Cause | Command Evidence |
 | --- | --- | --- |
 | Many active sessions | Connection storm, missing pooler, app retry loop. | `pg_stat_activity`, process count, PgBouncer queue. |
 | One or few hot queries | Bad plan, missing index, stale stats, expensive function. | `pg_stat_statements`, `EXPLAIN (ANALYZE, BUFFERS)`. |

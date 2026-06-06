@@ -17,7 +17,7 @@ Package and boot failures are high-pressure because the normal management path m
 
 Examples here assume Debian-family systems with Ubuntu Server as the default operational target.
 
-## First Checks
+## Command Examples
 
 ```bash
 cat /etc/os-release
@@ -27,6 +27,14 @@ journalctl -xb
 dpkg --audit
 apt-mark showhold
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `cat /etc/os-release` | `PRETTY_NAME="Ubuntu 24.04.2 LTS".` | Identifies the distro baseline before applying package or service commands. |
+| `uname -a` | `Linux host 6.8.0-xx-generic x86_64.` | Shows kernel version and architecture for driver, eBPF, and tuning checks. |
+| `systemctl --failed` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
 
 When the host cannot boot normally, collect the same facts from emergency mode, rescue media, serial console, or a mounted root filesystem.
 

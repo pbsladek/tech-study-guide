@@ -28,7 +28,7 @@ sequenceDiagram
   Service-->>Client: Accept and handle connection
 ```
 
-## First Checks
+## Command Examples
 
 ```bash
 systemctl list-sockets
@@ -38,6 +38,14 @@ systemctl show <service> -p IPAccounting -p IPAddressDeny -p SocketBindDeny
 journalctl -u <service> -b
 ss -tulpen
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `systemctl list-sockets` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
+| `systemctl status ssh.socket` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
+| `systemctl cat ssh.socket` | `Unit state, link state, DNS servers, time sync, or host identity fields.` | Shows systemd-managed state instead of inferred configuration. |
 
 Use these checks when a port is open but the expected daemon is not visible, or when systemd owns listener setup instead of the application.
 

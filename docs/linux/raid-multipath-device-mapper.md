@@ -14,7 +14,7 @@ tags:
 
 Production Linux storage is often layered. A filesystem may sit on LVM, which sits on dm-crypt, which sits on multipath, which represents several paths to a storage array. Operators need to understand the layers before changing any one of them.
 
-## First Checks
+## Command Examples
 
 ```bash
 cat /proc/mdstat
@@ -24,6 +24,14 @@ multipath -ll
 cryptsetup status <name>
 lsblk -o NAME,TYPE,FSTYPE,SIZE,MOUNTPOINTS
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `cat /proc/mdstat` | `md0 : active raid1 ... [UU] or recovery progress.` | Shows RAID health and rebuild state. |
+| `mdadm --detail --scan` | `Array level, state, active devices, failed devices, and UUID.` | Shows md RAID identity and degradation. |
+| `dmsetup ls --tree` | `Device-mapper tree with crypt, LVM, or multipath layers.` | Shows storage mapping layers between filesystem and disk. |
 
 ## md RAID
 

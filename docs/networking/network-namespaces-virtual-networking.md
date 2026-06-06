@@ -17,7 +17,7 @@ Linux can give processes separate network stacks with network namespaces. Each n
 
 Virtual networking connects those isolated stacks with veth pairs, bridges, routing, NAT, overlays, and policy.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip netns list
@@ -26,6 +26,14 @@ readlink /proc/<pid>/ns/net
 nsenter --target <pid> --net -- ip addr
 nsenter --target <pid> --net -- ip route
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip netns list` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `lsns -t net` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `readlink /proc/<pid>/ns/net` | `mnt:[4026532738] or net:[4026532741].` | Identifies whether two processes share the same namespace. |
 
 Always confirm which namespace owns the socket or interface before debugging routes or captures.
 

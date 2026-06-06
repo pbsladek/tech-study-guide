@@ -16,7 +16,7 @@ This page is the master map for a production request. It traces one HTTPS reques
 
 The walkthrough deliberately keeps DNS, client behavior, TCP, TLS, proxying, Kubernetes Service routing, CNI delivery, Pod execution, application logic, database work, and response routing in one view.
 
-## First Checks
+## Command Examples
 
 ```bash
 date -Is
@@ -35,6 +35,14 @@ kubectl exec deploy/client -- getent hosts api.default.svc.cluster.local
 kubectl exec deploy/client -- curl -v http://api.default.svc.cluster.local:8080/health
 kubectl logs deploy/api --since=10m
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `curl -v --connect-timeout 3 --max-time 15 https://api.example.com/health` | DNS, TCP connect, TLS handshake, headers, and HTTP status. | Splits client-visible failure into connect, TLS, proxy, or app response. |
+| `ip route get "$(getent ahostsv4 api.example.com | awk 'NR==1 {print $1}')"` | Destination, gateway, interface, and source address. | Shows the host path selected for the resolved address. |
+| `kubectl get svc,endpointslice,ingress,gateway -A -o wide` | Edge objects, Service IPs, and ready endpoint addresses. | Connects external routing to Kubernetes backend inventory. |
 
 ## End-to-End Diagram
 

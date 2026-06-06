@@ -14,7 +14,7 @@ tags:
 
 Zero-trust networking assumes network location is not enough proof of identity. A private subnet can still contain compromised workloads, stale credentials, open egress, or misrouted traffic. Strong designs combine service identity, encrypted transport, host policy, workload policy, audit evidence, and least privilege.
 
-## First Checks
+## Command Examples
 
 ```bash
 nft list ruleset
@@ -23,6 +23,14 @@ openssl s_client -connect api.example.com:443 -servername api.example.com -alpn 
 curl -vk --cert client.crt --key client.key --cacert ca.crt https://api.example.com/
 journalctl -k -g 'DENIED|audit|apparmor|SELinux|DROP|REJECT'
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `nft list ruleset` | Input/output chains with explicit allow, drop, or reject rules. | Shows the host firewall policy actually installed in the kernel. |
+| `openssl s_client -connect api.example.com:443 -servername api.example.com -alpn h2,http/1.1` | Certificate subject, issuer, protocol, and ALPN result. | Verifies TLS identity and negotiated protocol. |
+| `curl -vk --cert client.crt --key client.key --cacert ca.crt https://api.example.com/` | mTLS handshake and HTTP status. | Tests client certificate auth and trust chain from the caller. |
 
 ## Host Firewall Baseline
 

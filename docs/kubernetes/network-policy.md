@@ -13,7 +13,7 @@ tags:
 
 NetworkPolicy is Kubernetes' built-in L3/L4 policy API. It describes which Pods may talk to which peers on which ports. The API is portable, but enforcement is not automatic; the CNI plugin must implement it.
 
-## First Checks
+## Command Examples
 
 ```bash
 kubectl get networkpolicy -A
@@ -23,6 +23,14 @@ kubectl get namespace --show-labels
 kubectl exec -it <pod> -- nc -vz <service> <port>
 kubectl exec -it <pod> -- nslookup kubernetes.default.svc.cluster.local
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `kubectl get networkpolicy -A` | `default-deny`, `allow-dns`, and app-specific policies by namespace. | Shows whether policy isolation exists at all and where it is scoped. |
+| `kubectl get pods --show-labels` | `app=frontend,tier=web` labels on source and destination Pods. | Confirms whether selectors match the workloads you think they match. |
+| `kubectl exec -it <pod> -- nc -vz <service> <port>` | `succeeded` or `timed out`. | Tests the allowed traffic path from the source Pod, not from your workstation. |
 
 ## Isolation Model
 

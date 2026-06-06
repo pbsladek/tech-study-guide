@@ -14,7 +14,7 @@ tags:
 
 A proxy is an intermediary that receives traffic from one side and creates or forwards traffic on the other side. The word is broad: a browser proxy, egress proxy, reverse proxy, service mesh sidecar, TLS-terminating gateway, and caching proxy all change the path in different ways.
 
-## First Checks
+## Command Examples
 
 ```bash
 env | grep -i proxy
@@ -24,6 +24,14 @@ openssl s_client -proxy proxy.example:3128 -connect example.com:443 -servername 
 dig proxy.example
 tcpdump -nn -i any host proxy.example
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `env \| grep -i proxy` | `Concrete IDs, states, counters, versions, rows, or error strings.` | Turns the example from a command list into evidence for the next debugging step. |
+| `curl -v --proxy http://proxy.example:3128 https://example.com/` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
+| `curl -v --noproxy '*' https://example.com/` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
 
 Use these checks to prove whether the client is using a proxy, whether the proxy can resolve and connect, and whether TLS is end-to-end or intercepted.
 

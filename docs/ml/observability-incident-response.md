@@ -16,13 +16,21 @@ ML incidents often hide behind normal infrastructure health. The API can be up, 
 
 Prompt and retrieval logging should capture enough evidence to debug behavior without turning logs into an uncontrolled copy of sensitive user data.
 
-## First Checks
+## Command Examples
 
 ```bash
 date -Is
 curl -s http://localhost:8000/health
 curl -s http://localhost:8000/metrics | head
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `date -Is` | `2026-06-06T10:24:33-07:00` | Pins command output and logs to an exact incident timestamp. |
+| `curl -s http://localhost:8000/health` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
+| `curl -s http://localhost:8000/metrics \| head` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
 
 Health endpoints prove process reachability. They do not prove output quality.
 

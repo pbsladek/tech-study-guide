@@ -14,7 +14,7 @@ tags:
 
 Linux administration starts with identities and permissions. Processes run as users and groups. Files have owners, groups, and mode bits. `sudo` controls privilege escalation. Service accounts, locked passwords, SSH keys, ACLs, and filesystem ownership explain many production access failures.
 
-## First Checks
+## Command Examples
 
 ```bash
 id
@@ -24,6 +24,14 @@ sudo -l
 ls -l /etc/passwd /etc/shadow /etc/sudoers
 sudo visudo -c
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `id` | `uid=1000(app) gid=1000(app) groups=1000(app),27(sudo).` | Shows effective user and group identity. |
+| `getent passwd` | `app:x:1000:1000:App User:/srv/app:/usr/sbin/nologin.` | Confirms account UID, home, and shell from NSS. |
+| `getent group sudo` | `sudo:x:27:alice,ops.` | Shows group membership from NSS. |
 
 ## Identity Model
 

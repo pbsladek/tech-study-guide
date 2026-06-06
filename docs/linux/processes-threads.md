@@ -14,7 +14,7 @@ tags:
 
 Linux represents execution as tasks. What users call a process is usually a thread group with a process ID, address space, file descriptor table, credentials, signal state, namespaces, and cgroup membership. Threads are tasks that share many of those resources.
 
-## First Checks
+## Command Examples
 
 ```bash
 ps -eLf
@@ -24,6 +24,14 @@ cat /proc/<pid>/status
 ls /proc/<pid>/task
 cat /proc/<pid>/limits
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ps -eLf` | `PID, PPID, thread count, CPU, memory, and command rows.` | Shows process ownership, ancestry, and hot threads. |
+| `pstree -ap` | `PID, PPID, thread count, CPU, memory, and command rows.` | Shows process ownership, ancestry, and hot threads. |
+| `top -H -p <pid>` | `PID, PPID, thread count, CPU, memory, and command rows.` | Shows process ownership, ancestry, and hot threads. |
 
 ## Process, Thread, PID, and TID
 

@@ -14,7 +14,7 @@ tags:
 
 systemd can manage more than services. On many systems it also participates in network device configuration, DNS resolution, boot ordering, and logs. On Ubuntu Server, Netplan commonly renders configuration to either systemd-networkd or NetworkManager, so always confirm which manager owns the interface before editing files.
 
-## First Checks
+## Command Examples
 
 ```bash
 networkctl status
@@ -24,6 +24,14 @@ systemctl status systemd-networkd systemd-resolved
 journalctl -u systemd-networkd -b
 systemd-analyze critical-chain network-online.target
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `networkctl status` | Link state, addresses, routes, DNS, and configured files. | Shows what systemd-networkd thinks the link should be. |
+| `resolvectl status` | DNS servers, search domains, and per-link routing domains. | Verifies resolver behavior without guessing from `/etc/resolv.conf`. |
+| `systemd-analyze critical-chain network-online.target` | Units delaying `network-online.target`. | Explains boot waits caused by network readiness dependencies. |
 
 These commands show link state, address assignment, DNS state, unit health, networkd logs, and whether boot is waiting on network-online behavior.
 

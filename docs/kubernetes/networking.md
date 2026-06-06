@@ -14,7 +14,7 @@ tags:
 
 Kubernetes networking starts from a simple model: every Pod gets a cluster-wide IP, containers in the same Pod share a network namespace, and Pods should be able to communicate without manual port mapping. The hard part is that Kubernetes defines the model while plugins implement much of the datapath.
 
-## First Checks
+## Command Examples
 
 Start with inventory before packet captures. Most Kubernetes network incidents are faster to narrow when you know whether the failing hop is DNS, Service selection, kube-proxy replacement, CNI routing, policy enforcement, or an external load balancer.
 
@@ -25,6 +25,14 @@ kubectl get svc,endpointslice,ingress,gateway -A -o wide
 kubectl -n kube-system get pods -o wide
 kubectl exec -it <pod> -- cat /etc/resolv.conf
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `kubectl get nodes -o wide` | `node-a Ready ... INTERNAL-IP 10.0.1.10`. | Shows node readiness, addresses, versions, and the host layer that Pods land on. |
+| `kubectl get pods -A -o wide` | Pod rows with `STATUS Running`, Pod IPs, and node names. | Maps symptoms to a namespace, Pod IP, and node before packet captures. |
+| `kubectl get svc,endpointslice,ingress,gateway -A -o wide` | Services with ClusterIPs and EndpointSlices with backend Pod IPs. | Separates Service selection, endpoint readiness, and external routing objects. |
 
 ## Critical Subtopics
 

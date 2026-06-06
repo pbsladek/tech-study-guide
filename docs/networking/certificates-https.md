@@ -14,7 +14,7 @@ tags:
 
 HTTPS is HTTP carried over TLS. The certificate part proves the server identity to the client, while the TLS handshake negotiates keys and protects the traffic. Many production incidents are not "the network" or "the app"; they are trust-chain, SNI, SAN, intermediate certificate, or CA-store problems.
 
-## First Checks
+## Command Examples
 
 ```bash
 openssl s_client -connect example.com:443 -servername example.com -showcerts
@@ -23,6 +23,14 @@ openssl x509 -in server.crt -noout -text
 update-ca-certificates --fresh
 ls -l /etc/ssl/certs/ca-certificates.crt
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `openssl s_client -connect example.com:443 -servername example.com -showcerts` | Certificate chain, `notAfter`, issuer, and `Verify return code: 0 (ok)`. | Shows the certificate chain served for the exact SNI. |
+| `curl -Iv https://example.com/` | TLS version, certificate match, and HTTP status. | Tests how a normal HTTPS client sees the endpoint. |
+| `openssl x509 -in server.crt -noout -text` | SANs, key usage, issuer, and expiry. | Inspects a local certificate file before installing or serving it. |
 
 On Ubuntu and Debian systems, the system trust store is managed by the `ca-certificates` package and `update-ca-certificates`. Custom local root CAs normally go in `/usr/local/share/ca-certificates/` with a `.crt` extension, then `sudo update-ca-certificates` rebuilds `/etc/ssl/certs` and `/etc/ssl/certs/ca-certificates.crt`.
 

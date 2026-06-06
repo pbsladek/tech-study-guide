@@ -16,12 +16,19 @@ ML CI/CD should test behavior, not only build artifacts. A release can change mo
 
 Regression gates compare a candidate against the current approved baseline and block release when required behavior gets worse beyond an agreed threshold.
 
-## First Checks
+## Command Examples
 
 ```bash
 git diff --name-only
 date -Is
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `git diff --name-only` | `prompts/support.yaml and evals/golden.jsonl` | Shows which prompt, eval, or policy artifacts changed in the release. |
+| `date -Is` | `2026-06-06T10:24:33-07:00` | Pins command output and logs to an exact incident timestamp. |
 
 Before running evals, identify what changed: data, model, prompt, retrieval, tool, serving runtime, or policy.
 

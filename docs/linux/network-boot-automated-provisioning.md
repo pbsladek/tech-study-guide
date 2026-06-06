@@ -15,7 +15,7 @@ tags:
 
 Network booting lets a machine start without local install media. Automated provisioning builds on that: firmware gets a boot program from the network, the boot program loads an installer kernel and initrd, and the installer fetches a declarative answer file that partitions disks, installs packages, configures users, and hands off to first-boot automation.
 
-## First Checks
+## Command Examples
 
 ```bash
 tcpdump -ni <interface> 'port 67 or port 68 or port 69 or port 80 or port 4011'
@@ -24,6 +24,14 @@ curl -fsS http://<boot-server>/boot.ipxe
 curl -fsS http://<boot-server>/autoinstall/user-data
 ls -l /srv/tftp /var/lib/tftpboot /var/www/html
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `tcpdump -ni <interface> 'port 67 or port 68 or port 69 or port 80 or port 4011'` | `SYN, SYN-ACK, RST, FIN, ICMP, DNS, or no packets for the filter.` | Shows what packets actually cross the capture point. |
+| `journalctl -u isc-dhcp-server -u dnsmasq -u tftpd-hpa --no-pager` | `Timestamped kernel, service, denial, OOM, device, or network warnings.` | Finds time-correlated evidence from the host. |
+| `curl -fsS http://<boot-server>/boot.ipxe` | `HTTP status, headers, timing, JSON payload, or TLS/proxy error.` | Separates reachability, TLS, proxy, and application behavior. |
 
 ## Boot Flow
 

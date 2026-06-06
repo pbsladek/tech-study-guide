@@ -14,7 +14,7 @@ tags:
 
 Explainability asks why a model produced an output and whether that explanation is useful for the audience. A developer debugging a model, an operator triaging drift, a regulator reviewing a decision, and a user receiving an explanation need different evidence.
 
-## First Checks
+## Command Examples
 
 ```bash
 python - <<'PY'
@@ -22,6 +22,12 @@ features = {"age": 42, "income": 90000, "region": "west"}
 print(sorted(features))
 PY
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `Python snippet` | `['age', 'income', 'region']`. | Confirms the feature set being explained before choosing attribution or counterfactual tooling. |
 
 For real systems, first identify the model type, input features, preprocessing, prediction target, decision threshold, and required explanation audience.
 

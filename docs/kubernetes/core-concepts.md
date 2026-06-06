@@ -177,7 +177,7 @@ kubectl get pod <pod-name> -o jsonpath='{.status.conditions}'
 
 ## Failure Patterns
 
-| Symptom | Likely Layer | First Checks |
+| Symptom | Likely Layer | Command Evidence |
 | --- | --- | --- |
 | Pod stays Pending | Scheduler | Events, resource requests, taints, PVC binding, node selectors |
 | Pod starts but gets no traffic | Service readiness | Readiness probe, EndpointSlices, labels/selectors |

@@ -14,7 +14,7 @@ tags:
 
 Network Address Translation changes packet addresses or ports as traffic crosses a boundary. NAT is common in home networks, cloud VPCs, Kubernetes nodes, firewalls, load balancers, VPNs, and service-provider networks. It is useful because it connects address realms, but it also creates state, hides identity, changes troubleshooting evidence, and can become a hard scaling limit.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip route get 198.51.100.10
@@ -25,6 +25,14 @@ conntrack -L -p tcp --orig-src 10.0.0.10 2>/dev/null | head
 ss -tan state established
 tcpdump -nn -i any 'host 198.51.100.10 or host 10.0.0.10'
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ip route get 198.51.100.10` | `198.51.100.10 via 10.0.0.1 dev eth0 src 10.0.0.10`. | Shows which source IP and gateway feed the NAT path. |
+| `conntrack -S` | `entries 1048211`, `insert_failed 482`. | Reveals conntrack pressure that can block new NAT state. |
+| `conntrack -L -p tcp --orig-src 10.0.0.10 | head` | Entries with original and translated tuples. | Proves whether SNAT state exists for the client flow. |
 
 Use these checks to answer: where will the packet route, which policy table applies, what NAT rules exist, whether conntrack is healthy, whether connection state exists, and what the packet looks like before and after translation.
 

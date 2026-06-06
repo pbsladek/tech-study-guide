@@ -13,7 +13,7 @@ tags:
 
 UDP is simple at the transport layer, but that simplicity pushes reliability, retries, ordering, and congestion behavior into applications and higher protocols. Operators need to debug UDP differently from TCP because there is no handshake, no stream state, and often no obvious error when packets disappear.
 
-## First Checks
+## Command Examples
 
 ```bash
 ss -uan
@@ -23,6 +23,14 @@ dig +notcp example.com A
 dig +tcp example.com A
 openssl s_client -connect example.com:443 -servername example.com
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `ss -uan` | `Listening, established, TIME_WAIT, queues, PIDs, or socket summaries.` | Shows socket state and whether applications are listening or backpressured. |
+| `sudo tcpdump -nn -i any udp` | `SYN, SYN-ACK, RST, FIN, ICMP, DNS, or no packets for the filter.` | Shows what packets actually cross the capture point. |
+| `conntrack -L -p udp 2>/dev/null \| head` | `Entry counts, insert failures, or original/translated flow tuples.` | Exposes stateful firewall and NAT pressure. |
 
 ## UDP Model
 

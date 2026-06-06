@@ -16,7 +16,7 @@ Linux security is layered. Traditional UID/GID permissions are only the start; m
 
 The practical skill is identifying which layer denied the operation.
 
-## First Checks
+## Command Examples
 
 ```bash
 id
@@ -26,6 +26,14 @@ aa-status 2>/dev/null || true
 sestatus 2>/dev/null || true
 journalctl -k -g 'apparmor|SELinux|seccomp|audit'
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `id` | `uid=1000(app) gid=1000(app) groups=1000(app),27(sudo).` | Shows effective user and group identity. |
+| `sudo -l` | `User app may run /usr/bin/systemctl restart api as root.` | Shows allowed sudo commands and policy restrictions. |
+| `getcap -r /usr/bin /usr/sbin 2>/dev/null` | `/usr/bin/ping cap_net_raw=ep.` | Finds file capabilities that bypass normal privilege assumptions. |
 
 Permission failures can look identical at the application layer while coming from different controls.
 

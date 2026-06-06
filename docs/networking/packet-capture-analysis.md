@@ -17,7 +17,7 @@ Packet capture is the evidence layer between guesses and facts. A good capture c
 
 The skill is not just running `tcpdump`; it is choosing the right interface, filter, capture point, and time window.
 
-## First Checks
+## Command Examples
 
 ```bash
 ip addr
@@ -26,6 +26,14 @@ tcpdump -D
 sudo tcpdump -nn -i any host 203.0.113.10
 sudo tcpdump -nn -i eth0 'tcp port 443 and host 203.0.113.10'
 ```
+
+Example output and meaning:
+
+| Command | Example output | What it does |
+| --- | --- | --- |
+| `tcpdump -D` | `1.eth0`, `2.any`, `3.lo`. | Lists capture interfaces so you do not listen on the wrong device. |
+| `sudo tcpdump -nn -i any host 203.0.113.10` | `IP 10.0.0.5.49152 > 203.0.113.10.443: Flags [S]`. | Captures the packet path without DNS lookups or service-name translation. |
+| `sudo tcpdump -nn -i eth0 'tcp port 443 and host 203.0.113.10'` | SYN/SYN-ACK/RST/FIN flags for the target flow. | Narrows evidence to one host and port when broad captures are noisy. |
 
 Use `-nn` to avoid DNS and service-name lookups during incidents. Lookups can add noise or hang when DNS is part of the failure.
 
